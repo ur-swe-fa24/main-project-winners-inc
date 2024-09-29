@@ -1,0 +1,18 @@
+@startuml AlertsAndErrors
+actor "Field Engineer" as FE
+actor "Building Staff Member" as BSM
+rectangle "Field Engineer Support" {
+  usecase "Receive Robot Error" as UC3
+  usecase "Resolve Robot Error" as UC4
+}
+rectangle "Receiving Alerts" {
+  usecase "Receive Low Battery Alert" as UC1
+  usecase "Receive Low Water Alert" as UC2
+}
+BSM --> UC1
+BSM --> UC2
+FE --> UC1
+FE --> UC2
+FE --> UC3
+FE --> UC4
+@enduml

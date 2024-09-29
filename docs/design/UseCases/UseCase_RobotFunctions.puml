@@ -1,0 +1,16 @@
+@startuml RobotFunctions
+actor "Robot" as R
+rectangle "Robot Functionality and Mapping" {
+  usecase "Use Cleaning Functions" as UC1
+  usecase "Access Room Type" as UC2
+  usecase "Receive Map" as UC3
+  usecase "Follow Map" as UC4
+  usecase "Update Route" as UC5
+}
+
+R --> UC1
+R --> UC2
+R --> UC3
+R --> UC4
+R --> UC5
+@enduml
