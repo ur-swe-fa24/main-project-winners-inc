@@ -1,0 +1,33 @@
+@startuml AccessingData
+actor "Senior Manager" as SM
+participant "Dashboard UI" as UI
+participant "Analytics Backend" as BE
+
+SM -> UI : Open Dashboard
+SM -> UI : Select Robot Data (Error Rate, Battery Life, etc.)
+alt Error Rate Selected
+    UI -> BE : Request Error Rate Data
+    BE -> UI : Send Error Rate Data
+    UI -> SM : Display Error Rate
+end
+alt Battery Life Selected
+    UI -> BE : Request Battery Life Data
+    BE -> UI : Send Battery Life Data
+    UI -> SM : Display Battery Life
+end
+alt Cost Efficiency Selected
+    UI -> BE : Request Cost Efficiency Data
+    BE -> UI : Send Cost Efficiency Data
+    UI -> SM : Display Cost Efficiency
+end
+alt Time Efficiency Selected
+    UI -> BE : Request Time Efficiency Data
+    BE -> UI : Send Time Efficiency Data
+    UI -> SM : Display Time Efficiency
+end
+alt Water Usage Selected
+    UI -> BE : Request Water Usage Data
+    BE -> UI : Send Water Usage Data
+    UI -> SM : Display Water Usage
+end
+@enduml
