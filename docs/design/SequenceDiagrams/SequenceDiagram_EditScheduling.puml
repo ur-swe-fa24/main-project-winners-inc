@@ -4,7 +4,7 @@ participant "Scheduling UI" as UI
 participant "Scheduling Backend" as BE
 participant "Database" as DB
 
-== Editing a Schedule ==
+
 BM -> UI : Select Existing Schedule
 UI -> BE : Request Existing Schedule Data
 BE -> DB : Fetch Schedule Data
