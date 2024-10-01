@@ -1,0 +1,39 @@
+@startuml SchedulingAndHandlingTasks
+skinparam dpi 200
+skinparam DefaultFontName Inconsolata
+
+' Declare participants 
+participant UI
+participant SystemManager
+participant Database
+participant Simulation
+
+== User Requests Robot Availability ==
+
+' User requests preferences and receives availability that most closely matches their input
+UI -> SystemManager : Submit user input for time, date, and clean type
+activate SystemManager
+SystemManager -> Database : Check robot availability
+activate Database
+return Return robot availability 
+deactivate Database
+SystemManager -> UI : Return robot availability
+deactivate SystemManager
+
+
+== User Submits Request to Robot ==
+
+' User selects from returned availability and request is submitted
+UI -> SystemManager : Submit user selection
+activate SystemManager
+SystemManager -> Database : Add user selection to robot schedule
+activate Database
+return Added to schedule confirmation
+deactivate Database
+SystemManager -> Simulation : Send request to robot
+activate Simulation
+Simulation -> UI : Confirmation message
+deactivate Simulation
+deactivate UI
+
+@enduml
