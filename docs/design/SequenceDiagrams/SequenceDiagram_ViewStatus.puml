@@ -1,0 +1,10 @@
+@startuml ViewStatus
+actor "Building Manager" as BM
+participant "Status UI" as UI
+participant "Robot Management Backend" as BE
+
+BM -> UI : Open Real-Time Status Page
+UI -> BE : Request Real-Time Robot Data
+BE -> UI : Send Real-Time Data (battery, water, error status)
+UI -> BM : Display Real-Time Robot Status
+@enduml

@@ -1,0 +1,20 @@
+@startuml CreatingSchedule
+actor "Building Manager" as BM
+participant "Scheduling UI" as UI
+participant "Scheduling Backend" as BE
+participant "Database" as DB
+
+
+BM -> UI : Select Existing Schedule
+UI -> BE : Request Existing Schedule Data
+BE -> DB : Fetch Schedule Data
+DB -> BE : Send Schedule Data
+BE -> UI : Display Schedule for Editing
+BM -> UI : Modify Schedule Tasks/Assignments
+UI -> BE : Submit Edited Schedule
+BE -> DB : Update Schedule in Database
+DB -> BE : Acknowledge Schedule Updated
+BE -> UI : Confirm Schedule Updated
+UI -> BM : Display Success Message
+
+@enduml
