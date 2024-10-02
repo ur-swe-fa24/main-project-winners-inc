@@ -2,6 +2,17 @@
 ## Introduction
 The following description documents our intended implementation of the user interface (UI) for the system we will be designing for Cobotiq. The UI for the software is designed to uphold appropriate design principles such as simplicity, consistency, feedback, and error prevention and recovery. Users should be able to easily manage robot functions, monitor robot performance, and receive alerts and errors when appropriate. The Main Menu serves as the hub where the user is able to find all essential functions and submit requests efficiently.
 
+## Wireframes
+
+### Dashboard
+![Dashboard](WireFrames/Dashboard.png)
+
+### Task Scheduling
+![Task Scheduling](WireFrames/TaskScheduling.png)
+
+### Progress Monitoring
+![Progress Monitoring](WireFrames/Monitoring.png)
+
 ## Home Screen/ Dashboard
 Key Features:
 1. Hourly schedule displaying upcoming cleaning tasks. Each schedule block where there is a task scheduled will also display the type of clean and location where the clean will take place. To modify an existing scheduled task, the user may click on the block in the schedule. 
