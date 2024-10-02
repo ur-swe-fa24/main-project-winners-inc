@@ -1,0 +1,4 @@
+## Team Progress
+Overall, I feel like the team has done a great job of communicating during this sprint. With some complications due to illness--and in anticipation of more health-related issues as we move into flu season-- I feel like our team is in a really good place regarding the degree to which we are communicating. The team has done great work with keeping absent team members in the loop when they cannot be present during class, as well as answering any questions that other group members may have.
+## Individual Progress
+For this sprint, we divided up the work by assigning each team member a few of the bullet points in the Sprint 1 project specifications. I was assigned bullets 1c and 2d which involved the UI documentation and some of the UI-related sequence diagrams. I completed the *USER_INTERFACE.md* document and the following sequence diagrams: ErrorHandling, MonitoringStatus, and SchedulingTasks. 
