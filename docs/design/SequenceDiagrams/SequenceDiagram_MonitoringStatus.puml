@@ -1,0 +1,52 @@
+@startuml MonitoringTasksAndStatuses
+skinparam dpi 200
+skinparam DefaultFontName Inconsolata
+
+' Declare participants 
+participant UI
+participant SystemManager
+participant Database
+participant Simulation
+
+== Monitoring Task Progress ==
+
+' Loop continuously checking the status of the clean (active, not active)
+loop until_user_checks_status
+    Database -> Simulation: Check status of clean
+    activate Simulation
+    return Log status in database
+    deactivate Simulation
+end
+
+' User views page in UI where clean status is displayed, so data is retrieved and displayed
+UI -> SystemManager : User views clean status page in UI
+activate SystemManager
+SystemManager -> Database : Request clean status data
+activate Database
+return Return clean status data
+deactivate Database
+SystemManager -> UI : Data displayed in UI
+deactivate SystemManager
+
+
+== Monitoring Robot Statuses ==
+
+' Loop continuously checking the health status of the robot (battery, water, errors)
+loop until_user_checks_status
+    Database -> Simulation: Check battery, water, and error statuses
+    activate Simulation
+    return Log status in database
+    deactivate Simulation
+end
+
+' User views page in UI where health status is displayed, so data is retrieved and displayed
+UI -> SystemManager : User views health status page in UI
+activate SystemManager
+SystemManager -> Database : Request health status data
+activate Database
+return Return health status data
+deactivate Database
+SystemManager -> UI : Data displayed in UI
+deactivate SystemManager
+
+@enduml
