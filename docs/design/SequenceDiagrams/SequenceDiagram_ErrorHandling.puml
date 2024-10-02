@@ -1,0 +1,32 @@
+@startuml SendingAlerts
+skinparam dpi 200
+skinparam DefaultFontName Inconsolata
+
+' Declare participants 
+participant UI
+participant SystemManager
+participant Database
+participant Simulation
+
+== Monitoring Task Progress ==
+
+' Loop continuously checking the status of the clean (active, not active)
+loop until_error_occurs
+    Simulation -> Simulation: Clean
+end
+
+== In Case of Error ==
+
+' Error is handled by pausing robot, alerting user, and logging error/statuses in database
+Simulation -> SystemManager : Send error message
+activate SystemManager
+SystemManager -> UI : Alert user
+activate UI
+return User acknowledges issue
+deactivate UI
+deactivate SystemManager
+
+Simulation -> Database : Log error and robot statuses
+
+
+@enduml
