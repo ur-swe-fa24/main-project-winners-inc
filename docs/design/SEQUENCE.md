@@ -6,7 +6,7 @@ This document describes the key interactions among system participants as repres
 
 **Related Use Case:** Manage Tasks (Building Manager)
 
-**Diagram:** SequenceDiagram_SchedulingTasks.puml
+**Diagram:** [SequenceDiagram_SchedulingTasks.puml](SequenceDiagrams/SequenceDiagram_SchedulingTasks.puml)
 
 This sequence diagram shows the process of a Building Manager scheduling a new cleaning task:
 
@@ -24,7 +24,7 @@ This diagram demonstrates how the system handles task creation and assignment, w
 
 **Related Use Case:** Robot Analytics (Senior Manager)
 
-**Diagram:** SequenceDiagram_MonitoringStatus.puml
+**Diagram:** [SequenceDiagram_MonitoringStatus.puml](SequenceDiagrams/SequenceDiagram_MonitoringStatus.puml)
 
 This sequence diagram illustrates two main processes:
 
@@ -43,7 +43,7 @@ This diagram shows how the system continuously monitors robot status and how use
 
 **Related Use Case:** Alerts and Errors (Field Engineer)
 
-**Diagram:** SequenceDiagram_ErrorHandling.puml
+**Diagram:** [SequenceDiagram_ErrorHandling.puml](SequenceDiagrams/SequenceDiagram_ErrorHandling.puml)
 
 This sequence diagram shows the process of error detection and handling:
 
@@ -59,7 +59,7 @@ This diagram illustrates how the system detects and responds to errors, which is
 
 **Related Use Case:** Manage Tasks (Building Manager)
 
-**Diagram:** SequenceDiagram_CreatingSchedule.puml
+**Diagram:** [SequenceDiagram_CreatingSchedule.puml](SequenceDiagrams/SequenceDiagram_CreatingSchedule.puml)
 
 This sequence diagram shows the process of a Building Manager creating a new cleaning schedule:
 
@@ -75,7 +75,7 @@ This diagram provides a more detailed view of schedule creation, which is part o
 
 **Related Use Case:** Manage Tasks (Building Manager)
 
-**Diagram:** SequenceDiagram_EditScheduling.puml
+**Diagram:** [SequenceDiagram_EditScheduling.puml](SequenceDiagrams/SequenceDiagram_EditScheduling.puml)
 
 This sequence diagram illustrates the process of editing an existing schedule:
 
@@ -93,7 +93,7 @@ This diagram shows how the system handles schedule modifications, another aspect
 
 **Related Use Case:** Robot Analytics (Senior Manager)
 
-**Diagram:** SequenceDiagram_AccessingData.puml
+**Diagram:** [SequenceDiagram_AccessingData.puml](SequenceDiagrams/SequenceDiagram_AccessingData.puml)
 
 This sequence diagram shows how a Senior Manager accesses various types of robot performance data:
 
@@ -109,7 +109,7 @@ This diagram illustrates how the system provides detailed analytics to Senior Ma
 
 **Related Use Case:** Robot Analytics (Building Manager)
 
-**Diagram:** SequenceDiagram_ViewStatus.puml
+**Diagram:** [SequenceDiagram_ViewStatus.puml](SequenceDiagrams/SequenceDiagram_ViewStatus.puml)
 
 This sequence diagram shows how a Building Manager views real-time robot status:
 
@@ -124,7 +124,7 @@ This diagram demonstrates how the system provides up-to-date robot status inform
 
 **Related Use Case:** Alerts and Errors (Field Engineer)
 
-**Diagram:** SequenceDiagram_Alerts.puml
+**Diagram:** [SequenceDiagram_Alerts.puml](SequenceDiagrams/SequenceDiagram_Alerts.puml)
 
 This sequence diagram illustrates how alerts are triggered and handled:
 
