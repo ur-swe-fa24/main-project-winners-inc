@@ -369,3 +369,8 @@ These classes define the business logic for user actions and enforce permission 
   3. The service checks `user.role.hasPermission("FIX_ROBOT")`.
   4. If permission is granted, robot maintenance is initiated.
 
+---
+
+## **Class Diagram Visualized**
+
+![class Diagram](../design/ClassDiagrams/classDiagram.png "ClassDiagram")
