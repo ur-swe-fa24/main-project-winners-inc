@@ -1,0 +1,182 @@
+@startuml
+
+' Classes for User, Role, and Permission
+class User {
+    - id: int
+    - name: String
+    - role: Role
+    --
+    + login()
+    + logout()
+    + receiveNotification(alert: Alert)
+}
+
+class Role {
+    - name: String
+    - permissions: List<Permission>
+    --
+    + hasPermission(permissionName: String): bool
+}
+
+class Permission {
+    - name: String
+}
+
+User --> Role
+Role "1" o-- "0..*" Permission
+
+' Service Classes
+class AnalyticsService {
+    + viewAnalytics(user: User)
+}
+
+class SchedulingService {
+    + createSchedule(user: User, schedule: Schedule)
+    + editSchedule(user: User, schedule: Schedule)
+}
+
+class RobotManagementService {
+    + viewRobotStatus(user: User, robot: Robot)
+    + assignTask(user: User, task: CleaningTask)
+    + fixRobot(user: User, robot: Robot)
+    + addRobot(user: User, robot: Robot)
+    + removeRobot(user: User, robot: Robot)
+}
+
+' Robot and CleaningTask
+class Robot {
+    - id: int
+    - batteryLevel: float
+    - waterLevel: float
+    - errorRate: float
+    - location: Location
+    - status: String
+    - assignedTask: CleaningTask
+    --
+    + sendStatusUpdate()
+    + receiveTask(task: CleaningTask)
+    + checkStatus()
+    + cleanArea(area: Area)
+    + navigate(map: Map)
+    + reportError(error: Error)
+}
+
+class CleaningTask {
+    - id: int
+    - priority: int
+    - status: String
+    - area: Area
+    - cleaningType: String
+    --
+    + assignRobot(robot: Robot)
+    + markCompleted()
+    + markFailed()
+}
+
+Robot "1" <-- "0..1" CleaningTask : assignedTask
+CleaningTask "1" --> "1" Area
+
+' Schedule and Map
+class Schedule {
+    - tasks: List<CleaningTask>
+    --
+    + createDailySchedule()
+    + editSchedule()
+    + enqueueTask(task: CleaningTask)
+    + dequeueTask()
+}
+
+Schedule "1" *-- "0..*" CleaningTask
+
+class Map {
+    - areas: List<Area>
+    - virtualWalls: List<VirtualWall>
+    --
+    + getRoute(start: Location, end: Location)
+    + updateMap()
+}
+
+Map "1" *-- "0..*" Area
+Map "1" *-- "0..*" VirtualWall
+
+' Area, Room, Zone
+abstract class Area {
+    - id: int
+    - type: String
+    - status: String
+}
+
+class Room {
+    - flooringType: String
+    --
+    + markClean()
+    + markDirty()
+}
+
+class Zone {
+    - description: String
+}
+
+Area <|-- Room
+Area <|-- Zone
+
+' VirtualWall
+class VirtualWall {
+    - id: int
+    - coordinates: List<Location>
+}
+
+' AlertSystem and Alert
+class AlertSystem {
+    + sendAlert(user: User, alert: Alert)
+}
+
+class Alert {
+    - type: String
+    - message: String
+    - robot: Robot
+    - location: Location
+    - timestamp: DateTime
+}
+
+AlertSystem ..> Alert
+AlertSystem ..> User : sendAlert
+
+' Analytics and RobotMetrics
+class Analytics {
+    - robotData: Map<Robot, RobotMetrics>
+    --
+    + generateReport()
+    + getRobotEfficiency(robot: Robot)
+}
+
+class RobotMetrics {
+    - utilization: float
+    - errorRate: float
+    - costEfficiency: float
+    - timeEfficiency: float
+    - batteryUsage: float
+    - waterUsage: float
+}
+
+Analytics "1" *-- "0..*" RobotMetrics
+
+Robot --> Analytics : data
+
+' Systems
+class SchedulingSystem {
+    + assignTasks()
+    + receiveRobotStatus(robot: Robot)
+    + createVirtualWall(wall: VirtualWall)
+}
+
+class MappingSystem {
+    + outputWorkingPath()
+}
+
+' Additional relationships
+RobotManagementService ..> Robot
+SchedulingService ..> Schedule
+AnalyticsService ..> Analytics
+
+@enduml

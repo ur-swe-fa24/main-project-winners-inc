@@ -1,0 +1,20 @@
+@startuml AssignTasks
+actor "Building Manager" as BM
+actor "Building Staff Member" as BSM
+
+rectangle "Building Management and Scheduling" {
+  usecase "Create Daily Cleaning Schedule" as UC1
+  usecase "Edit Daily Cleaning Schedule" as UC2
+}
+rectangle "Cleaning Task" {
+  usecase "Assign Spot Cleaning Task" as UC3
+  usecase "Assign Room Cleaning Task" as UC4
+}
+
+BM --> UC1
+BM --> UC2
+BM --> UC3
+BM --> UC4
+BSM --> UC3
+BSM --> UC4
+@enduml

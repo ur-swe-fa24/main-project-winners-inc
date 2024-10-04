@@ -1,0 +1,27 @@
+@startuml RobotAnalytics
+actor "Senior Manager" as SM
+actor "Building Manager" as BM
+actor "Feild Engineer" as FE
+
+rectangle "Real-Time Analytics" {
+  usecase "Access Battery Life" as UC2
+  usecase "Access Cost Efficiency" as UC3
+  usecase "Access Water Usage" as UC5
+}
+
+rectangle "Senior Management Analytics" {
+  usecase "Access Error Rate" as UC1 
+  usecase "Access Time Efficiency" as UC4
+}
+
+SM --> UC1
+SM --> UC2
+SM --> UC3
+SM --> UC4
+SM --> UC5
+BM --> UC2
+BM --> UC3
+BM --> UC5
+FE --> UC1
+FE --> UC4
+@enduml

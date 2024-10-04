@@ -1,0 +1,17 @@
+@startuml CreatingSchedule
+actor "Building Manager" as BM
+participant "Scheduling UI" as UI
+participant "Scheduling Backend" as BE
+participant "Database" as DB
+
+BM -> UI : Open Scheduling Interface
+BM -> UI : Select "Create New Schedule"
+UI -> BM : Display Schedule Creation Form
+BM -> UI : Input Cleaning Tasks and Assign Robots
+UI -> BE : Submit New Schedule Data
+BE -> DB : Save New Schedule
+DB -> BE : Acknowledge Schedule Saved
+BE -> UI : Confirm Schedule Created
+UI -> BM : Display Success Message
+
+@enduml

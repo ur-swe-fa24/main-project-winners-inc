@@ -1,0 +1,13 @@
+@startuml TriggerAlerts
+actor "Field Engineer" as FE
+participant "Alert System UI" as UI
+participant "Notification Backend" as BE
+
+BE -> UI : Trigger Low Battery Alert
+UI -> FE : Display Low Battery Notification
+FE -> UI : Acknowledge Low Battery Alert
+
+BE -> UI : Trigger Robot Error Alert
+UI -> FE : Display Robot Error Notification (with location)
+FE -> UI : Acknowledge Robot Error Alert
+@enduml
