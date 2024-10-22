@@ -1,4 +1,4 @@
-#include "alertSystem.h"
+#include "alert_system.h"
 #include <iostream>
 
 // sendAlert declaration

@@ -2,7 +2,7 @@
 #ifndef USER_H
 #define USER_H
 
-#include "alert.h"
+#include "Alert.h"
 #include "role.h"
 #include <string>
 
