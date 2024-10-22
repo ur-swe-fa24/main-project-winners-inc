@@ -16,7 +16,7 @@ add_library(sprint2
     src/Robot.cpp
     src/Room.cpp)
 
-target_include_directories(sprint1
+target_include_directories(sprint2
     PUBLIC
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>)
 
