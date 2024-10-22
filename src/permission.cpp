@@ -1,5 +1,5 @@
 // permission.cpp
-#include "Permission.h"
+#include "permission/permission.h"
 
 // Constructor implementation
 Permission::Permission(const std::string &name) : name(name) {}

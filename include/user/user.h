@@ -2,8 +2,8 @@
 #ifndef USER_H
 #define USER_H
 
-#include "alert.h"
-#include "role.h"
+#include "alert/Alert.h"
+#include "role/role.h"
 #include <string>
 
 class User {
