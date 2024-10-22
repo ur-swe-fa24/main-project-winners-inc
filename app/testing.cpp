@@ -1,8 +1,9 @@
-// testing.cpp
 #include "alert_system.h"
-#include "user.h"
+#include "User.h"
 #include "Role.h"
 #include "Permission.h"
+#include "Robot.h"
+#include "Room.h"
 #include <iostream>
 #include <ctime>
 
@@ -23,7 +24,7 @@ void testAlertSystem() {
     User adminUser(1, "AdminUser", adminRole);
     User regularUser(2, "RegularUser", userRole);
 
-    // Create Robot and Room objects (assuming they are defined elsewhere)
+    // Create Robot and Room instances
     Robot robot("CleaningRobot", 100);  // Example attributes
     Room room("MainRoom", 101);         // Example attributes
 
@@ -45,6 +46,5 @@ void testAlertSystem() {
 int main() {
     // Run the test function
     testAlertSystem();
-
     return 0;
 }

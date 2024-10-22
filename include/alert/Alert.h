@@ -11,9 +11,9 @@ public:
     // Attributes
     std::string type;
     std::string message;
-    Robot robot;                // Need to define Robot class elsewhere
-    Room room;                  // Need to define Room class elsewhere
-    //std::time_t timestamp;    // Do we need DateTime class?
+    Robot* robot;    // Use a pointer to the Robot class
+    Room* room;      // Use a pointer to the Room class
+    std::time_t timestamp;    // Do we need DateTime class?
 
     // Constructor and destructor
     Alert(const std::string& type, const std::string& message, Robot* robot, Room* room, std::time_t timestamp);
