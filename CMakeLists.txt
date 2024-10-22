@@ -8,8 +8,10 @@ include(dependencies/get_cpm.cmake)
 include(dependencies/dependencies.cmake)
 
 add_library(sprint1
-    src/AlertSystem.cpp
-    src/user.cpp)
+    src/role.cpp
+    src/user.cpp
+    src/permission.cpp
+    src/alert.cpp)
 
 target_include_directories(sprint1
     PUBLIC
