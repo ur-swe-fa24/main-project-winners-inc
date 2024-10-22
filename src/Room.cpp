@@ -1,20 +1,15 @@
-// Room.h
-#ifndef ROOM_H
-#define ROOM_H
+// src/Room.cpp
+#include "Room/Room.h"
+#include <iostream>
 
-#include <string>
+// Constructor implementation
+Room::Room(const std::string& roomName, int roomId)
+    : roomName(roomName), roomId(roomId) {
+    // Initialization code if needed
+}
 
-class Room {
-public:
-    // Attributes
-    std::string roomName;
-    int roomId;
+// Implement getRoomInfo method (if used)
+void Room::getRoomInfo() const {
+    std::cout << "Room Name: " << roomName << ", Room ID: " << roomId << std::endl;
+}
 
-    // Constructor
-    Room(const std::string& roomName, int roomId);
-
-    // Method to get room information (for demonstration purposes)
-    void getRoomInfo() const;
-};
-
-#endif // ROOM_H

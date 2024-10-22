@@ -1,8 +1,8 @@
 #ifndef ALERTSYSTEM_H
 #define ALERTSYSTEM_H
 
-#include "User.h"  // Need to define User class elsewhere
-#include "Alert.h"
+#include "user/user.h"  // Need to define User class elsewhere
+#include "alert/Alert.h"
 
 class AlertSystem {
 public:

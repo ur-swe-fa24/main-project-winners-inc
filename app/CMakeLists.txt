@@ -1,18 +1,3 @@
-# add_executable(testing_app
-# ${PROJECT_SOURCE_DIR}/app/testing.cpp  # Reference to app/testing.cpp
-# ${PROJECT_SOURCE_DIR}/src/user.cpp     # Corrected path to src/user.cpp
-# ${PROJECT_SOURCE_DIR}/src/alert.cpp 
-# ${PROJECT_SOURCE_DIR}/src/role.cpp 
-# ${PROJECT_SOURCE_DIR}/src/permission.cpp
-# ${PROJECT_SOURCE_DIR}/src/alert_system.cpp
-# ${PROJECT_SOURCE_DIR}/src/Robot.cpp
-# ${PROJECT_SOURCE_DIR}/src/Room.cpp)
-
-
-# target_include_directories(testing_app PRIVATE ${PROJECT_SOURCE_DIR}/include)
-
-# target_compile_features(testing_app PRIVATE cxx_std_17)
-
 # app/CMakeLists.txt
 
 add_executable(testing_app

@@ -2,7 +2,7 @@
 #ifndef ROLE_H
 #define ROLE_H
 
-#include "permission.h"
+#include "permission/permission.h"
 #include <string>
 #include <vector>
 

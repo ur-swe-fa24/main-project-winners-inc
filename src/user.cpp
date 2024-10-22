@@ -1,5 +1,5 @@
 // user.cpp
-#include "user.h"
+#include "user/user.h"
 #include <iostream>
 
 // Constructor implementation
@@ -13,7 +13,7 @@ void User::logout() { std::cout << name << " has logged out." << std::endl; }
 
 // Receive notification (alert)
 void User::receiveNotification(const Alert &alert) {
-    std::cout << "Alert for " << name << ": " << alert.getMessage() << std::endl;
+    std::cout << "Alert for " << name << ": " << alert.message << std::endl;
 }
 
 // Getter for id
