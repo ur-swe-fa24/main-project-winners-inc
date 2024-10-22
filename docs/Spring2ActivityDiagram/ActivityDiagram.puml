@@ -1,0 +1,40 @@
+@startuml
+title Robot Alert System - Alert Sending Process
+
+start
+
+:Initialize AlertSystem;
+
+:Create Robot object;
+:Create Room object;
+
+:Create Alert object;
+note right
+  Alert details:
+  - Type
+  - Message
+  - Associated Robot
+  - Associated Room
+  - Timestamp
+end note
+
+:Create User object;
+note right
+  User details:
+  - ID
+  - Name
+  - Role (with Permissions)
+end note
+
+:AlertSystem sends alert to User;
+
+if (User has required Permission?) then (Yes)
+    :User receives Notification;
+    :Display Alert Message;
+else (No)
+    :Access Denied;
+    :Log Unauthorized Access Attempt;
+endif
+
+stop
+@enduml
