@@ -8,7 +8,7 @@
 // Alert::~Alert() {}
 
 
-#include "Alert.h"
+#include "alert/Alert.h"
 
 // Constructor
 Alert::Alert(const std::string& type, const std::string& message, Robot* robot, Room* room, std::time_t timestamp)
@@ -16,10 +16,6 @@ Alert::Alert(const std::string& type, const std::string& message, Robot* robot, 
 
 // Destructor
 Alert::~Alert() {}
-
-
-
-
 
 
 
