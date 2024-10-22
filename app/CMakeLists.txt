@@ -3,7 +3,10 @@ add_executable(testing_app
     src/user.cpp     
     src/alert.cpp 
     src/role.cpp 
-    src/permission.cpp)
+    src/permission.cpp
+    src/alert_system.cpp
+    src/Robot.cpp
+    src/Room.cpp)
 
 target_include_directories(testing_app PRIVATE ${PROJECT_SOURCE_DIR}/include)
 
