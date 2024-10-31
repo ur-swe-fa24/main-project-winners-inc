@@ -53,7 +53,7 @@
 //     return 0;
 // }
 
-
+#include "alert/Alert.h"
 #include "AlertSystem/alert_system.h"
 #include "user/user.h"
 #include "role/role.h"
