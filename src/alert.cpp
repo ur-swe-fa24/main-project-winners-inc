@@ -8,13 +8,18 @@ Alert::Alert(const std::string& type, const std::string& message, Robot* robot, 
 // Destructor
 Alert::~Alert() {}
 
-// Getter for alert type
-std::string Alert::getType() const {
+// Getter for alert type (title)
+std::string Alert::getTitle() const {
     return type;
 }
 
-// Getter for alert message
+// In Alert.cpp
 std::string Alert::getMessage() const {
+    return message;
+}
+
+// Getter for alert message (description)
+std::string Alert::getDescription() const {
     return message;
 }
 

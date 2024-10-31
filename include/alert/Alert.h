@@ -22,6 +22,8 @@ public:
     // Getters
     std::string getType() const;
     std::string getMessage() const;
+    std::string getTitle() const;          // New method for title
+    std::string getDescription() const;    // New method for description
     Robot* getRobot() const;
     Room* getRoom() const;
     std::time_t getTimestamp() const;
@@ -37,10 +39,10 @@ private:
     // Attributes
     std::string type;
     std::string message;
-    Robot* robot;           // Use a pointer to the Robot class
-    Room* room;             // Use a pointer to the Room class
-    std::time_t timestamp;  // Timestamp of the alert
-    Severity severity;      // Severity level of the alert
+    Robot* robot;
+    Room* room;
+    std::time_t timestamp;
+    Severity severity;
 };
 
 #endif // ALERT_H

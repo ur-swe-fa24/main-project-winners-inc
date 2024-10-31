@@ -77,7 +77,7 @@ void saveAlertToDB(const Alert& alert, mongocxx::collection& collection) {
         kvp("title", alert.getTitle()),
         kvp("description", alert.getDescription()),
         kvp("robot_name", alert.getRobot()->getName()),
-        kvp("room_name", alert.getRoom()->getName()),
+        kvp("room_name", alert.getRoom()->getRoomName()),
         kvp("timestamp", static_cast<int64_t>(alert.getTimestamp())) // Save as UNIX timestamp
     );
 
