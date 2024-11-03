@@ -1,5 +1,5 @@
-// src/Room.cpp
-#include "Room/Room.h"
+// src/room.cpp
+#include "room/room.h"
 #include <iostream>
 
 // Constructor implementation
@@ -13,3 +13,12 @@ void Room::getRoomInfo() const {
     std::cout << "Room Name: " << roomName << ", Room ID: " << roomId << std::endl;
 }
 
+// Marking a given room as clean
+void Room::markClean(std::string roomName){
+    isRoomClean == true;
+}
+
+// Marking a given room as dirty
+void Room::markDirty(std::string roomName){
+    isRoomClean == false;
+}
