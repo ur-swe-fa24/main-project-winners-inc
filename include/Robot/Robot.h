@@ -1,4 +1,3 @@
-// Robot.h
 #ifndef ROBOT_H
 #define ROBOT_H
 
@@ -6,15 +5,29 @@
 
 class Robot {
 public:
-    // Attributes
-    std::string name;
-    int batteryLevel;
-
     // Constructor
     Robot(const std::string& name, int batteryLevel);
 
-    // Method to send a status update (for demonstration purposes)
+    // Status update method (for demonstration purposes)
     void sendStatusUpdate() const;
+
+    // Method to recharge the robot
+    void recharge();
+
+    // Method to perform a maintenance check
+    bool needsMaintenance() const;
+
+    // Getters
+    std::string getName() const;
+    int getBatteryLevel() const;
+
+    // Method to deplete battery (for testing purposes)
+    void depleteBattery(int amount);
+
+private:
+    // Attributes
+    std::string name;
+    int batteryLevel;
 };
 
 #endif // ROBOT_H
