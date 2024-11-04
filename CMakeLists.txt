@@ -11,6 +11,7 @@ include(dependencies/dependencies.cmake)
 # Find MongoDB and spdlog packages
 find_package(spdlog REQUIRED)
 find_package(mongocxx REQUIRED)
+find_package(wxWidgets REQUIRED)
 
 # Define the sprint1 library with all necessary source files
 add_library(sprint1
