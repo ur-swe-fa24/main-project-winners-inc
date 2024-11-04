@@ -3,6 +3,9 @@
 
 #include <string>
 #include <ctime>  // For std::time_t
+#include <memory>
+
+
 #include "Robot/Robot.h"
 #include "Room/Room.h"
 
@@ -16,7 +19,7 @@ public:
     };
 
     // Constructor and Destructor
-    Alert(const std::string& type, const std::string& message, Robot* robot, Room* room, std::time_t timestamp, Severity severity = MEDIUM);
+    Alert(const std::string& type, const std::string& message, std::shared_ptr<Robot> robot, std::shared_ptr<Room> room, std::time_t timestamp, Severity severity = LOW);
     ~Alert();
 
     // Getters
@@ -24,8 +27,8 @@ public:
     std::string getMessage() const;
     std::string getTitle() const;          // New method for title
     std::string getDescription() const;    // New method for description
-    Robot* getRobot() const;
-    Room* getRoom() const;
+    std::shared_ptr<Robot> getRobot() const;
+    std::shared_ptr<Room> getRoom() const;
     std::time_t getTimestamp() const;
     Severity getSeverity() const;
 
@@ -39,8 +42,8 @@ private:
     // Attributes
     std::string type;
     std::string message;
-    Robot* robot;
-    Room* room;
+    std::shared_ptr<Robot> robot;
+    std::shared_ptr<Room> room;
     std::time_t timestamp;
     Severity severity;
 };

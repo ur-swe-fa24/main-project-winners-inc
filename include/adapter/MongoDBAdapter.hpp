@@ -2,22 +2,66 @@
 #define MONGODB_ADAPTER_HPP
 
 #include "alert/Alert.h"
+#include "Robot/Robot.h"
 #include <mongocxx/client.hpp>
 #include <mongocxx/collection.hpp>
 #include <string>
 #include <vector>
+#include <queue>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <atomic>
 
 class MongoDBAdapter {
 public:
-    MongoDBAdapter(const std::string& uri, const std::string& dbName, const std::string& collectionName);
+    MongoDBAdapter(const std::string& uri, const std::string& dbName, const std::string& alertCollectionName, const std::string& robotStatusCollectionName);
+    ~MongoDBAdapter();
 
-    // Methods to save and retrieve alerts
+    // Alert methods
     void saveAlert(const Alert& alert);
     std::vector<Alert> retrieveAlerts();
+    void deleteAllAlerts();
+    void dropAlertCollection();
+
+    // Robot status methods
+    void saveRobotStatus(std::shared_ptr<Robot> robot);
+    std::vector<Robot> retrieveRobotStatuses();
+    void deleteAllRobotStatuses();
+    void dropRobotStatusCollection();
+
+    // Asynchronous robot status methods
+    void saveRobotStatusAsync(std::shared_ptr<Robot> robot);
+    void stopRobotStatusThread();
+
+    // Thread management
+    void stop();
 
 private:
+    // Alert processing
+    void processSaveQueue();
+
+    // Robot status processing
+    void processRobotStatusQueue();
+
+    // MongoDB client and collections
     mongocxx::client client_;
-    mongocxx::collection collection_;
+    mongocxx::collection alertCollection_;
+    mongocxx::collection robotStatusCollection_;
+
+    // Alert threading members
+    std::queue<Alert> saveQueue_;
+    std::thread dbThread_;
+    std::mutex queueMutex_;
+    std::condition_variable cv_;
+    std::atomic<bool> running_;
+
+    // Robot status threading members
+    std::queue<std::shared_ptr<Robot>> robotStatusQueue_;
+    std::thread robotStatusThread_;
+    std::mutex robotStatusMutex_;
+    std::condition_variable robotStatusCV_;
+    std::atomic<bool> robotStatusRunning_;
 };
 
 #endif // MONGODB_ADAPTER_HPP

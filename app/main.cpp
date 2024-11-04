@@ -1,3 +1,5 @@
+// main.cpp
+
 #include "alert/Alert.h"
 #include "AlertSystem/alert_system.h"
 #include "user/user.h"
@@ -8,21 +10,22 @@
 #include <iostream>
 #include <ctime>
 #include "adapter/MongoDBAdapter.hpp"  // Include the adapter
-
-// Add this include statement for mongocxx::instance
-#include <mongocxx/instance.hpp>       // **Include this header**
+#include <mongocxx/instance.hpp>       // For mongocxx::instance
+#include <thread>                      // For std::this_thread::sleep_for
+#include <chrono>                      // For std::chrono::seconds
+#include <memory> // Include this header
 
 void testAlertSystem() {
     // Initialize MongoDB (instance should be created once)
     static mongocxx::instance instance{};
 
-    // Initialize MongoDB Adapter
+    // Initialize MongoDB Adapter with updated constructor
     std::string uri = "mongodb://localhost:27017";
     std::string dbName = "mydb";
-    std::string collectionName = "alerts";
-    MongoDBAdapter dbAdapter(uri, dbName, collectionName);
+    std::string alertCollectionName = "alerts";
+    std::string robotStatusCollectionName = "robot_statuses";
+    MongoDBAdapter dbAdapter(uri, dbName, alertCollectionName, robotStatusCollectionName);
 
-    // Rest of your code...
     // Create Permissions
     Permission adminPermission("ADMIN");
     Permission userPermission("USER");
@@ -39,34 +42,77 @@ void testAlertSystem() {
     User regularUser(2, "RegularUser", userRole);
 
     // Create Robot and Room instances
-    Robot robot("CleaningRobot", 100);  // Example attributes
-    Room room("MainRoom", 101);         // Example attributes
-
-    // Create an alert
-    std::time_t currentTime = std::time(nullptr);
-    Alert cleaningAlert("Cleaning", "Robot needs maintenance", &robot, &room, currentTime);
+    auto robot = std::make_shared<Robot>("CleaningRobot", 100);  // Example attributes
+    auto room = std::make_shared<Room>("MainRoom", 101);         // Example attributes
 
     // Create AlertSystem
     AlertSystem alertSystem;
 
-    // Simulate sending alerts and saving to MongoDB
-    std::cout << "Testing sending alert to AdminUser:" << std::endl;
-    alertSystem.sendAlert(&adminUser, &cleaningAlert);
-    dbAdapter.saveAlert(cleaningAlert);  // Use the adapter to save alert to MongoDB
+    // Delete existing alerts and robot statuses before starting
+    dbAdapter.deleteAllAlerts();
+    dbAdapter.deleteAllRobotStatuses();
 
-    std::cout << "Testing the robot status:" << std::endl;
-    robot.sendStatusUpdate();
+    // Simulate sending multiple alerts and saving to MongoDB
+    for (int i = 0; i < 5; ++i) {
+        // Create an alert
+        std::time_t currentTime = std::time(nullptr);
+        std::string alertTitle = "Alert " + std::to_string(i + 1);
+        std::string alertMessage = "Message for alert " + std::to_string(i + 1);
+        Alert alert(alertTitle, alertMessage, robot, room, currentTime);
 
-    std::cout << "\nTesting sending alert to RegularUser:" << std::endl;
-    alertSystem.sendAlert(&regularUser, &cleaningAlert);
+        // Send alert to adminUser
+        alertSystem.sendAlert(&adminUser, &alert);
+
+        // Save alert to MongoDB using the adapter
+        dbAdapter.saveAlert(alert);
+
+        // Update robot status and save asynchronously
+        robot->depleteBattery(10);  // Decrease battery level by 10%
+        dbAdapter.saveRobotStatusAsync(robot);
+
+        // Sleep for a short duration to simulate time between alerts
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    }
+
+    // Give some time for all alerts and robot statuses to be processed
+    std::this_thread::sleep_for(std::chrono::seconds(2));
 
     // Retrieve all alerts from MongoDB using the adapter
     auto alerts = dbAdapter.retrieveAlerts();
 
-    // Optionally, display the retrieved alerts
+    // Display the retrieved alerts
     for (const auto& alert : alerts) {
         alert.displayAlertInfo();
     }
+
+    // Retrieve all robot statuses from MongoDB using the adapter
+    auto robots = dbAdapter.retrieveRobotStatuses();
+
+    // Display the retrieved robot statuses
+    for (const auto& r : robots) {
+        std::cout << "Robot Name: " << r.getName()
+                  << ", Battery Level: " << r.getBatteryLevel() << "%" << std::endl;
+    }
+
+    // Test delete methods
+    dbAdapter.deleteAllAlerts();
+    dbAdapter.deleteAllRobotStatuses();
+
+    // Verify that collections are empty
+    auto alertsAfterDeletion = dbAdapter.retrieveAlerts();
+    auto robotsAfterDeletion = dbAdapter.retrieveRobotStatuses();
+
+    std::cout << "\nAlerts after deletion: " << alertsAfterDeletion.size() << std::endl;
+    std::cout << "Robot statuses after deletion: " << robotsAfterDeletion.size() << std::endl;
+
+    // Optionally, drop the collections
+    dbAdapter.dropAlertCollection();
+    dbAdapter.dropRobotStatusCollection();
+
+    // Stop the alert system and database adapter threads before exiting
+    alertSystem.stop();
+    dbAdapter.stop();
+    dbAdapter.stopRobotStatusThread();
 }
 
 int main() {

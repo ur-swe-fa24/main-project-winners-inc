@@ -2,8 +2,8 @@
 #include <iostream>
 
 // Constructor
-Alert::Alert(const std::string& type, const std::string& message, Robot* robot, Room* room, std::time_t timestamp, Severity severity)
-    : type(type), message(message), robot(robot), room(room), timestamp(timestamp), severity(severity) {}
+Alert::Alert(const std::string& type, const std::string& message, std::shared_ptr<Robot> robot, std::shared_ptr<Room> room, std::time_t timestamp, Severity severity)
+    : type(type), message(message), robot(std::move(robot)), room(std::move(room)), timestamp(timestamp), severity(severity) {}
 
 // Destructor
 Alert::~Alert() {}
@@ -23,13 +23,11 @@ std::string Alert::getDescription() const {
     return message;
 }
 
-// Getter for robot pointer
-Robot* Alert::getRobot() const {
+std::shared_ptr<Robot> Alert::getRobot() const {
     return robot;
 }
 
-// Getter for room pointer
-Room* Alert::getRoom() const {
+std::shared_ptr<Room> Alert::getRoom() const {
     return room;
 }
 
