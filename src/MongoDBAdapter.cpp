@@ -9,16 +9,14 @@
 #include <condition_variable>
 #include <queue>
 #include <atomic>
+#include <mongocxx/exception/exception.hpp>
 
 using bsoncxx::builder::basic::kvp;
 using bsoncxx::builder::basic::make_document;
 
 // Constructor
-MongoDBAdapter::MongoDBAdapter(const std::string& uri, const std::string& dbName, const std::string& alertCollectionName, const std::string& robotStatusCollectionName)
-    : client_(mongocxx::uri{uri}), running_(true), robotStatusRunning_(true) {
-    auto db = client_[dbName];
-    alertCollection_ = db[alertCollectionName];
-    robotStatusCollection_ = db[robotStatusCollectionName];
+MongoDBAdapter::MongoDBAdapter(const std::string& uri, const std::string& dbName)
+    : client_(mongocxx::uri{uri}), dbName_(dbName), running_(true), robotStatusRunning_(true) {
 
     // Start the database threads
     dbThread_ = std::thread(&MongoDBAdapter::processSaveQueue, this);
@@ -43,6 +41,10 @@ void MongoDBAdapter::saveAlert(const Alert& alert) {
 
 // Process save queue for alerts
 void MongoDBAdapter::processSaveQueue() {
+    // Create collection instance in this thread
+    auto db = client_[dbName_];
+    auto alertCollection = db["alerts"];
+
     while (running_) {
         std::unique_lock<std::mutex> lock(queueMutex_);
         cv_.wait(lock, [this]() { return !saveQueue_.empty() || !running_; });
@@ -61,8 +63,13 @@ void MongoDBAdapter::processSaveQueue() {
                 kvp("timestamp", static_cast<int64_t>(alert.getTimestamp()))
             );
 
-            alertCollection_.insert_one(alert_doc.view());
-            std::cout << "Alert saved to MongoDB!" << std::endl;
+            // Insert using local collection instance
+            try {
+                alertCollection.insert_one(alert_doc.view());
+                std::cout << "Alert saved to MongoDB!" << std::endl;
+            } catch (const mongocxx::exception& e) {
+                std::cerr << "Error inserting alert into MongoDB: " << e.what() << std::endl;
+            }
 
             lock.lock();
         }
@@ -73,7 +80,10 @@ void MongoDBAdapter::processSaveQueue() {
 std::vector<Alert> MongoDBAdapter::retrieveAlerts() {
     std::vector<Alert> alerts;
 
-    auto cursor = alertCollection_.find({});
+    auto db = client_[dbName_];
+    auto alertCollection = db["alerts"];
+
+    auto cursor = alertCollection.find({});
     for (auto&& doc : cursor) {
         // Extract fields from BSON document
         std::string title = doc["title"].get_string().value.to_string();
@@ -82,11 +92,11 @@ std::vector<Alert> MongoDBAdapter::retrieveAlerts() {
         std::string room_name = doc["room_name"].get_string().value.to_string();
         int64_t timestamp = doc["timestamp"].get_int64().value;
 
-        // Create a placeholder Robot and Room
-        auto robot = std::make_shared<Robot>(robot_name, 100);
-        auto room = std::make_shared<Room>(room_name, 101);
+        // Create shared_ptr instances of Robot and Room
+        auto robot = std::make_shared<Robot>(robot_name, 100);  // Example attributes
+        auto room = std::make_shared<Room>(room_name, 101);     // Example attributes
 
-        // Create Alert instance
+        // Create an Alert instance and add it to the vector
         Alert alert(title, description, robot, room, timestamp);
         alerts.push_back(alert);
 
@@ -107,9 +117,12 @@ void MongoDBAdapter::stop() {
 
 // Delete all alerts
 void MongoDBAdapter::deleteAllAlerts() {
+    auto db = client_[dbName_];
+    auto alertCollection = db["alerts"];
+
     bsoncxx::document::value empty_filter = make_document();
     try {
-        auto result = alertCollection_.delete_many(empty_filter.view());
+        auto result = alertCollection.delete_many(empty_filter.view());
         if (result) {
             std::cout << "Deleted " << result->deleted_count() << " alerts from MongoDB." << std::endl;
         } else {
@@ -122,47 +135,15 @@ void MongoDBAdapter::deleteAllAlerts() {
 
 // Drop alert collection
 void MongoDBAdapter::dropAlertCollection() {
+    auto db = client_[dbName_];
+    auto alertCollection = db["alerts"];
+
     try {
-        alertCollection_.drop();
+        alertCollection.drop();
         std::cout << "Alert collection dropped successfully." << std::endl;
     } catch (const std::exception& e) {
         std::cerr << "Error dropping alert collection: " << e.what() << std::endl;
     }
-}
-
-// Save robot status synchronously
-void MongoDBAdapter::saveRobotStatus(std::shared_ptr<Robot> robot) {
-    // Convert Robot data to BSON document format
-    auto robot_doc = make_document(
-        kvp("name", robot->getName()),
-        kvp("battery_level", robot->getBatteryLevel())
-        // Add other robot attributes as needed
-    );
-
-    // Insert document into the robot status collection
-    robotStatusCollection_.insert_one(robot_doc.view());
-    std::cout << "Robot status saved to MongoDB!" << std::endl;
-}
-
-// Retrieve robot statuses
-std::vector<Robot> MongoDBAdapter::retrieveRobotStatuses() {
-    std::vector<Robot> robots;
-
-    auto cursor = robotStatusCollection_.find({});
-    for (auto&& doc : cursor) {
-        // Extract fields from BSON document
-        std::string name = doc["name"].get_string().value.to_string();
-        int battery_level = doc["battery_level"].get_int32().value;
-        // Extract other attributes as needed
-
-        // Create a Robot instance and add it to the vector
-        Robot robot(name, battery_level);
-        robots.push_back(robot);
-
-        std::cout << "Retrieved Robot: " << bsoncxx::to_json(doc) << std::endl;
-    }
-
-    return robots;
 }
 
 // Save robot status asynchronously
@@ -174,9 +155,12 @@ void MongoDBAdapter::saveRobotStatusAsync(std::shared_ptr<Robot> robot) {
     robotStatusCV_.notify_one();
 }
 
-
 // Process robot status queue
 void MongoDBAdapter::processRobotStatusQueue() {
+    // Create collection instance in this thread
+    auto db = client_[dbName_];
+    auto robotStatusCollection = db["robot_statuses"];
+
     while (robotStatusRunning_) {
         std::unique_lock<std::mutex> lock(robotStatusMutex_);
         robotStatusCV_.wait(lock, [this]() { return !robotStatusQueue_.empty() || !robotStatusRunning_; });
@@ -186,13 +170,50 @@ void MongoDBAdapter::processRobotStatusQueue() {
             robotStatusQueue_.pop();
             lock.unlock();
 
-            // Save robot status to MongoDB
-            saveRobotStatus(robot);
+            // Convert Robot data to BSON document format
+            auto robot_doc = make_document(
+                kvp("name", robot->getName()),
+                kvp("battery_level", robot->getBatteryLevel())
+                // Add other robot attributes as needed
+            );
+
+            // Insert using local collection instance
+            try {
+                robotStatusCollection.insert_one(robot_doc.view());
+                std::cout << "Robot status saved to MongoDB!" << std::endl;
+            } catch (const mongocxx::exception& e) {
+                std::cerr << "Error inserting robot status into MongoDB: " << e.what() << std::endl;
+            }
 
             lock.lock();
         }
     }
 }
+
+// Retrieve robot statuses
+std::vector<std::shared_ptr<Robot>> MongoDBAdapter::retrieveRobotStatuses() {
+    std::vector<std::shared_ptr<Robot>> robots;
+
+    auto db = client_[dbName_];
+    auto robotStatusCollection = db["robot_statuses"];
+
+    auto cursor = robotStatusCollection.find({});
+    for (auto&& doc : cursor) {
+        // Extract fields from BSON document
+        std::string name = doc["name"].get_string().value.to_string();
+        int battery_level = doc["battery_level"].get_int32().value;
+        // Extract other attributes as needed
+
+        // Create a Robot instance and add it to the vector
+        auto robot = std::make_shared<Robot>(name, battery_level);
+        robots.push_back(robot);
+
+        std::cout << "Retrieved Robot: " << bsoncxx::to_json(doc) << std::endl;
+    }
+
+    return robots;
+}
+
 // Stop robot status processing thread
 void MongoDBAdapter::stopRobotStatusThread() {
     robotStatusRunning_ = false;
@@ -204,9 +225,12 @@ void MongoDBAdapter::stopRobotStatusThread() {
 
 // Delete all robot statuses
 void MongoDBAdapter::deleteAllRobotStatuses() {
+    auto db = client_[dbName_];
+    auto robotStatusCollection = db["robot_statuses"];
+
     bsoncxx::document::value empty_filter = make_document();
     try {
-        auto result = robotStatusCollection_.delete_many(empty_filter.view());
+        auto result = robotStatusCollection.delete_many(empty_filter.view());
         if (result) {
             std::cout << "Deleted " << result->deleted_count() << " robot statuses from MongoDB." << std::endl;
         } else {
@@ -219,8 +243,11 @@ void MongoDBAdapter::deleteAllRobotStatuses() {
 
 // Drop robot status collection
 void MongoDBAdapter::dropRobotStatusCollection() {
+    auto db = client_[dbName_];
+    auto robotStatusCollection = db["robot_statuses"];
+
     try {
-        robotStatusCollection_.drop();
+        robotStatusCollection.drop();
         std::cout << "Robot status collection dropped successfully." << std::endl;
     } catch (const std::exception& e) {
         std::cerr << "Error dropping robot status collection: " << e.what() << std::endl;

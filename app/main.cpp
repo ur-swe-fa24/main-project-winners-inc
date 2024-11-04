@@ -1,5 +1,3 @@
-// main.cpp
-
 #include "alert/Alert.h"
 #include "AlertSystem/alert_system.h"
 #include "user/user.h"
@@ -13,18 +11,15 @@
 #include <mongocxx/instance.hpp>       // For mongocxx::instance
 #include <thread>                      // For std::this_thread::sleep_for
 #include <chrono>                      // For std::chrono::seconds
-#include <memory> // Include this header
+#include <memory>                      // For std::shared_ptr
 
 void testAlertSystem() {
-    // Initialize MongoDB (instance should be created once)
-    static mongocxx::instance instance{};
+    // The mongocxx::instance is initialized in main(), so we remove it here.
 
-    // Initialize MongoDB Adapter with updated constructor
+    // Initialize MongoDB Adapter
     std::string uri = "mongodb://localhost:27017";
     std::string dbName = "mydb";
-    std::string alertCollectionName = "alerts";
-    std::string robotStatusCollectionName = "robot_statuses";
-    MongoDBAdapter dbAdapter(uri, dbName, alertCollectionName, robotStatusCollectionName);
+    MongoDBAdapter dbAdapter(uri, dbName);
 
     // Create Permissions
     Permission adminPermission("ADMIN");
@@ -41,7 +36,7 @@ void testAlertSystem() {
     User adminUser(1, "AdminUser", adminRole);
     User regularUser(2, "RegularUser", userRole);
 
-    // Create Robot and Room instances
+    // Create Robot and Room instances using shared_ptr
     auto robot = std::make_shared<Robot>("CleaningRobot", 100);  // Example attributes
     auto room = std::make_shared<Room>("MainRoom", 101);         // Example attributes
 
@@ -53,7 +48,7 @@ void testAlertSystem() {
     dbAdapter.deleteAllRobotStatuses();
 
     // Simulate sending multiple alerts and saving to MongoDB
-    for (int i = 0; i < 5; ++i) {
+    for (int i = 0; i < 6; ++i) {
         // Create an alert
         std::time_t currentTime = std::time(nullptr);
         std::string alertTitle = "Alert " + std::to_string(i + 1);
@@ -90,8 +85,8 @@ void testAlertSystem() {
 
     // Display the retrieved robot statuses
     for (const auto& r : robots) {
-        std::cout << "Robot Name: " << r.getName()
-                  << ", Battery Level: " << r.getBatteryLevel() << "%" << std::endl;
+        std::cout << "Robot Name: " << r->getName()
+                  << ", Battery Level: " << r->getBatteryLevel() << "%" << std::endl;
     }
 
     // Test delete methods
@@ -116,7 +111,11 @@ void testAlertSystem() {
 }
 
 int main() {
+    // Initialize MongoDB driver instance
+    mongocxx::instance instance{};
+
     // Run the test function
     testAlertSystem();
+
     return 0;
 }

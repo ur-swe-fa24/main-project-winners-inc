@@ -4,7 +4,6 @@
 #include "alert/Alert.h"
 #include "Robot/Robot.h"
 #include <mongocxx/client.hpp>
-#include <mongocxx/collection.hpp>
 #include <string>
 #include <vector>
 #include <queue>
@@ -12,10 +11,11 @@
 #include <mutex>
 #include <condition_variable>
 #include <atomic>
+#include <memory>
 
 class MongoDBAdapter {
 public:
-    MongoDBAdapter(const std::string& uri, const std::string& dbName, const std::string& alertCollectionName, const std::string& robotStatusCollectionName);
+    MongoDBAdapter(const std::string& uri, const std::string& dbName);
     ~MongoDBAdapter();
 
     // Alert methods
@@ -26,7 +26,7 @@ public:
 
     // Robot status methods
     void saveRobotStatus(std::shared_ptr<Robot> robot);
-    std::vector<Robot> retrieveRobotStatuses();
+    std::vector<std::shared_ptr<Robot>> retrieveRobotStatuses();
     void deleteAllRobotStatuses();
     void dropRobotStatusCollection();
 
@@ -44,10 +44,9 @@ private:
     // Robot status processing
     void processRobotStatusQueue();
 
-    // MongoDB client and collections
+    // MongoDB client and database name
     mongocxx::client client_;
-    mongocxx::collection alertCollection_;
-    mongocxx::collection robotStatusCollection_;
+    std::string dbName_;
 
     // Alert threading members
     std::queue<Alert> saveQueue_;
