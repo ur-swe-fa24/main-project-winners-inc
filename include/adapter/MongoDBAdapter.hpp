@@ -44,8 +44,8 @@ private:
     // Robot status processing
     void processRobotStatusQueue();
 
-    // MongoDB client and database name
-    mongocxx::client client_;
+    // Remove the client_ member variable
+    // mongocxx::client client_; // Removed
     std::string dbName_;
 
     // Alert threading members

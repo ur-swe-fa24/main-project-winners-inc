@@ -9,19 +9,20 @@
 #include <mutex>
 #include <condition_variable>
 #include <atomic>
+#include <memory>
 
 class AlertSystem {
 public:
     AlertSystem();
     ~AlertSystem();
 
-    void sendAlert(User* user, Alert* alert);
+    void sendAlert(User* user, std::shared_ptr<Alert> alert);
     void stop();
 
 private:
     void processAlerts();
 
-    std::queue<std::pair<User*, Alert*>> alertQueue_;
+    std::queue<std::pair<User*, std::shared_ptr<Alert>>> alertQueue_;
     std::thread workerThread_;
     std::mutex queueMutex_;
     std::condition_variable cv_;
