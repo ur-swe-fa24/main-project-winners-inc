@@ -53,13 +53,15 @@ void testAlertSystem() {
         std::time_t currentTime = std::time(nullptr);
         std::string alertTitle = "Alert " + std::to_string(i + 1);
         std::string alertMessage = "Message for alert " + std::to_string(i + 1);
-        Alert alert(alertTitle, alertMessage, robot, room, currentTime);
+
+        // Use std::make_shared to create a shared_ptr<Alert>
+        auto alert = std::make_shared<Alert>(alertTitle, alertMessage, robot, room, currentTime);
 
         // Send alert to adminUser
-        alertSystem.sendAlert(&adminUser, &alert);
+        alertSystem.sendAlert(&adminUser, alert);
 
         // Save alert to MongoDB using the adapter
-        dbAdapter.saveAlert(alert);
+        dbAdapter.saveAlert(*alert);
 
         // Update robot status and save asynchronously
         robot->depleteBattery(10);  // Decrease battery level by 10%

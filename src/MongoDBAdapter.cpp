@@ -16,8 +16,7 @@ using bsoncxx::builder::basic::make_document;
 
 // Constructor
 MongoDBAdapter::MongoDBAdapter(const std::string& uri, const std::string& dbName)
-    : client_(mongocxx::uri{uri}), dbName_(dbName), running_(true), robotStatusRunning_(true) {
-
+    : dbName_(dbName), running_(true), robotStatusRunning_(true) {
     // Start the database threads
     dbThread_ = std::thread(&MongoDBAdapter::processSaveQueue, this);
     robotStatusThread_ = std::thread(&MongoDBAdapter::processRobotStatusQueue, this);
@@ -41,8 +40,9 @@ void MongoDBAdapter::saveAlert(const Alert& alert) {
 
 // Process save queue for alerts
 void MongoDBAdapter::processSaveQueue() {
-    // Create collection instance in this thread
-    auto db = client_[dbName_];
+    // Create client instance in this thread
+    mongocxx::client client(mongocxx::uri{});
+    auto db = client[dbName_];
     auto alertCollection = db["alerts"];
 
     while (running_) {
@@ -63,7 +63,6 @@ void MongoDBAdapter::processSaveQueue() {
                 kvp("timestamp", static_cast<int64_t>(alert.getTimestamp()))
             );
 
-            // Insert using local collection instance
             try {
                 alertCollection.insert_one(alert_doc.view());
                 std::cout << "Alert saved to MongoDB!" << std::endl;
@@ -80,7 +79,9 @@ void MongoDBAdapter::processSaveQueue() {
 std::vector<Alert> MongoDBAdapter::retrieveAlerts() {
     std::vector<Alert> alerts;
 
-    auto db = client_[dbName_];
+    // Create client instance locally
+    mongocxx::client client(mongocxx::uri{});
+    auto db = client[dbName_];
     auto alertCollection = db["alerts"];
 
     auto cursor = alertCollection.find({});
@@ -117,7 +118,9 @@ void MongoDBAdapter::stop() {
 
 // Delete all alerts
 void MongoDBAdapter::deleteAllAlerts() {
-    auto db = client_[dbName_];
+    // Create client instance locally
+    mongocxx::client client(mongocxx::uri{});
+    auto db = client[dbName_];
     auto alertCollection = db["alerts"];
 
     bsoncxx::document::value empty_filter = make_document();
@@ -135,7 +138,9 @@ void MongoDBAdapter::deleteAllAlerts() {
 
 // Drop alert collection
 void MongoDBAdapter::dropAlertCollection() {
-    auto db = client_[dbName_];
+    // Create client instance locally
+    mongocxx::client client(mongocxx::uri{});
+    auto db = client[dbName_];
     auto alertCollection = db["alerts"];
 
     try {
@@ -157,8 +162,9 @@ void MongoDBAdapter::saveRobotStatusAsync(std::shared_ptr<Robot> robot) {
 
 // Process robot status queue
 void MongoDBAdapter::processRobotStatusQueue() {
-    // Create collection instance in this thread
-    auto db = client_[dbName_];
+    // Create client instance in this thread
+    mongocxx::client client(mongocxx::uri{});
+    auto db = client[dbName_];
     auto robotStatusCollection = db["robot_statuses"];
 
     while (robotStatusRunning_) {
@@ -177,7 +183,6 @@ void MongoDBAdapter::processRobotStatusQueue() {
                 // Add other robot attributes as needed
             );
 
-            // Insert using local collection instance
             try {
                 robotStatusCollection.insert_one(robot_doc.view());
                 std::cout << "Robot status saved to MongoDB!" << std::endl;
@@ -194,7 +199,9 @@ void MongoDBAdapter::processRobotStatusQueue() {
 std::vector<std::shared_ptr<Robot>> MongoDBAdapter::retrieveRobotStatuses() {
     std::vector<std::shared_ptr<Robot>> robots;
 
-    auto db = client_[dbName_];
+    // Create client instance locally
+    mongocxx::client client(mongocxx::uri{});
+    auto db = client[dbName_];
     auto robotStatusCollection = db["robot_statuses"];
 
     auto cursor = robotStatusCollection.find({});
@@ -225,7 +232,9 @@ void MongoDBAdapter::stopRobotStatusThread() {
 
 // Delete all robot statuses
 void MongoDBAdapter::deleteAllRobotStatuses() {
-    auto db = client_[dbName_];
+    // Create client instance locally
+    mongocxx::client client(mongocxx::uri{});
+    auto db = client[dbName_];
     auto robotStatusCollection = db["robot_statuses"];
 
     bsoncxx::document::value empty_filter = make_document();
@@ -243,7 +252,9 @@ void MongoDBAdapter::deleteAllRobotStatuses() {
 
 // Drop robot status collection
 void MongoDBAdapter::dropRobotStatusCollection() {
-    auto db = client_[dbName_];
+    // Create client instance locally
+    mongocxx::client client(mongocxx::uri{});
+    auto db = client[dbName_];
     auto robotStatusCollection = db["robot_statuses"];
 
     try {

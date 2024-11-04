@@ -10,7 +10,7 @@ AlertSystem::~AlertSystem() {
     stop();
 }
 
-void AlertSystem::sendAlert(User* user, Alert* alert) {
+void AlertSystem::sendAlert(User* user, std::shared_ptr<Alert> alert) {
     {
         std::lock_guard<std::mutex> lock(queueMutex_);
         alertQueue_.emplace(user, alert);
@@ -28,8 +28,7 @@ void AlertSystem::processAlerts() {
             alertQueue_.pop();
             lock.unlock();
 
-            // Process the alert (send notification, save to DB, etc.)
-            if (user != nullptr && alert != nullptr) {
+            if (user && alert) {
                 user->receiveNotification(*alert);
                 std::cout << "Alert sent to user: " << user->getName() << std::endl;
             } else {
