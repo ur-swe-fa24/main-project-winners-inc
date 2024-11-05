@@ -1,0 +1,5 @@
+# Team Progress
+Our team has continued to work effectively as a group with consistent communication,  a mutual strong work ethic, and excitement about what we've accomplished thus far. Although there is still room for improvement, our team did a better job of making progress during the alloted class time and throughout the week on our own time. If we continue this same trajectory for the remainder of our project time, I think we will continue to succeed. 
+
+# Individual Progress
+During this sprint, I worked on implementing the classes related to the mapping system including Map, VirtualWall, Room, Area, and Zone. Ultimately, after some group discussion, we ended up eliminating some redundancies which left us with only the Map, VirtualWall, and Room classes. By the time the group convened and made this decision, I had already implemented a rough draft of all of the original classes we had planned to include, so I had to revise and consolidate some of my work. These classes will serve as the foundation for our next sprint where we will move on from the alert system and begin working on the mapping system. 
