@@ -1,4 +1,7 @@
 #define CATCH_CONFIG_MAIN
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+#include <catch2/catch_approx.hpp>
 #include "alert/Alert.h"
 #include "AlertSystem/alert_system.h"
 #include "user/user.h"
@@ -54,15 +57,25 @@ TEST_CASE("Alert System Integration Test") {
             std::time_t currentTime = std::time(nullptr);
             std::string alertTitle = "Alert " + std::to_string(i + 1);
             std::string alertMessage = "Message for alert " + std::to_string(i + 1);
-            Alert alert(alertTitle, alertMessage, robot, room, currentTime);
 
-            alertSystem.sendAlert(&adminUser, &alert);
-            dbAdapter.saveAlert(alert);
+            // Create the alert using std::make_shared
+            std::shared_ptr<Alert> alert = std::make_shared<Alert>(alertTitle, alertMessage, robot, room, currentTime);
+
+            // Send alert to adminUser, updating the function call if necessary
+            alertSystem.sendAlert(&adminUser, alert);  // Ensure sendAlert can accept a shared_ptr
+
+            // Save alert to MongoDB using the adapter (update parameter type if needed)
+            dbAdapter.saveAlert(*alert);  // If saveAlert takes an Alert by value or reference, use *alert
+
+            // Update robot status and save asynchronously
             robot->depleteBattery(10);
             dbAdapter.saveRobotStatusAsync(robot);
 
+            // Sleep for a short duration to simulate time between alerts
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
         }
+
+
 
         std::this_thread::sleep_for(std::chrono::seconds(2));
 
