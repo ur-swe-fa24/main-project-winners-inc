@@ -12,6 +12,7 @@ include(dependencies/dependencies.cmake)
 find_package(spdlog REQUIRED)
 find_package(mongocxx REQUIRED)
 find_package(Catch2 REQUIRED)
+find_package(wxWidgets REQUIRED COMPONENTS core base)
 
 # Define the main_proj library with all necessary source files
 add_library(main_proj
