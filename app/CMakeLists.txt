@@ -66,3 +66,22 @@ target_link_libraries(main_test
 # Ensure C++ standard is set for main_test
 target_compile_features(main_test PRIVATE cxx_std_17)
 
+add_executable(wx_robot_test
+    wx_robot_test.cpp
+)
+
+# Set include directories
+target_include_directories(wx_robot_test
+    PRIVATE
+        ${PROJECT_SOURCE_DIR}/include
+)
+
+# Link required libraries
+target_link_libraries(wx_robot_test
+    PRIVATE
+        main_proj
+        ${wxWidgets_LIBRARIES}
+)
+
+# Ensure C++ standard is set
+target_compile_features(wx_robot_test PRIVATE cxx_std_17)
