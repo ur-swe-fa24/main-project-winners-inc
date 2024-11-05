@@ -1,20 +1,20 @@
 #ifndef VIRTUAL_WALL_H
 #define VIRTUAL_WALL_H
 
-#include <vector>
-#include "location.h"
-using namespace std;
+#include <string>
+#include "room.h"
 
 class VirtualWall {
 public:
     // Attributes
-    int wall_id;
-    std::vector<Location> coordinates{};
+    int wallID;        // Identifier for an instance of VirtualWall
 
-    // Constructors and Destructors
-    VirtualWall() = default;
-    ~VirtualWall() = default;
+    // VirtualWall exists between two rooms -- room1 and room2
+    Room* room1;
+    Room* room2;
 
+    // Constructor
+    VirtualWall(int wallID, Room* room1, Room* room2);
 };
 
 #endif // VIRTUAL_WALL_H

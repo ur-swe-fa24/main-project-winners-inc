@@ -1,14 +1,14 @@
-#ifndef LOCATION_H
-#define LOCATION_H
+// #ifndef LOCATION_H
+// #define LOCATION_H
 
-#include <string>
+// #include "room.h"
 
-struct Location{
-    std::string room;
-    std::string zone;
+// // Location struct defining a location between two rooms
+// struct Location{
+//     Room* room1;
+//     Room* room2;
 
-    Location(const std::string& roomName = "", const std::string& zoneName = "")
-        : room(roomName), zone(zoneName) {}
-};
+//     Location(Room* room1, Room* room2) : room1(room1), room2(room2) {}
+// };
 
-#endif // LOCATION_H
+// #endif // LOCATION_H
