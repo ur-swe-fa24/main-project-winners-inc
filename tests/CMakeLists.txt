@@ -7,7 +7,7 @@ else ()
 endif ()
 
 add_executable(test_mongoDB test_mongoDB.cpp)
-
+add_executable(test_AlertSystem test_AlertSystem.cpp) 
 
 target_include_directories(main_test
     PRIVATE
@@ -15,6 +15,14 @@ target_include_directories(main_test
 )
 
 # Ensure linking to main_proj and other dependencies
+target_link_libraries(test_AlertSystem
+    PRIVATE
+        Catch2::Catch2WithMain
+        main_proj
+        mongo::mongocxx_shared
+        spdlog::spdlog_header_only
+)
+
 target_link_libraries(test_mongoDB
     PRIVATE
         Catch2::Catch2WithMain
