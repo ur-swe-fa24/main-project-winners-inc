@@ -14,8 +14,8 @@
 # # Add the include directory
 # target_include_directories(testing_app PRIVATE ${PROJECT_SOURCE_DIR}/include)
 
-# # Link sprint1 library to testing_app
-# target_link_libraries(testing_app PRIVATE sprint1)
+# # Link main_proj library to testing_app
+# target_link_libraries(testing_app PRIVATE main_proj)
 
 # # Set C++ standard
 # target_compile_features(testing_app PRIVATE cxx_std_17)
@@ -27,11 +27,11 @@
 #     hello_mongo.cpp
 # )
 
-# # Link libraries (MongoDB, spdlog, and sprint1) to hello_mongo executable
+# # Link libraries (MongoDB, spdlog, and main_proj) to hello_mongo executable
 # target_link_libraries(hello_mongo PRIVATE
 #     spdlog::spdlog_header_only
 #     mongo::mongocxx_shared
-#     sprint1
+#     main_proj
 # )
 
 # # Optional: Set include directory if needed
@@ -55,10 +55,10 @@ target_include_directories(main_test
         ${PROJECT_SOURCE_DIR}/include
 )
 
-# Link main_test to sprint1, MongoDB, and spdlog
+# Link main_test to main_proj, MongoDB, and spdlog
 target_link_libraries(main_test
     PRIVATE
-        sprint1
+        main_proj
         mongo::mongocxx_shared
         spdlog::spdlog_header_only
 )

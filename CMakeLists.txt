@@ -11,26 +11,28 @@ include(dependencies/dependencies.cmake)
 # Find MongoDB and spdlog packages
 find_package(spdlog REQUIRED)
 find_package(mongocxx REQUIRED)
+find_package(Catch2 REQUIRED)
 
-# Define the sprint1 library with all necessary source files
-add_library(sprint1
+# Define the main_proj library with all necessary source files
+add_library(main_proj
     src/role.cpp
     src/user.cpp
     src/permission.cpp
     src/alert.cpp
     src/Robot.cpp
     src/Room.cpp
-    src/alert_system.cpp  # Include alert_system.cpp
+    src/alert_system.cpp
+    src/MongoDBAdapter.cpp
 )
 
-# Set include directories for sprint1
-target_include_directories(sprint1
+# Set include directories for main_proj
+target_include_directories(main_proj
     PUBLIC
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
 )
 
-# Link MongoDB and spdlog to the sprint1 library
-target_link_libraries(sprint1
+# Link MongoDB and spdlog to the main_proj library
+target_link_libraries(main_proj
     PUBLIC
         spdlog::spdlog_header_only
         mongo::mongocxx_shared
@@ -38,3 +40,4 @@ target_link_libraries(sprint1
 
 # Add the app subdirectory where main_test is defined
 add_subdirectory(app)
+add_subdirectory(tests)
