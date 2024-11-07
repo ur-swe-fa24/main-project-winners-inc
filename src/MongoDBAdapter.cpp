@@ -1,6 +1,6 @@
 #include "adapter/MongoDBAdapter.hpp"
-#include "Robot/Robot.h"
-#include "Room/Room.h"
+#include "robot/Robot.h"
+#include "room/room.h"
 #include <bsoncxx/builder/basic/document.hpp>
 #include <bsoncxx/json.hpp>
 #include <iostream>
@@ -10,6 +10,7 @@
 #include <queue>
 #include <atomic>
 #include <mongocxx/exception/exception.hpp>
+#include <vector>
 
 using bsoncxx::builder::basic::kvp;
 using bsoncxx::builder::basic::make_document;
@@ -59,7 +60,7 @@ void MongoDBAdapter::processSaveQueue() {
                 kvp("title", alert.getTitle()),
                 kvp("description", alert.getDescription()),
                 kvp("robot_name", alert.getRobot()->getName()),
-                kvp("room_name", alert.getRoom()->getRoomName()),
+                // kvp("room_name", alert.getRoom()->getRoomName()),
                 kvp("timestamp", static_cast<int64_t>(alert.getTimestamp()))
             );
 
@@ -93,9 +94,12 @@ std::vector<Alert> MongoDBAdapter::retrieveAlerts() {
         std::string room_name = doc["room_name"].get_string().value.to_string();
         int64_t timestamp = doc["timestamp"].get_int64().value;
 
+         // Declaration of neighbors vector to pass into Room below
+        std::vector<Room*> neighbors;
+
         // Create shared_ptr instances of Robot and Room
         auto robot = std::make_shared<Robot>(robot_name, 100);  // Example attributes
-        auto room = std::make_shared<Room>(room_name, 101);     // Example attributes
+        auto room = std::make_shared<Room>(room_name, 101, "wood", true, neighbors);
 
         // Create an Alert instance and add it to the vector
         Alert alert(title, description, robot, room, timestamp);

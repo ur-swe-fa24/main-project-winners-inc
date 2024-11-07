@@ -1,6 +1,6 @@
-#include "map.h"
-#include "room.h"
-#include "virtual_wall.h"
+#include "map/map.h"
+#include "room/room.h"
+#include "virtual_wall/virtual_wall.h"
 #include <iostream>
 #include <vector>
 #include <deque>

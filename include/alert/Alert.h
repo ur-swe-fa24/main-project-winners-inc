@@ -6,8 +6,8 @@
 #include <memory>
 
 
-#include "Robot/Robot.h"
-#include "Room/Room.h"
+#include "robot/Robot.h"
+#include "room/room.h"
 
 class Alert {
 public:

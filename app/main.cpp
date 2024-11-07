@@ -1,10 +1,10 @@
 #include "alert/Alert.h"
-#include "AlertSystem/alert_system.h"
+#include "alert_system/alert_system.h"
 #include "user/user.h"
 #include "role/role.h"
 #include "permission/permission.h"
-#include "Robot/Robot.h"
-#include "Room/Room.h"
+#include "robot/Robot.h"
+#include "room/room.h"
 #include <iostream>
 #include <ctime>
 #include "adapter/MongoDBAdapter.hpp"  // Include the adapter
@@ -12,6 +12,7 @@
 #include <thread>                      // For std::this_thread::sleep_for
 #include <chrono>                      // For std::chrono::seconds
 #include <memory>                      // For std::shared_ptr
+#include <vector>
 
 void testAlertSystem() {
     // The mongocxx::instance is initialized in main(), so we remove it here.
@@ -36,9 +37,12 @@ void testAlertSystem() {
     User adminUser(1, "AdminUser", adminRole);
     User regularUser(2, "RegularUser", userRole);
 
+    // Declaration of neighbors vector to pass into Room below
+    std::vector<Room*> neighbors;
+
     // Create Robot and Room instances using shared_ptr
     auto robot = std::make_shared<Robot>("CleaningRobot", 100);  // Example attributes
-    auto room = std::make_shared<Room>("MainRoom", 101);         // Example attributes
+    auto room = std::make_shared<Room>("MainRoom", 101, "wood", true, neighbors);         // Example attributes
 
     // Create AlertSystem
     AlertSystem alertSystem;

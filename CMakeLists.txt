@@ -21,7 +21,7 @@ add_library(main_proj
     src/permission.cpp
     src/alert.cpp
     src/Robot.cpp
-    src/Room.cpp
+    src/room.cpp
     src/alert_system.cpp
     src/MongoDBAdapter.cpp
 )

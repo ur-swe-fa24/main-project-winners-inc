@@ -3,7 +3,7 @@
 
 #include <vector>
 #include <string>
-#include "room.h"
+#include "room/room.h"
 #include "virtual_wall.h"
 
 class Map {

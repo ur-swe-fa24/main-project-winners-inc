@@ -3,18 +3,19 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/catch_approx.hpp>
 #include "alert/Alert.h"
-#include "AlertSystem/alert_system.h"
+#include "alert_system/alert_system.h"
 #include "user/user.h"
 #include "role/role.h"
 #include "permission/permission.h"
-#include "Robot/Robot.h"
-#include "Room/Room.h"
+#include "robot/Robot.h"
+#include "room/room.h"
 #include "adapter/MongoDBAdapter.hpp"
 #include <mongocxx/instance.hpp>
 #include <memory>
 #include <thread>
 #include <chrono>
 #include <ctime>
+#include <vector>
 
 // Set up a MongoDB instance for the test environment
 mongocxx::instance instance{};
@@ -42,9 +43,14 @@ TEST_CASE("Alert System Integration Test") {
     User adminUser(1, "AdminUser", adminRole);
     User regularUser(2, "RegularUser", userRole);
 
+     // Declaration of neighbors vector to pass into Room below
+    std::vector<Room*> neighbors;
+
     // Create Robot and Room instances using shared_ptr
     auto robot = std::make_shared<Robot>("CleaningRobot", 100);  // Example attributes
-    auto room = std::make_shared<Room>("MainRoom", 101);         // Example attributes
+    auto room = std::make_shared<Room>("MainRoom", 101, "wood", true, neighbors);         // Example attributes
+
+    // const std::string& roomName, int roomId, const std::string& flooringType, bool isRoomClean, std::vector<Room*> neighbors
 
     // Create AlertSystem
     AlertSystem alertSystem;

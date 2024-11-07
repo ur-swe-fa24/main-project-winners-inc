@@ -2,7 +2,7 @@
 #define VIRTUAL_WALL_H
 
 #include <string>
-#include "room.h"
+#include "room/room.h"
 
 class VirtualWall {
 public:
