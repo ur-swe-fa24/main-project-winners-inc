@@ -1,182 +1,126 @@
 @startuml
 
-' Classes for User, Role, and Permission
+' User Management Classes
 class User {
     - id: int
-    - name: String
+    - name: string
     - role: Role
     --
+    + User(id: int, name: string, role: Role)
     + login()
     + logout()
     + receiveNotification(alert: Alert)
+    + getId(): int
+    + getName(): string
+    + getRole(): Role
 }
 
 class Role {
-    - name: String
-    - permissions: List<Permission>
+    - name: string
+    - permissions: vector<Permission>
     --
-    + hasPermission(permissionName: String): bool
+    + Role(name: string)
+    + addPermission(permission: Permission)
+    + hasPermission(permissionName: string): bool
+    + getName(): string
 }
 
 class Permission {
-    - name: String
+    - name: string
+    --
+    + Permission(name: string)
+    + getName(): string
 }
 
-User --> Role
-Role "1" o-- "0..*" Permission
-
-' Service Classes
-class AnalyticsService {
-    + viewAnalytics(user: User)
+' Alert System Classes
+class Alert {
+    - type: string
+    - message: string
+    - robot: shared_ptr<Robot>
+    - room: shared_ptr<Room>
+    - timestamp: time_t
+    - severity: Severity
+    --
+    + Alert(type: string, message: string, robot: Robot, room: Room, timestamp: time_t)
+    + getTitle(): string
+    + getMessage(): string
+    + getRobot(): shared_ptr<Robot>
+    + getRoom(): shared_ptr<Room>
+    + displayAlertInfo()
 }
 
-class SchedulingService {
-    + createSchedule(user: User, schedule: Schedule)
-    + editSchedule(user: User, schedule: Schedule)
+class AlertSystem {
+    - alertQueue_: queue<pair<User*, shared_ptr<Alert>>>
+    - workerThread_: thread
+    - queueMutex_: mutex
+    - cv_: condition_variable
+    - running_: atomic<bool>
+    --
+    + AlertSystem()
+    + ~AlertSystem()
+    + sendAlert(user: User*, alert: shared_ptr<Alert>)
+    + stop()
+    - processAlerts()
 }
 
-class RobotManagementService {
-    + viewRobotStatus(user: User, robot: Robot)
-    + assignTask(user: User, task: CleaningTask)
-    + fixRobot(user: User, robot: Robot)
-    + addRobot(user: User, robot: Robot)
-    + removeRobot(user: User, robot: Robot)
-}
-
-' Robot and CleaningTask
+' Robot and Room Classes
 class Robot {
-    - id: int
-    - batteryLevel: float
-    - waterLevel: float
-    - errorRate: float
-    - location: Location
-    - status: String
-    - assignedTask: CleaningTask
+    - name: string
+    - batteryLevel: int
     --
+    + Robot(name: string, batteryLevel: int)
     + sendStatusUpdate()
-    + receiveTask(task: CleaningTask)
-    + checkStatus()
-    + cleanArea(area: Area)
-    + navigate(map: Map)
-    + reportError(error: Error)
-}
-
-class CleaningTask {
-    - id: int
-    - priority: int
-    - status: String
-    - area: Area
-    - cleaningType: String
-    --
-    + assignRobot(robot: Robot)
-    + markCompleted()
-    + markFailed()
-}
-
-Robot "1" <-- "0..1" CleaningTask : assignedTask
-CleaningTask "1" --> "1" Area
-
-' Schedule and Map
-class Schedule {
-    - tasks: List<CleaningTask>
-    --
-    + createDailySchedule()
-    + editSchedule()
-    + enqueueTask(task: CleaningTask)
-    + dequeueTask()
-}
-
-Schedule "1" *-- "0..*" CleaningTask
-
-class Map {
-    - areas: List<Area>
-    - virtualWalls: List<VirtualWall>
-    --
-    + getRoute(start: Location, end: Location)
-    + updateMap()
-}
-
-Map "1" *-- "0..*" Area
-Map "1" *-- "0..*" VirtualWall
-
-' Area, Room, Zone
-abstract class Area {
-    - id: int
-    - type: String
-    - status: String
+    + recharge()
+    + needsMaintenance(): bool
+    + depleteBattery(amount: int)
+    + getName(): string
+    + getBatteryLevel(): int
 }
 
 class Room {
-    - flooringType: String
+    - roomName: string
+    - roomId: int
+    - occupied: bool
     --
-    + markClean()
-    + markDirty()
+    + Room(roomName: string, roomId: int)
+    + getRoomInfo()
+    + isOccupied(): bool
+    + getRoomName(): string
+    + getRoomId(): int
 }
 
-class Zone {
-    - description: String
-}
-
-Area <|-- Room
-Area <|-- Zone
-
-' VirtualWall
-class VirtualWall {
-    - id: int
-    - coordinates: List<Location>
-}
-
-' AlertSystem and Alert
-class AlertSystem {
-    + sendAlert(user: User, alert: Alert)
-}
-
-class Alert {
-    - type: String
-    - message: String
-    - robot: Robot
-    - location: Location
-    - timestamp: DateTime
-}
-
-AlertSystem ..> Alert
-AlertSystem ..> User : sendAlert
-
-' Analytics and RobotMetrics
-class Analytics {
-    - robotData: Map<Robot, RobotMetrics>
+' Database Adapter
+class MongoDBAdapter {
+    - dbName_: string
+    - saveQueue_: queue<Alert>
+    - robotStatusQueue_: queue<shared_ptr<Robot>>
+    - dbThread_: thread
+    - robotStatusThread_: thread
+    - queueMutex_: mutex
+    - cv_: condition_variable
+    - running_: atomic<bool>
     --
-    + generateReport()
-    + getRobotEfficiency(robot: Robot)
+    + MongoDBAdapter(uri: string, dbName: string)
+    + ~MongoDBAdapter()
+    + saveAlert(alert: Alert)
+    + retrieveAlerts(): vector<Alert>
+    + saveRobotStatusAsync(robot: shared_ptr<Robot>)
+    + retrieveRobotStatuses(): vector<shared_ptr<Robot>>
+    + deleteAllAlerts()
+    + deleteAllRobotStatuses()
+    + stop()
 }
 
-class RobotMetrics {
-    - utilization: float
-    - errorRate: float
-    - costEfficiency: float
-    - timeEfficiency: float
-    - batteryUsage: float
-    - waterUsage: float
-}
+' Relationships
+User o-> Role
+Role o-> "0..*" Permission
 
-Analytics "1" *-- "0..*" RobotMetrics
+AlertSystem ..> User : sends alerts to
+AlertSystem o-> Alert : manages
+Alert o-> Robot : references
+Alert o-> Room : references
 
-Robot --> Analytics : data
-
-' Systems
-class SchedulingSystem {
-    + assignTasks()
-    + receiveRobotStatus(robot: Robot)
-    + createVirtualWall(wall: VirtualWall)
-}
-
-class MappingSystem {
-    + outputWorkingPath()
-}
-
-' Additional relationships
-RobotManagementService ..> Robot
-SchedulingService ..> Schedule
-AnalyticsService ..> Analytics
+MongoDBAdapter ..> Alert : stores
+MongoDBAdapter ..> Robot : stores status
 
 @enduml
