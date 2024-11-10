@@ -77,6 +77,19 @@ std::vector<std::shared_ptr<Robot>> RobotSimulator::getRobots() {
     return robots_;
 }
 
+// RobotSimulator.cpp
+
+std::shared_ptr<Robot> RobotSimulator::getRobotByName(const std::string& name) {
+    std::lock_guard<std::mutex> lock(robotsMutex_);
+    for (const auto& robot : robots_) {
+        if (robot->getName() == name) {
+            return robot;
+        }
+    }
+    return nullptr;  // Return nullptr if not found
+}
+
+
 void RobotSimulator::startCleaning(const std::string& robotName) {
     std::lock_guard<std::mutex> lock(robotsMutex_);
     for (auto& robot : robots_) {

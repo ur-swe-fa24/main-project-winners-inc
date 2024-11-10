@@ -88,6 +88,9 @@
         "utility": "cpp",
         "format": "cpp",
         "cinttypes": "cpp",
-        "semaphore": "cpp"
+        "semaphore": "cpp",
+        "codecvt": "cpp",
+        "stop_token": "cpp",
+        "text_encoding": "cpp"
     }
 }

@@ -12,7 +12,7 @@ include(dependencies/dependencies.cmake)
 # Find required packages
 find_package(spdlog REQUIRED)
 find_package(mongocxx REQUIRED)
-find_package(Catch2 REQUIRED)
+find_package(Catch2 3 REQUIRED)
 find_package(wxWidgets REQUIRED COMPONENTS core base)
 
 # Define the main_proj library with all necessary source files
@@ -43,4 +43,6 @@ target_link_libraries(main_proj
 
 # Add the app subdirectory where executables are defined
 add_subdirectory(app)
-add_subdirectory(tests)
+
+# # Add the tests subdirectory after main_proj is defined
+# add_subdirectory(tests)

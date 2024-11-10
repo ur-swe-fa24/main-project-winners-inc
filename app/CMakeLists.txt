@@ -1,6 +1,6 @@
 # app/CMakeLists.txt
 
-# Executable for testing the main application
+# Executable for the main application
 add_executable(main_test
     main.cpp
     # Include other source files if needed
@@ -26,6 +26,9 @@ target_compile_features(main_test PRIVATE cxx_std_17)
 # Executable for the wxWidgets application
 add_executable(wx_robot_test
     wx_robot_test.cpp
+    ${PROJECT_SOURCE_DIR}/src/RobotManagementFrame.cpp
+    ${PROJECT_SOURCE_DIR}/src/LoginDialog.cpp
+    ${PROJECT_SOURCE_DIR}/src/AlertDialog.cpp
     # Include other source files if needed
 )
 
