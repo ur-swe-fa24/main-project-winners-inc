@@ -11,23 +11,30 @@ public:
     // Status update method (for demonstration purposes)
     void sendStatusUpdate() const;
 
-    // Method to recharge the robot
+    // Methods to manage battery
     void recharge();
+    void depleteBattery(int amount);
 
-    // Method to perform a maintenance check
+    // Methods to perform actions
+    void startCleaning();
+    void stopCleaning();
+    bool isCleaning() const;
+
+    // Maintenance and alerts
     bool needsMaintenance() const;
+    void setLowBatteryAlertSent(bool sent);
+    bool isLowBatteryAlertSent() const;
 
     // Getters
     std::string getName() const;
     int getBatteryLevel() const;
 
-    // Method to deplete battery (for testing purposes)
-    void depleteBattery(int amount);
-
 private:
     // Attributes
     std::string name;
     int batteryLevel;
+    bool cleaning_;
+    bool lowBatteryAlertSent_;
 };
 
 #endif // ROBOT_H

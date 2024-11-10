@@ -10,17 +10,24 @@ public:
     std::string roomName;
     int roomId;
     std::string flooringType;   // Hardwood, carpet, etc.
-    bool isRoomClean = true;    // true when clean, false when dirty (default to true)
+    bool isRoomClean;           // true when clean, false when dirty (default to true)
     std::vector<Room*> neighbors;
 
     // Constructor
-    Room(const std::string& roomName, int roomId, const std::string& flooringType, bool isRoomClean);
+    Room(const std::string& roomName, int roomId, const std::string& flooringType = "", bool isRoomClean = true);
+
+    // Getter methods
+    std::string getRoomName() const;
+    int getRoomId() const;
 
     // Methods
-    void getRoomInfo() const;   // Method to get room information (for demonstration purposes)
-    void markClean(std::string roomName);   // Mark a room in the map as clean
-    void markDirty(std::string roomName);   // Mark a room in the map as dirty
-    void addNeighbor(Room* neighbor);       // Used to create vector of neighbors for map purposes
+    void getRoomInfo() const;   // Method to get room information
+    void markClean(std::string roomName);   // Mark a room as clean
+    void markDirty(std::string roomName);   // Mark a room as dirty
+    void addNeighbor(Room* neighbor);       // Add a neighbor room
+
+    // Destructor (optional)
+    ~Room() = default;
 };
 
 #endif // ROOM_H

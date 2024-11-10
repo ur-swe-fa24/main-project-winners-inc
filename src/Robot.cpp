@@ -2,8 +2,29 @@
 #include <iostream>
 
 // Constructor implementation
-Robot::Robot(const std::string& name, int batteryLevel) 
-    : name(name), batteryLevel(batteryLevel) {}
+Robot::Robot(const std::string& name, int batteryLevel)
+    : name(name), batteryLevel(batteryLevel), cleaning_(false), lowBatteryAlertSent_(false) {}
+
+// New methods
+void Robot::startCleaning() {
+    cleaning_ = true;
+}
+
+void Robot::stopCleaning() {
+    cleaning_ = false;
+}
+
+bool Robot::isCleaning() const {
+    return cleaning_;
+}
+
+void Robot::setLowBatteryAlertSent(bool sent) {
+    lowBatteryAlertSent_ = sent;
+}
+
+bool Robot::isLowBatteryAlertSent() const {
+    return lowBatteryAlertSent_;
+}
 
 // Method to send a status update
 void Robot::sendStatusUpdate() const {

@@ -1,4 +1,4 @@
-#include "AlertSystem/alert_system.h"
+#include "alert_system/alert_system.h"
 #include "Robot/Robot.h"
 #include "adapter/MongoDBAdapter.hpp"
 #include "alert/Alert.h"
@@ -94,7 +94,7 @@ class RobotManagementFrame : public wxFrame {
 
             // Initialize MongoDB
             std::string uri = "mongodb://localhost:27017";
-            std::string dbName = "mydb6";
+            std::string dbName = "mydb10";
             dbAdapter = std::make_unique<MongoDBAdapter>(uri, dbName);
 
             // Initialize users and roles
