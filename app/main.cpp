@@ -1,10 +1,10 @@
 #include "alert/Alert.h"
-#include "alert_system/alert_system.h"
+#include "AlertSystem/alert_system.h"
 #include "user/user.h"
 #include "role/role.h"
 #include "permission/permission.h"
-#include "robot/Robot.h"
-#include "room/room.h"
+#include "Robot/Robot.h"
+#include "Room/room.h"
 #include <iostream>
 #include <ctime>
 #include "adapter/MongoDBAdapter.hpp"  // Include the adapter
