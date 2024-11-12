@@ -1,16 +1,12 @@
 // In src/alert_system.cpp
-#include "alert_system/alert_system.h"
+#include "AlertSystem/alert_system.h"
 #include <iostream>
 
-AlertSystem::AlertSystem() : running_(true) {
-    workerThread_ = std::thread(&AlertSystem::processAlerts, this);
-}
+AlertSystem::AlertSystem() : running_(true) { workerThread_ = std::thread(&AlertSystem::processAlerts, this); }
 
-AlertSystem::~AlertSystem() {
-    stop();
-}
+AlertSystem::~AlertSystem() { stop(); }
 
-void AlertSystem::sendAlert(User* user, std::shared_ptr<Alert> alert) {
+void AlertSystem::sendAlert(User *user, std::shared_ptr<Alert> alert) {
     {
         std::lock_guard<std::mutex> lock(queueMutex_);
         alertQueue_.emplace(user, alert);

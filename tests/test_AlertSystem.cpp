@@ -1,20 +1,20 @@
 #define CATCH_CONFIG_MAIN
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
-#include <catch2/catch_approx.hpp>
-#include "alert/Alert.h"
 #include "AlertSystem/alert_system.h"
-#include "user/user.h"
-#include "role/role.h"
-#include "permission/permission.h"
 #include "Robot/Robot.h"
 #include "Room/Room.h"
 #include "adapter/MongoDBAdapter.hpp"
-#include <mongocxx/instance.hpp>
-#include <memory>
-#include <thread>
+#include "alert/Alert.h"
+#include "permission/permission.h"
+#include "role/role.h"
+#include "user/user.h"
+#include <catch2/catch_approx.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <chrono>
 #include <ctime>
+#include <memory>
+#include <mongocxx/instance.hpp>
+#include <thread>
 
 // Set up a MongoDB instance for the test environment
 mongocxx::instance instance{};
@@ -43,8 +43,8 @@ TEST_CASE("Alert System Integration Test") {
     User regularUser(2, "RegularUser", userRole);
 
     // Create Robot and Room instances using shared_ptr
-    auto robot = std::make_shared<Robot>("CleaningRobot", 100);  // Example attributes
-    auto room = std::make_shared<Room>("MainRoom", 101);         // Example attributes
+    auto robot = std::make_shared<Robot>("CleaningRobot", 100); // Example attributes
+    auto room = std::make_shared<Room>("MainRoom", 101);        // Example attributes
 
     // Create AlertSystem
     AlertSystem alertSystem;
@@ -62,10 +62,10 @@ TEST_CASE("Alert System Integration Test") {
             std::shared_ptr<Alert> alert = std::make_shared<Alert>(alertTitle, alertMessage, robot, room, currentTime);
 
             // Send alert to adminUser, updating the function call if necessary
-            alertSystem.sendAlert(&adminUser, alert);  // Ensure sendAlert can accept a shared_ptr
+            alertSystem.sendAlert(&adminUser, alert); // Ensure sendAlert can accept a shared_ptr
 
             // Save alert to MongoDB using the adapter (update parameter type if needed)
-            dbAdapter.saveAlert(*alert);  // If saveAlert takes an Alert by value or reference, use *alert
+            dbAdapter.saveAlert(*alert); // If saveAlert takes an Alert by value or reference, use *alert
 
             // Update robot status and save asynchronously
             robot->depleteBattery(10);
@@ -75,14 +75,12 @@ TEST_CASE("Alert System Integration Test") {
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
         }
 
-
-
         std::this_thread::sleep_for(std::chrono::seconds(2));
 
         auto alerts = dbAdapter.retrieveAlerts();
         REQUIRE(alerts.size() == 6);
 
-        for (const auto& alert : alerts) {
+        for (const auto &alert : alerts) {
             REQUIRE_FALSE(alert.getTitle().empty());
             REQUIRE_FALSE(alert.getMessage().empty());
         }
