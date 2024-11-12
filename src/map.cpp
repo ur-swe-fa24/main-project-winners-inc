@@ -37,8 +37,16 @@ void Map::addVirtualWall(Room* room1, Room* room2) {
 
 void Map::loadFromFile(const std::string& filename) {
     std::ifstream file(filename);
+    if (!file.is_open()) {
+        throw std::runtime_error("Failed to open map file: " + filename);
+    }
+
     json j;
-    file >> j;
+    try {
+        file >> j;
+    } catch (const json::parse_error& e) {
+        throw std::runtime_error("JSON parsing error in map file: " + std::string(e.what()));
+    }
 
     // Load rooms
     for (const auto& roomData : j["rooms"]) {

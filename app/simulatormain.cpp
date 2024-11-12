@@ -16,10 +16,10 @@ int main() {
         auto dbAdapter = std::make_shared<MongoDBAdapter>("mongodb://localhost:27017", "mydb9");
 
         // Specify the map file path
-        std::string mapFile = "app/map.json"; // Adjust the path as necessary
+        std::string mapFile = "map.json"; // Adjust the path as necessary
         // Create the simulator
 
-        
+
         auto simulator = std::make_shared<RobotSimulator>(dbAdapter, mapFile);
 
         // Start the simulator
