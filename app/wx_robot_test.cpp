@@ -88,13 +88,9 @@ class RobotManagementFrame : public wxFrame {
     RobotManagementFrame()
         : wxFrame(nullptr, wxID_ANY, "Robot Management System", wxDefaultPosition, wxSize(800, 600)) {
         try {
-            Bind(wxEVT_TIMER, &RobotManagementFrame::OnCheckAlerts, this);
-            Bind(wxEVT_MENU, &RobotManagementFrame::OnExit, this, wxID_EXIT);
-            Bind(wxEVT_TIMER, &RobotManagementFrame::OnCheckAlerts, this);
-
             // Initialize MongoDB
             std::string uri = "mongodb://localhost:27017";
-            std::string dbName = "mydb6";
+            std::string dbName = "mydb101";
             dbAdapter = std::make_unique<MongoDBAdapter>(uri, dbName);
 
             // Initialize users and roles
@@ -106,6 +102,9 @@ class RobotManagementFrame : public wxFrame {
                 return;
             }
 
+            // Initialize alert system
+            alertSystem = std::make_unique<AlertSystem>();
+
             // Create main panel with notebook for tabs
             wxPanel *mainPanel = new wxPanel(this);
             wxBoxSizer *mainSizer = new wxBoxSizer(wxVERTICAL);
@@ -113,7 +112,7 @@ class RobotManagementFrame : public wxFrame {
             // Create notebook for tabs
             wxNotebook *notebook = new wxNotebook(mainPanel, wxID_ANY);
 
-            // Create panels
+            // Create panels (this initializes robotGrid, alertsList, robotChoice)
             CreateDashboardPanel(notebook);
             CreateRobotControlPanel(notebook);
             CreateAlertsPanel(notebook);
@@ -134,15 +133,17 @@ class RobotManagementFrame : public wxFrame {
             // Create menu bar
             CreateMenuBar();
 
+            // Now load existing alerts and robot statuses from MongoDB
+            LoadFromDatabase();
+
             // Start alert checking timer (every 5 seconds)
             alertTimer = new wxTimer(this);
             alertTimer->Start(5000); // 5 seconds
 
-            // Create alert system
-            alertSystem = std::make_unique<AlertSystem>();
+            // Bind events
+            Bind(wxEVT_TIMER, &RobotManagementFrame::OnCheckAlerts, this);
+            Bind(wxEVT_MENU, &RobotManagementFrame::OnExit, this, wxID_EXIT);
 
-            // Load existing alerts and robot statuses from MongoDB
-            LoadFromDatabase();
         } catch (const std::exception &e) {
             wxMessageBox(wxString::Format("Database initialization failed: %s", e.what()), "Error",
                          wxOK | wxICON_ERROR);
@@ -183,6 +184,7 @@ class RobotManagementFrame : public wxFrame {
     wxGrid *robotGrid;
     wxListBox *alertsList;
     wxTimer *alertTimer;
+    wxChoice *robotChoice;
     std::map<std::string, std::string> userPasswords;
 
     // Method to load data from MongoDB
@@ -221,7 +223,7 @@ class RobotManagementFrame : public wxFrame {
         users.push_back(std::make_shared<User>(2, "user", userRole));
         users.push_back(std::make_shared<User>(3, "engineer", engineerRole));
 
-        // Store passwords (in the real system, these would be hashed)
+        // Store passwords (in a real system, these would be hashed)
         userPasswords["admin"] = "admin123";
         userPasswords["user"] = "user123";
         userPasswords["engineer"] = "engineer123";
@@ -233,9 +235,9 @@ class RobotManagementFrame : public wxFrame {
             robots.push_back(std::make_shared<Robot>("CleanBot-2", 85));
             robots.push_back(std::make_shared<Robot>("CleanBot-3", 92));
 
-            // Save initial robots to database
+            // Save initial robots to database synchronously
             for (const auto &robot : robots) {
-                dbAdapter->saveRobotStatusAsync(robot);
+                dbAdapter->saveRobotStatusSync(robot);
             }
         } else {
             robots = existingRobots;
@@ -328,7 +330,7 @@ class RobotManagementFrame : public wxFrame {
         // Robot selection
         wxBoxSizer *robotSelectionSizer = new wxBoxSizer(wxHORIZONTAL);
         wxStaticText *robotLabel = new wxStaticText(panel, wxID_ANY, "Select Robot:");
-        wxChoice *robotChoice = new wxChoice(panel, wxID_ANY);
+        robotChoice = new wxChoice(panel, wxID_ANY);
 
         for (const auto &robot : robots) {
             robotChoice->Append(robot->getName());
@@ -441,9 +443,8 @@ class RobotManagementFrame : public wxFrame {
     }
 
     void OnStartCleaning(wxCommandEvent &evt) {
-        wxChoice *choice = dynamic_cast<wxChoice *>(FindWindow(wxID_ANY));
-        if (choice && choice->GetSelection() != wxNOT_FOUND) {
-            std::string robotName = choice->GetString(choice->GetSelection()).ToStdString();
+        if (robotChoice && robotChoice->GetSelection() != wxNOT_FOUND) {
+            std::string robotName = robotChoice->GetString(robotChoice->GetSelection()).ToStdString();
 
             // Find selected robot
             for (auto &robot : robots) {
@@ -458,13 +459,14 @@ class RobotManagementFrame : public wxFrame {
                     break;
                 }
             }
+        } else {
+            wxMessageBox("Please select a robot before starting.", "No Robot Selected", wxOK | wxICON_WARNING);
         }
     }
 
     void OnStopCleaning(wxCommandEvent &evt) {
-        wxChoice *choice = dynamic_cast<wxChoice *>(FindWindow(wxID_ANY));
-        if (choice && choice->GetSelection() != wxNOT_FOUND) {
-            std::string robotName = choice->GetString(choice->GetSelection()).ToStdString();
+        if (robotChoice && robotChoice->GetSelection() != wxNOT_FOUND) {
+            std::string robotName = robotChoice->GetString(robotChoice->GetSelection()).ToStdString();
 
             // Find selected robot
             for (auto &robot : robots) {
@@ -479,13 +481,14 @@ class RobotManagementFrame : public wxFrame {
                     break;
                 }
             }
+        } else {
+            wxMessageBox("Please select a robot before stopping.", "No Robot Selected", wxOK | wxICON_WARNING);
         }
     }
 
     void OnReturnToCharger(wxCommandEvent &evt) {
-        wxChoice *choice = dynamic_cast<wxChoice *>(FindWindow(wxID_ANY));
-        if (choice && choice->GetSelection() != wxNOT_FOUND) {
-            std::string robotName = choice->GetString(choice->GetSelection()).ToStdString();
+        if (robotChoice && robotChoice->GetSelection() != wxNOT_FOUND) {
+            std::string robotName = robotChoice->GetString(robotChoice->GetSelection()).ToStdString();
 
             // Find selected robot
             for (auto &robot : robots) {
@@ -504,6 +507,8 @@ class RobotManagementFrame : public wxFrame {
                     break;
                 }
             }
+        } else {
+            wxMessageBox("Please select a robot to return to charger.", "No Robot Selected", wxOK | wxICON_WARNING);
         }
     }
 
