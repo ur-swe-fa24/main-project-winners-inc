@@ -3,12 +3,12 @@
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/catch_approx.hpp>
 #include "alert/Alert.h"
-#include "alert_system/alert_system.h"
+#include "AlertSystem/alert_system.h"
 #include "user/user.h"
 #include "role/role.h"
 #include "permission/permission.h"
-#include "robot/Robot.h"
-#include "room/room.h"
+#include "Robot/Robot.h"
+#include "Room/Room.h"
 #include "adapter/MongoDBAdapter.hpp"
 #include <mongocxx/instance.hpp>
 #include <memory>
