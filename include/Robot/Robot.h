@@ -2,12 +2,12 @@
 #define ROBOT_H
 
 #include <string>
+#include "Room/Room.h"
 
 class Robot {
 public:
     // Constructor
     Robot(const std::string& name, int batteryLevel);
-    
 
     // Status update method (for demonstration purposes)
     void sendStatusUpdate() const;
@@ -30,12 +30,17 @@ public:
     std::string getName() const;
     int getBatteryLevel() const;
 
+    void setCurrentRoom(Room* room);
+    Room* getCurrentRoom() const;
+    bool moveToRoom(Room* room);  // Move to an adjacent room
+
 private:
     // Attributes
     std::string name;
     int batteryLevel;
     bool cleaning_;
     bool lowBatteryAlertSent_;
+    Room* currentRoom_;
 };
 
 #endif // ROBOT_H

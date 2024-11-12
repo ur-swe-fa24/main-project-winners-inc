@@ -1,3 +1,5 @@
+// RobotSimulator.hpp
+
 #ifndef ROBOT_SIMULATOR_HPP
 #define ROBOT_SIMULATOR_HPP
 
@@ -9,10 +11,11 @@
 #include <condition_variable>
 #include "Robot/Robot.h"
 #include "adapter/MongoDBAdapter.hpp"
+#include "map/map.h"
 
 class RobotSimulator {
 public:
-    RobotSimulator(std::shared_ptr<MongoDBAdapter> dbAdapter);
+    RobotSimulator(std::shared_ptr<MongoDBAdapter> dbAdapter, const std::string& mapFile);
     ~RobotSimulator();
 
     void start();
@@ -29,15 +32,21 @@ public:
         std::string name;
         int batteryLevel;
         bool isCleaning;
+        std::string currentRoomName;
     };
 
     std::vector<RobotStatus> getRobotStatuses();
+    const std::vector<std::shared_ptr<Robot>>& getRobots() const;
+    const Map& getMap() const;
 
 private:
     void simulationLoop();
+    void simulateRobotMovement();
+    Room* getNextRoomToClean(Room* currentRoom);
 
     std::shared_ptr<MongoDBAdapter> dbAdapter_;
     std::vector<std::shared_ptr<Robot>> robots_;
+    Map map_;
 
     std::thread simulationThread_;
     std::atomic<bool> running_;

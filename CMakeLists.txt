@@ -7,13 +7,16 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Include CPM for package management
 include(dependencies/get_cpm.cmake)
-include(dependencies/dependencies.cmake)
+include(dependencies/dependencies.cmake)  # Ensure this includes CPMAddPackage for nlohmann_json
 
 # Find required packages
 find_package(spdlog REQUIRED)
 find_package(mongocxx REQUIRED)
 find_package(Catch2 3 REQUIRED)
 find_package(wxWidgets REQUIRED COMPONENTS core base)
+
+# Remove or comment out this line
+# find_package(nlohmann_json REQUIRED)
 
 # Define the main_proj library with all necessary source files
 add_library(main_proj
@@ -23,8 +26,10 @@ add_library(main_proj
     src/alert.cpp
     src/Robot.cpp
     src/Room.cpp
+    src/virtual_wall.cpp   # Include this line
+    src/map.cpp
     src/alert_system.cpp
-    src/MongoDBAdapter.cpp  # Ensure this path is correct
+    src/MongoDBAdapter.cpp
     src/RobotSimulator.cpp
 )
 
@@ -39,10 +44,8 @@ target_link_libraries(main_proj
     PUBLIC
         spdlog::spdlog_header_only
         mongo::mongocxx_shared
+        nlohmann_json::nlohmann_json  # Use the target provided by CPMAddPackage
 )
 
 # Add the app subdirectory where executables are defined
 add_subdirectory(app)
-
-# # Add the tests subdirectory after main_proj is defined
-# add_subdirectory(tests)

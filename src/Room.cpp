@@ -24,12 +24,12 @@ void Room::getRoomInfo() const {
 }
 
 // Marking a given room as clean
-void Room::markClean(std::string roomName){
+void Room::markClean(){
     isRoomClean = true;
 }
 
 // Marking a given room as dirty
-void Room::markDirty(std::string roomName){
+void Room::markDirty(){
     isRoomClean = false;
 }
 

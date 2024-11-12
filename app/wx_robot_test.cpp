@@ -15,6 +15,7 @@ public:
             // Create single MongoDB instance for the application
             mongoInstance = std::make_unique<mongocxx::instance>();
 
+            // Create the main frame
             RobotManagementFrame* frame = new RobotManagementFrame();
             frame->Show();
             return true;

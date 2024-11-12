@@ -1,65 +1,38 @@
+// simulatormain.cpp
+
+#include <mongocxx/instance.hpp>
+#include <mongocxx/uri.hpp>
+#include <thread>
+#include <memory>
 #include "RobotSimulator/RobotSimulator.hpp"
 #include "adapter/MongoDBAdapter.hpp"
-#include "Robot/Robot.h"
-#include "Room/Room.h"
-#include <mongocxx/instance.hpp>
-#include <iostream>
-#include <csignal>
-#include <atomic>
-#include <thread>
-#include <chrono>
-
-std::atomic<bool> keepRunning(true);
-
-void signalHandler(int signum) {
-    std::cout << "Interrupt signal (" << signum << ") received.\n";
-    keepRunning = false;
-}
 
 int main() {
-    // Register signal handler for graceful shutdown
-    std::signal(SIGINT, signalHandler);
-
     try {
         // Initialize MongoDB instance
-        mongocxx::instance mongoInstance{};
+        mongocxx::instance instance{};
 
-        // Initialize MongoDBAdapter
-        std::string uri = "mongodb://localhost:27017";
-        std::string dbName = "mydb_simulator_test";
-        auto dbAdapter = std::make_shared<MongoDBAdapter>(uri, dbName);
+        // Initialize MongoDB Adapter
+        auto dbAdapter = std::make_shared<MongoDBAdapter>("mongodb://localhost:27017", "mydb9");
 
-        // Create and start the simulator
-        auto simulator = std::make_shared<RobotSimulator>(dbAdapter);
+        // Specify the map file path
+        std::string mapFile = "app/map.json"; // Adjust the path as necessary
+        // Create the simulator
+
+        
+        auto simulator = std::make_shared<RobotSimulator>(dbAdapter, mapFile);
+
+        // Start the simulator
         simulator->start();
-
-        std::cout << "Robot Simulator running. Press Ctrl+C to exit.\n";
-
-        // Main loop
-        while (keepRunning) {
-            // Get the current state of robots
-            auto robots = simulator->getRobotStatuses();
-
-            // Display robot statuses
-            std::cout << "\nCurrent Robot Statuses:\n";
-            for (const auto& robot : robots) {
-                std::cout << "Robot Name: " << robot.name
-                          << ", Battery Level: " << robot.batteryLevel << "%"
-                          << ", Cleaning: " << (robot.isCleaning ? "Yes" : "No") << "\n";
-            }
-
-            // Sleep for a while
-            std::this_thread::sleep_for(std::chrono::seconds(5));
-        }
+        // Run the simulator for a certain amount of time
+        std::this_thread::sleep_for(std::chrono::seconds(30)); // Run for 30 seconds
 
         // Stop the simulator
         simulator->stop();
 
-        std::cout << "Simulator stopped. Exiting.\n";
+        return 0;
     } catch (const std::exception& e) {
-        std::cerr << "Error in simulator: " << e.what() << std::endl;
-        return EXIT_FAILURE;
+        std::cerr << "Exception in main: " << e.what() << std::endl;
+        return -1;
     }
-
-    return EXIT_SUCCESS;
 }

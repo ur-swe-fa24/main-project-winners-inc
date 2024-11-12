@@ -1,0 +1,28 @@
+{
+    "rooms": [
+      {
+        "name": "Living Room",
+        "id": 1,
+        "flooringType": "Hardwood",
+        "isRoomClean": false
+      },
+      {
+        "name": "Kitchen",
+        "id": 2,
+        "flooringType": "Tile",
+        "isRoomClean": false
+      }
+    ],
+    "connections": [
+      {
+        "room1": 1,
+        "room2": 2
+      }
+    ],
+    "virtualWalls": [
+      {
+        "room1": 1,
+        "room2": 3
+      }
+    ]
+}  

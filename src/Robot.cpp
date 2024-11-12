@@ -62,3 +62,23 @@ void Robot::depleteBattery(int amount) {
     if (batteryLevel < 0) batteryLevel = 0;  // Prevent battery from going negative
     std::cout << "Robot " << name << "'s battery depleted to " << batteryLevel << "%." << std::endl;
 }
+
+void Robot::setCurrentRoom(Room* room) {
+    currentRoom_ = room;
+}
+
+Room* Robot::getCurrentRoom() const {
+    return currentRoom_;
+}
+
+bool Robot::moveToRoom(Room* room) {
+    // Check if the desired room is adjacent
+    if (std::find(currentRoom_->neighbors.begin(), currentRoom_->neighbors.end(), room) != currentRoom_->neighbors.end()) {
+        currentRoom_ = room;
+        return true;
+    }
+    // Check for virtual walls (if implemented)
+    // ...
+    return false;  // Can't move to the room
+}
+

@@ -1,13 +1,24 @@
+// RobotSimulator.cpp
+
 #include "RobotSimulator/RobotSimulator.hpp"
 #include <chrono>
 #include <iostream>
+#include <queue>
+#include <set>
 
-RobotSimulator::RobotSimulator(std::shared_ptr<MongoDBAdapter> dbAdapter)
+RobotSimulator::RobotSimulator(std::shared_ptr<MongoDBAdapter> dbAdapter, const std::string& mapFile)
     : dbAdapter_(dbAdapter), running_(false) {
-    // Initialize robots; you can retrieve from db or create new ones
+    // Load the map
+    map_.loadFromFile(mapFile);
+
+    // Initialize robots at starting room
+    Room* startingRoom = map_.getRoomById(1);
+    if (!startingRoom) {
+        throw std::runtime_error("Starting room not found in the map.");
+    }
+
     robots_.push_back(std::make_shared<Robot>("SimBot-1", 100));
-    robots_.push_back(std::make_shared<Robot>("SimBot-2", 100));
-    robots_.push_back(std::make_shared<Robot>("SimBot-3", 100));
+    robots_.back()->setCurrentRoom(startingRoom);
 
     // Save initial robots to the database
     try {
@@ -96,6 +107,7 @@ void RobotSimulator::simulationLoop() {
                 std::cerr << "Exception during database operation: " << e.what() << std::endl;
             }
         }
+        simulateRobotMovement();
 
         // Sleep before the next simulation step
         std::this_thread::sleep_for(std::chrono::seconds(1));
@@ -110,6 +122,7 @@ std::vector<RobotSimulator::RobotStatus> RobotSimulator::getRobotStatuses() {
         status.name = robot->getName();
         status.batteryLevel = robot->getBatteryLevel();
         status.isCleaning = robot->isCleaning();
+        status.currentRoomName = robot->getCurrentRoom() ? robot->getCurrentRoom()->getRoomName() : "Unknown";
         statuses.push_back(status);
     }
     return statuses;
@@ -156,4 +169,54 @@ void RobotSimulator::returnToCharger(const std::string& robotName) {
         }
     }
     cv_.notify_one();
+}
+
+void RobotSimulator::simulateRobotMovement() {
+    std::lock_guard<std::mutex> lock(robotsMutex_);
+    for (auto& robot : robots_) {
+        if (robot->isCleaning()) {
+            Room* currentRoom = robot->getCurrentRoom();
+            Room* nextRoom = getNextRoomToClean(currentRoom);
+            if (nextRoom && robot->moveToRoom(nextRoom)) {
+                // Mark the room as clean
+                nextRoom->markClean();
+                // Optionally, save robot status to the database
+                dbAdapter_->saveRobotStatus(robot);
+            }
+        }
+    }
+}
+
+Room* RobotSimulator::getNextRoomToClean(Room* currentRoom) {
+    // Implement logic to decide the next room
+    // For example, find the nearest dirty room
+    std::queue<Room*> queue;
+    std::set<Room*> visited;
+    queue.push(currentRoom);
+    visited.insert(currentRoom);
+
+    while (!queue.empty()) {
+        Room* room = queue.front();
+        queue.pop();
+
+        if (!room->isRoomClean) {
+            return room;
+        }
+
+        for (Room* neighbor : room->neighbors) {
+            if (visited.find(neighbor) == visited.end()) {
+                queue.push(neighbor);
+                visited.insert(neighbor);
+            }
+        }
+    }
+    return nullptr;  // No dirty rooms found
+}
+
+const std::vector<std::shared_ptr<Robot>>& RobotSimulator::getRobots() const {
+    return robots_;
+}
+
+const Map& RobotSimulator::getMap() const {
+    return map_;
 }

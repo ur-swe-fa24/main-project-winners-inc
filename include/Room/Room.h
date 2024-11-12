@@ -21,9 +21,9 @@ public:
     int getRoomId() const;
 
     // Methods
-    void getRoomInfo() const;   // Method to get room information
-    void markClean(std::string roomName);   // Mark a room as clean
-    void markDirty(std::string roomName);   // Mark a room as dirty
+    void getRoomInfo() const;
+    void markClean();   // Mark a room as clean
+    void markDirty();   // Mark a room as dirty
     void addNeighbor(Room* neighbor);       // Add a neighbor room
 
     // Destructor (optional)

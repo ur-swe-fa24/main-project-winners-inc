@@ -17,6 +17,7 @@
 #include "role/role.h"
 #include "alert/Alert.h"
 #include "RobotSimulator/RobotSimulator.hpp"
+#include "map_panel/map_panel.hpp"
 
 // Forward declarations
 class LoginDialog;
@@ -40,6 +41,11 @@ private:
     void CreateUserManagementPanel(wxNotebook* notebook);
     void UpdateRobotGrid();
     void CheckAndUpdateAlerts();
+    // Add MapPanel pointer
+    MapPanel* mapPanel_;
+    // Modify methods
+    void CreateMapPanel(wxNotebook* notebook);
+
 
     // Event Handlers
     void OnCheckAlerts(wxTimerEvent& evt);
