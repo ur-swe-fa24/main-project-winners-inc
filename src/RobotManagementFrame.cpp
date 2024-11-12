@@ -2,6 +2,9 @@
 #include "LoginDialog/LoginDialog.hpp"
 #include "AlertDialog/AlertDialog.hpp"
 #include "map_panel/map_panel.hpp"
+#include <iostream>
+#include <wx/filename.h>
+
 
 // Constructor
 RobotManagementFrame::RobotManagementFrame()
@@ -12,8 +15,11 @@ RobotManagementFrame::RobotManagementFrame()
         std::string dbName = "mydb9";
         dbAdapter = std::make_shared<MongoDBAdapter>(uri, dbName);
 
+        wxString cwd = wxGetCwd();
+        std::cout << "Current working directory: " << cwd.mb_str() << std::endl;
+
         // Specify the map file path
-        std::string mapFile = "map.json"; // Ensure map.json is in the working directory
+        std::string mapFile = "map.json"; // Ensurfe map.json is in the working directory
 
         // Initialize the RobotSimulator with shared dbAdapter and map file
         simulator_ = std::make_unique<RobotSimulator>(dbAdapter, mapFile);
@@ -232,15 +238,13 @@ void RobotManagementFrame::CreateDashboardPanel(wxNotebook* notebook) {
     // Robot status grid
     robotGrid = new wxGrid(panel, wxID_ANY);
     auto robotStatuses = simulator_->getRobotStatuses();
-    robotGrid->CreateGrid(robotStatuses.size(), 3);
+    robotGrid->CreateGrid(robotStatuses.size(), 4);  // Use 4 columns directly
 
     // Set column headers
     robotGrid->SetColLabelValue(0, "Robot Name");
     robotGrid->SetColLabelValue(1, "Battery Level");
     robotGrid->SetColLabelValue(2, "Status");
-    robotGrid->CreateGrid(robotStatuses.size(), 4);  // Updated column count
     robotGrid->SetColLabelValue(3, "Current Room");
-
 
     UpdateRobotGrid();
 
@@ -255,13 +259,64 @@ void RobotManagementFrame::CreateDashboardPanel(wxNotebook* notebook) {
     notebook->AddPage(panel, "Dashboard");
 }
 
+// void RobotManagementFrame::UpdateRobotGrid() {
+//     auto robotStatuses = simulator_->getRobotStatuses();
+//     robotGrid->ClearGrid();
+//     if (robotGrid->GetNumberRows() != robotStatuses.size()) {
+//         robotGrid->DeleteRows(0, robotGrid->GetNumberRows());
+//         robotGrid->AppendRows(robotStatuses.size());
+//     }
+//     for (size_t i = 0; i < robotStatuses.size(); ++i) {
+//         robotGrid->SetCellValue(i, 0, robotStatuses[i].name);
+//         robotGrid->SetCellValue(i, 1, wxString::Format("%d%%", robotStatuses[i].batteryLevel));
+//         robotGrid->SetCellValue(i, 2, robotStatuses[i].isCleaning ? "Cleaning" : "Idle");
+//         robotGrid->SetCellValue(i, 3, robotStatuses[i].currentRoomName);
+
+//         // Color coding for battery levels
+//         if (robotStatuses[i].batteryLevel < 20) {
+//             robotGrid->SetCellBackgroundColour(i, 1, wxColour(255, 200, 200)); // Light red
+//         } else if (robotStatuses[i].batteryLevel < 50) {
+//             robotGrid->SetCellBackgroundColour(i, 1, wxColour(255, 255, 200)); // Light yellow
+//         } else {
+//             robotGrid->SetCellBackgroundColour(i, 1, wxColour(200, 255, 200)); // Light green
+//         }
+//     }
+//     robotGrid->AutoSize();
+// }
+
+
 void RobotManagementFrame::UpdateRobotGrid() {
     auto robotStatuses = simulator_->getRobotStatuses();
-    robotGrid->ClearGrid();
-    if (robotGrid->GetNumberRows() != robotStatuses.size()) {
-        robotGrid->DeleteRows(0, robotGrid->GetNumberRows());
-        robotGrid->AppendRows(robotStatuses.size());
+    int requiredRows = robotStatuses.size();
+    int requiredCols = 4;  // Number of columns you have
+
+    int currentRows = robotGrid->GetNumberRows();
+    int currentCols = robotGrid->GetNumberCols();
+
+    // Adjust the number of columns if necessary
+    if (currentCols != requiredCols) {
+        if (currentCols > requiredCols) {
+            robotGrid->DeleteCols(0, currentCols - requiredCols);
+        } else {
+            robotGrid->AppendCols(requiredCols - currentCols);
+        }
+        // Reset column labels after adjusting columns
+        robotGrid->SetColLabelValue(0, "Robot Name");
+        robotGrid->SetColLabelValue(1, "Battery Level");
+        robotGrid->SetColLabelValue(2, "Status");
+        robotGrid->SetColLabelValue(3, "Current Room");
     }
+
+    // Adjust the number of rows
+    if (currentRows != requiredRows) {
+        if (currentRows > requiredRows) {
+            robotGrid->DeleteRows(0, currentRows - requiredRows);
+        } else {
+            robotGrid->AppendRows(requiredRows - currentRows);
+        }
+    }
+
+    // Now, set the cell values
     for (size_t i = 0; i < robotStatuses.size(); ++i) {
         robotGrid->SetCellValue(i, 0, robotStatuses[i].name);
         robotGrid->SetCellValue(i, 1, wxString::Format("%d%%", robotStatuses[i].batteryLevel));
@@ -277,6 +332,7 @@ void RobotManagementFrame::UpdateRobotGrid() {
             robotGrid->SetCellBackgroundColour(i, 1, wxColour(200, 255, 200)); // Light green
         }
     }
+
     robotGrid->AutoSize();
 }
 
