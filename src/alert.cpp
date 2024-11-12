@@ -51,7 +51,7 @@ void Alert::displayAlertInfo() const {
     std::cout << "Alert Type: " << type << std::endl;
     std::cout << "Message: " << message << std::endl;
     std::cout << "Robot: " << (robot ? robot->getName() : "None") << std::endl;
-    std::cout << "Room: " << (room ? room->getRoomName() : "None") << std::endl;
+    // std::cout << "Room: " << (room ? room->getRoomName() : "None") << std::endl;
     std::cout << "Timestamp: " << std::ctime(&timestamp);
     std::cout << "Severity: " << (severity == HIGH ? "High" : (severity == MEDIUM ? "Medium" : "Low")) << std::endl;
 }

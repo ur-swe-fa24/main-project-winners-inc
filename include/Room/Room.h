@@ -2,30 +2,31 @@
 #define ROOM_H
 
 #include <string>
+#include <vector>
 
 class Room {
 public:
-    // Constructor
-    Room(const std::string& roomName, int roomId);
-
-    // Getters
-    std::string getRoomName() const;
-    int getRoomId() const;
-
-    // Method to get room information (for demonstration purposes)
-    void getRoomInfo() const;
-
-    // Setter to update the room name
-    void setRoomName(const std::string& newRoomName);
-
-    // Utility method to simulate checking occupancy status
-    bool isOccupied() const;
-
-private:
     // Attributes
     std::string roomName;
     int roomId;
-    bool occupied; // Example attribute to track occupancy
+    std::string flooringType;   // Hardwood, carpet, etc.
+    bool isRoomClean = true;    // true when clean, false when dirty (default to true)
+    std::vector<Room*> neighbors;
+
+    // Constructor
+    Room(const std::string& roomName, int roomId, const std::string& flooringType, bool isRoomClean, std::vector<Room*> neighbors);
+
+    //Getter for room name
+    std::string getRoomName() const;
+
+    // Getter for room ID
+    int getRoomId() const;
+
+    // Methods
+    void getRoomInfo() const;   // Method to get room information (for demonstration purposes)
+    void markClean(std::string roomName);   // Mark a room in the map as clean
+    void markDirty(std::string roomName);   // Mark a room in the map as dirty
+    void addNeighbor(Room* neighbor);       // Used to create vector of neighbors for map purposes
 };
 
 #endif // ROOM_H

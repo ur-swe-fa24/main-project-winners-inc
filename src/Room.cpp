@@ -1,40 +1,31 @@
+// src/room.cpp
 #include "Room/Room.h"
 #include <iostream>
 
 // Constructor implementation
-Room::Room(const std::string& roomName, int roomId)
-    : roomName(roomName), roomId(roomId), occupied(false) {
-    // Initialization code if needed
-}
+Room::Room(const std::string &roomName, int roomId, const std::string &flooringType, bool isRoomClean,
+           std::vector<Room *> neighbors)
+    : roomName(roomName), roomId(roomId), flooringType(flooringType), isRoomClean(isRoomClean), neighbors(neighbors) {}
 
 // Getter for room name
-std::string Room::getRoomName() const {
-    return roomName;
-}
+std::string Room::getRoomName() const { return roomName; }
 
 // Getter for room ID
-int Room::getRoomId() const {
-    return roomId;
-}
+int Room::getRoomId() const { return roomId; }
 
 // Method to get room information
 void Room::getRoomInfo() const {
-    std::cout << "Room Name: " << roomName << ", Room ID: " << roomId << std::endl;
+    std::cout << "Room Name: " << roomName << ", Room ID: " << roomId << ", Flooring Type: " << flooringType
+              << ", Room is clean?: " << isRoomClean << std::endl;
 }
 
-// Setter to update the room name
-void Room::setRoomName(const std::string& newRoomName) {
-    roomName = newRoomName;
-    std::cout << "Room name updated to: " << roomName << std::endl;
-}
+// Marking a given room as clean
+void Room::markClean(std::string roomName) { isRoomClean = true; }
 
-// Method to check occupancy status
-bool Room::isOccupied() const {
-    return occupied;
-}
+// Marking a given room as dirty
+void Room::markDirty(std::string roomName) { isRoomClean = false; }
 
-// Optional: A method to update occupancy status (not requested, but could be useful)
-// void Room::setOccupied(bool status) {
-//     occupied = status;
-//     std::cout << "Room " << roomName << " occupancy status updated to: " << (occupied ? "Occupied" : "Vacant") << std::endl;
+// Adding a neighbor to neighbors vector
+// void Room:addNeighbor(Room* neighbor){
+//     neighbors.push_back(neighbor);
 // }
