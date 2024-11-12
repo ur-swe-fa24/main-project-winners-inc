@@ -1,25 +1,25 @@
 #ifndef MONGODB_ADAPTER_HPP
 #define MONGODB_ADAPTER_HPP
 
-#include "alert/Alert.h"
 #include "Robot/Robot.h"
-#include <mongocxx/client.hpp>
-#include <string>
-#include <vector>
-#include <queue>
-#include <thread>
-#include <mutex>
-#include <condition_variable>
+#include "alert/Alert.h"
 #include <atomic>
+#include <condition_variable>
 #include <memory>
+#include <mongocxx/client.hpp>
+#include <mutex>
+#include <queue>
+#include <string>
+#include <thread>
+#include <vector>
 
 class MongoDBAdapter {
-public:
-    MongoDBAdapter(const std::string& uri, const std::string& dbName);
+  public:
+    MongoDBAdapter(const std::string &uri, const std::string &dbName);
     ~MongoDBAdapter();
 
     // Alert methods
-    void saveAlert(const Alert& alert);
+    void saveAlert(const Alert &alert);
     std::vector<Alert> retrieveAlerts();
     void deleteAllAlerts();
     void dropAlertCollection();
@@ -29,6 +29,7 @@ public:
     std::vector<std::shared_ptr<Robot>> retrieveRobotStatuses();
     void deleteAllRobotStatuses();
     void dropRobotStatusCollection();
+    void saveRobotStatusSync(std::shared_ptr<Robot> robot);
 
     // Asynchronous robot status methods
     void saveRobotStatusAsync(std::shared_ptr<Robot> robot);
@@ -37,7 +38,7 @@ public:
     // Thread management
     void stop();
 
-private:
+  private:
     // Alert processing
     void processSaveQueue();
 
