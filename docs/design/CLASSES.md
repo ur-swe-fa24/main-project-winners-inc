@@ -1,375 +1,163 @@
-# **Class Diagram Document**
+# **Class Documentation**
 
 ## **Introduction**
 
-This document outlines the class diagram for the Cobotiq robot management system.
+This document outlines the class structure for the robot fleet management system.
 
----
+## **Core Classes**
 
-## **Key Classes and Relationships**
+### **1. User Management Classes**
 
-The system is composed of several different classes, each responsible for specific functionalities within the robot management ecosystem. These include:
-
-1. **User, Role, and Permission Classes**
-2. **Service Classes for User Actions**
-3. **Robot and CleaningTask Classes**
-4. **Schedule and Map Classes**
-5. **Area, Room, and Zone Classes**
-6. **AlertSystem and Alert Classes**
-7. **Analytics and RobotMetrics Classes**
-8. **System Classes (SchedulingSystem and MappingSystem)**
-
----
-
-## **1. User, Role, and Permission Classes**
-
-### **User Class**
-
-- **Purpose:** Represents a user of the system.
+#### **User Class**
+- **Purpose:** Represents a system user with associated role and permissions
 - **Attributes:**
-  - `id`: int
-  - `name`: String
-  - `role`: Role
+  - `id`: int - Unique identifier for the user
+  - `name`: string - User's name
+  - `role`: Role - User's assigned role
 - **Methods:**
-  - `login()`: Authenticates the user into the system.
-  - `logout()`: Logs the user out of the system.
-  - `receiveNotification(alert: Alert)`: Receives notifications or alerts.
+  - `login()`: Authenticates user into the system
+  - `logout()`: Logs user out of the system
+  - `receiveNotification(alert: Alert)`: Handles incoming alert notifications
+  - Getters and setters for all attributes
 
-### **Role Class**
-
-- **Purpose:** Defines the role of a user and associated permissions.
+#### **Role Class**
+- **Purpose:** Defines user roles and associated permissions
 - **Attributes:**
-  - `name`: String (e.g., "Senior Manager", "Building Manager")
-  - `permissions`: List<Permission>
+  - `name`: string - Name of the role
+  - `permissions`: vector<Permission> - List of associated permissions
 - **Methods:**
-  - `hasPermission(permissionName: String): bool`: Checks if the role includes a specific permission.
+  - `addPermission(permission: Permission)`: Adds a permission to the role
+  - `hasPermission(permissionName: string): bool`: Checks if role has specific permission
+  - Getters and setters for name
 
-### **Permission Class**
-
-- **Purpose:** Represents an individual permission that can be assigned to a role.
+#### **Permission Class**
+- **Purpose:** Represents individual system permissions
 - **Attributes:**
-  - `name`: String (e.g., "VIEW_ANALYTICS", "CREATE_SCHEDULE")
-
-**Relationships:**
-
-- **User and Role:**
-  - Each `User` has one `Role`.
-- **Role and Permission:**
-  - Each `Role` has multiple `Permission` objects.
-- **Usage:**
-  - User methods utilize the permissions defined in their associated role to determine access to functionalities.
-
----
-
-## **2. Service Classes for User Actions**
-
-These classes define the business logic for user actions and enforce permission checks.
-
-### **AnalyticsService Class**
-
-- **Purpose:** Provides analytics functionalities to authorized users.
+  - `name`: string - Name of the permission
 - **Methods:**
-  - `viewAnalytics(user: User)`: Allows a user to view analytics if they have the appropriate permission.
+  - Getters and setters for name
 
-### **SchedulingService Class**
+### **2. Alert System Classes**
 
-- **Purpose:** Manages scheduling of cleaning tasks.
-- **Methods:**
-  - `createSchedule(user: User, schedule: Schedule)`: Creates a new schedule.
-  - `editSchedule(user: User, schedule: Schedule)`: Edits an existing schedule.
-
-### **RobotManagementService Class**
-
-- **Purpose:** Handles robot-related management tasks.
-- **Methods:**
-  - `viewRobotStatus(user: User, robot: Robot)`: Views the status of a robot.
-  - `assignTask(user: User, task: CleaningTask)`: Assigns a cleaning task to a robot.
-  - `fixRobot(user: User, robot: Robot)`: Initiates robot maintenance procedures.
-  - `addRobot(user: User, robot: Robot)`: Adds a new robot to the system.
-  - `removeRobot(user: User, robot: Robot)`: Removes a robot from the system.
-
-**Note:** Each method in the service classes checks if the user has the necessary permissions before performing the action.
-
----
-
-## **3. Robot and CleaningTask Classes**
-
-### **Robot Class**
-
-- **Purpose:** Represents a cleaning robot within the system.
+#### **Alert Class**
+- **Purpose:** Represents system alerts and notifications
 - **Attributes:**
-  - `id`: int
-  - `batteryLevel`: float
-  - `waterLevel`: float
-  - `errorRate`: float
-  - `location`: Location
-  - `status`: String (e.g., "Idle", "Cleaning", "Charging")
-  - `assignedTask`: CleaningTask
+  - `type`: string - Alert type/title
+  - `message`: string - Alert message/description
+  - `robot`: shared_ptr<Robot> - Associated robot
+  - `room`: shared_ptr<Room> - Associated room
+  - `timestamp`: time_t - Time of alert creation
+  - `severity`: Severity - Alert severity level (LOW, MEDIUM, HIGH)
 - **Methods:**
-  - `sendStatusUpdate()`: Sends the current status to the system.
-  - `receiveTask(task: CleaningTask)`: Receives and starts a new cleaning task.
-  - `checkStatus()`: Checks the robot's current status.
-  - `cleanArea(area: Area)`: Performs cleaning in the specified area.
-  - `navigate(map: Map)`: Navigates using the provided map.
-  - `reportError(error: Error)`: Reports any errors encountered.
+  - `displayAlertInfo()`: Displays complete alert information
+  - Getters and setters for all attributes
 
-### **CleaningTask Class**
-
-- **Purpose:** Represents a cleaning task assigned to a robot.
+#### **AlertSystem Class**
+- **Purpose:** Manages alert distribution and processing
 - **Attributes:**
-  - `id`: int
-  - `priority`: int
-  - `status`: String (e.g., "Pending", "In Progress", "Completed", "Failed")
-  - `area`: Area (Room or Zone)
-  - `cleaningType`: String (e.g., "Spot Clean", "Full Clean")
+  - `alertQueue_`: queue<pair<User*, shared_ptr<Alert>>> - Queue of pending alerts
+  - `workerThread_`: thread - Thread for processing alerts
+  - `queueMutex_`: mutex - Mutex for thread safety
+  - `cv_`: condition_variable - For thread synchronization
+  - `running_`: atomic<bool> - Thread control flag
 - **Methods:**
-  - `assignRobot(robot: Robot)`: Assigns the task to a robot.
-  - `markCompleted()`: Marks the task as completed.
-  - `markFailed()`: Marks the task as failed.
+  - `sendAlert(user: User*, alert: shared_ptr<Alert>)`: Queues an alert for delivery
+  - `stop()`: Stops the alert processing thread
+  - `processAlerts()`: Internal method for processing queued alerts
 
-**Relationships:**
+### **3. Robot and Room Classes**
 
-- **Robot and CleaningTask:**
-  - A `Robot` can have one assigned `CleaningTask`.
-  - A `CleaningTask` can be assigned to a `Robot`.
-
----
-
-## **4. Schedule and Map Classes**
-
-### **Schedule Class**
-
-- **Purpose:** Manages a collection of cleaning tasks.
+#### **Robot Class**
+- **Purpose:** Represents a cleaning robot
 - **Attributes:**
-  - `tasks`: List<CleaningTask>
+  - `name`: string - Robot identifier
+  - `batteryLevel`: int - Current battery percentage
 - **Methods:**
-  - `createDailySchedule()`: Creates a schedule for the day.
-  - `editSchedule()`: Edits an existing schedule.
-  - `enqueueTask(task: CleaningTask)`: Adds a task to the schedule.
-  - `dequeueTask()`: Removes a task from the schedule.
+  - `sendStatusUpdate()`: Reports current robot status
+  - `recharge()`: Recharges robot battery
+  - `needsMaintenance()`: Checks if maintenance is required
+  - `depleteBattery(amount: int)`: Reduces battery level
+  - Getters for attributes
 
-**Relationships:**
-
-- **Schedule and CleaningTask:**
-  - A `Schedule` contains multiple `CleaningTask` objects.
-
-### **Map Class**
-
-- **Purpose:** Provides navigation data for robots.
+#### **Room Class**
+- **Purpose:** Represents a cleanable room
 - **Attributes:**
-  - `areas`: List<Area>
-  - `virtualWalls`: List<VirtualWall>
+  - `roomName`: string - Room identifier
+  - `roomId`: int - Unique room number
+  - `occupied`: bool - Room occupancy status
 - **Methods:**
-  - `getRoute(start: Location, end: Location)`: Calculates the route between two points.
-  - `updateMap()`: Updates the map data.
+  - `getRoomInfo()`: Displays room information
+  - `isOccupied()`: Checks room occupancy
+  - Getters and setters for attributes
 
-**Relationships:**
+### **4. Database Adapter Class**
 
-- **Map and Area:**
-  - A `Map` composes multiple `Area` objects.
-- **Map and VirtualWall:**
-  - A `Map` contains multiple `VirtualWall` objects.
-
----
-
-## **5. Area, Room, and Zone Classes**
-
-### **Area Class (Abstract)**
-
-- **Purpose:** Represents a generic area within the map.
+#### **MongoDBAdapter Class**
+- **Purpose:** Manages database operations for alerts and robot status
 - **Attributes:**
-  - `id`: int
-  - `type`: String (e.g., "Room", "Zone")
-  - `status`: String (e.g., "Clean", "Dirty")
-
-### **Room Class (Extends Area)**
-
-- **Purpose:** Represents a specific room.
-- **Attributes:**
-  - `flooringType`: String (e.g., "Carpet", "Tile")
+  - `dbName_`: string - Database name
+  - `saveQueue_`: queue<Alert> - Alert save queue
+  - `robotStatusQueue_`: queue<shared_ptr<Robot>> - Robot status queue
+  - Thread management members for both alert and robot status processing
 - **Methods:**
-  - `markClean()`: Marks the room as clean.
-  - `markDirty()`: Marks the room as dirty.
+  - Alert Operations:
+    - `saveAlert(alert: Alert)`: Saves alert to database
+    - `retrieveAlerts()`: Retrieves all alerts
+    - `deleteAllAlerts()`: Clears alert collection
+  - Robot Status Operations:
+    - `saveRobotStatusAsync(robot: shared_ptr<Robot>)`: Saves robot status
+    - `retrieveRobotStatuses()`: Retrieves all robot statuses
+    - `deleteAllRobotStatuses()`: Clears robot status collection
+  - Collection Management:
+    - `dropAlertCollection()`: Removes alert collection
+    - `dropRobotStatusCollection()`: Removes robot status collection
+  - Thread Management:
+    - `stop()`: Stops alert processing thread
+    - `stopRobotStatusThread()`: Stops robot status processing thread
 
-### **Zone Class (Extends Area)**
+## **Class Relationships**
 
-- **Purpose:** Represents a specific zone or area grouping.
-- **Attributes:**
-  - `description`: String
+1. **User-Role-Permission Hierarchy:**
+   - User has one Role
+   - Role contains multiple Permissions
+   - Permissions define access rights
 
-**Relationships:**
+2. **Alert System Integration:**
+   - AlertSystem sends Alerts to Users
+   - Alerts reference both Robot and Room
+   - AlertSystem uses MongoDBAdapter for persistence
 
-- **Inheritance:**
-  - `Room` and `Zone` inherit from `Area`.
+3. **Database Integration:**
+   - MongoDBAdapter manages persistence for both Alerts and Robot status
+   - Uses asynchronous processing for both alert and robot status updates
 
----
+## **Design Patterns Used**
 
-## **6. VirtualWall Class**
+1. **Observer Pattern:**
+   - AlertSystem acts as subject
+   - Users are observers receiving notifications
 
-### **VirtualWall Class**
+2. **Singleton Pattern (implicit):**
+   - AlertSystem and MongoDBAdapter are typically instantiated once
 
-- **Purpose:** Represents virtual barriers within the map.
-- **Attributes:**
-  - `id`: int
-  - `coordinates`: List<Location>
+3. **Smart Pointer Usage:**
+   - shared_ptr used for Robot and Room references in Alert class
+   - Ensures proper memory management
 
----
+## **Threading and Concurrency**
 
-## **7. AlertSystem and Alert Classes**
+The system implements thread-safe operations through:
+- Mutex locks for queue access
+- Condition variables for thread synchronization
+- Atomic flags for thread control
+- Separate threads for alert and robot status processing
 
-### **AlertSystem Class**
+## **Future Enhancements**
 
-- **Purpose:** Manages the sending of alerts to users.
-- **Methods:**
-  - `sendAlert(user: User, alert: Alert)`: Sends an alert to a user.
-
-### **Alert Class**
-
-- **Purpose:** Represents an alert or notification.
-- **Attributes:**
-  - `type`: String (e.g., "Low Battery", "Error")
-  - `message`: String
-  - `robot`: Robot
-  - `location`: Location
-  - `timestamp`: DateTime
-
-**Relationships:**
-
-- **AlertSystem and Alert:**
-  - `AlertSystem` sends `Alert` objects to `User`.
-
----
-
-## **8. Analytics and RobotMetrics Classes**
-
-### **Analytics Class**
-
-- **Purpose:** Provides analytics and reporting functionalities.
-- **Attributes:**
-  - `robotData`: Map<Robot, RobotMetrics>
-- **Methods:**
-  - `generateReport()`: Generates a comprehensive report.
-  - `getRobotEfficiency(robot: Robot)`: Retrieves efficiency metrics for a robot.
-
-### **RobotMetrics Class**
-
-- **Purpose:** Stores performance metrics for a robot.
-- **Attributes:**
-  - `utilization`: float
-  - `errorRate`: float
-  - `costEfficiency`: float
-  - `timeEfficiency`: float
-  - `batteryUsage`: float
-  - `waterUsage`: float
-
-**Relationships:**
-
-- **Analytics and RobotMetrics:**
-  - `Analytics` aggregates `RobotMetrics` for analysis.
-
----
-
-## **9. System Classes**
-
-### **SchedulingSystem Class**
-
-- **Purpose:** Coordinates task assignments and robot statuses.
-- **Methods:**
-  - `assignTasks()`: Assigns tasks to available robots.
-  - `receiveRobotStatus(robot: Robot)`: Updates the system with robot status.
-  - `createVirtualWall(wall: VirtualWall)`: Adds a virtual wall to the map.
-
-### **MappingSystem Class**
-
-- **Purpose:** Handles navigation and path planning for robots.
-- **Methods:**
-  - `outputWorkingPath()`: Provides the working path for robots.
-
----
-
-## **Relationships and Interactions**
-
-- **User Interactions:**
-  - Users perform actions through service classes (e.g., `SchedulingService`, `RobotManagementService`).
-  - Service classes check the user's permissions via the `Role` and `Permission` classes.
-
-- **Robot Operations:**
-  - Robots receive tasks from the `SchedulingSystem`.
-  - Robots interact with the `Map` for navigation.
-  - Robots report status and errors to the `SchedulingSystem` and `AlertSystem`.
-
-- **Task Management:**
-  - `CleaningTask` objects are managed within `Schedule`.
-  - Tasks are assigned to robots based on availability and priority.
-
-- **Alert Handling:**
-  - The `AlertSystem` sends alerts to users based on events (e.g., low battery).
-  - Users receive alerts via the `receiveNotification()` method.
-
-- **Analytics:**
-  - The `Analytics` class gathers data from robots to generate reports.
-  - `RobotMetrics` provide detailed performance data for analysis.
-
----
-
-## **Design Principles and Considerations**
-
-- **Flexibility:**
-  - The use of `Role` and `Permission` classes allows for easy addition of new roles and permissions without modifying the class hierarchy.
-
-- **Scalability:**
-  - The system is designed to accommodate growth in the number of users, robots, and tasks.
-
-- **Maintainability:**
-  - Centralized permission management simplifies updates and maintenance.
-  - Service classes encapsulate business logic, promoting separation of concerns.
-
-- **Security:**
-  - Permission checks ensure that only authorized users can perform specific actions.
-  - Roles and permissions can be adjusted as needed for security policies.
-
-- **Reusability:**
-  - Abstract classes like `Area` allow for code reuse and extension for different types of areas.
-
-- **User Experience:**
-  - The system supports dynamic UI adjustments based on user permissions.
-  - Provides informative feedback and alerts to users.
-
----
-
-## **Example Usage Scenarios**
-
-### **Scenario 1: Senior Manager Viewing Analytics**
-
-- **User Role:** Senior Manager
-- **Permissions:** ["VIEW_ANALYTICS", "ACCESS_ALL_REPORTS"]
-- **Process:**
-  1. Senior Manager logs into the system.
-  2. Invokes `AnalyticsService.viewAnalytics(user)`.
-  3. The service checks `user.role.hasPermission("VIEW_ANALYTICS")`.
-  4. If permission is granted, analytics data is displayed.
-
-### **Scenario 2: Building Manager Creating a Schedule**
-
-- **User Role:** Building Manager
-- **Permissions:** ["CREATE_SCHEDULE", "EDIT_SCHEDULE", "VIEW_ROBOT_STATUS"]
-- **Process:**
-  1. Building Manager logs into the system.
-  2. Uses `SchedulingService.createSchedule(user, schedule)`.
-  3. The service checks `user.role.hasPermission("CREATE_SCHEDULE")`.
-  4. If permission is granted, the schedule is created.
-
-### **Scenario 3: Field Engineer Fixing a Robot**
-
-- **User Role:** Field Engineer
-- **Permissions:** ["FIX_ROBOT", "ADD_ROBOT", "REMOVE_ROBOT"]
-- **Process:**
-  1. Field Engineer logs into the system.
-  2. Calls `RobotManagementService.fixRobot(user, robot)`.
-  3. The service checks `user.role.hasPermission("FIX_ROBOT")`.
-  4. If permission is granted, robot maintenance is initiated.
-
----
+Potential areas for expansion:
+1. Implementation of a scheduling system
+2. Addition of mapping and navigation capabilities
+3. Enhanced analytics and reporting features
 
 ## **Class Diagram Visualized**
 
