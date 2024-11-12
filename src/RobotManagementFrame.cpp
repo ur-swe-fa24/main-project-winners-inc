@@ -1,5 +1,3 @@
-// RobotManagementFrame.cpp
-
 #include "RobotManagementFrame/RobotManagementFrame.hpp"
 #include "LoginDialog/LoginDialog.hpp"
 #include "AlertDialog/AlertDialog.hpp"
@@ -10,7 +8,7 @@ RobotManagementFrame::RobotManagementFrame()
     try {
         // Initialize MongoDB
         std::string uri = "mongodb://localhost:27017";
-        std::string dbName = "mydb6";
+        std::string dbName = "mydb9";
         dbAdapter = std::make_shared<MongoDBAdapter>(uri, dbName);
 
         // Initialize the RobotSimulator with shared dbAdapter
@@ -31,7 +29,6 @@ RobotManagementFrame::RobotManagementFrame()
 
         // Create UI components
         CreateMenuBar();
-        BindEvents();
 
         wxPanel* mainPanel = new wxPanel(this);
         wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
@@ -67,6 +64,9 @@ RobotManagementFrame::RobotManagementFrame()
         // Initialize and start the status update timer
         statusUpdateTimer = new wxTimer(this, wxID_ANY);
         statusUpdateTimer->Start(2000); // Refresh every 2 seconds
+
+        BindEvents();
+
         Bind(wxEVT_TIMER, &RobotManagementFrame::OnStatusUpdateTimer, this, statusUpdateTimer->GetId());
 
     } catch (const std::exception& e) {
@@ -101,9 +101,8 @@ RobotManagementFrame::~RobotManagementFrame() {
         alertSystem.reset();
     }
 
+    // No need to stop threads in dbAdapter, just reset it
     if (dbAdapter) {
-        dbAdapter->stop();
-        dbAdapter->stopRobotStatusThread();
         dbAdapter.reset();
     }
 }
@@ -150,9 +149,6 @@ void RobotManagementFrame::InitializeUsers() {
 }
 
 void RobotManagementFrame::LoadFromDatabase() {
-    // Load robots
-    robots = simulator_->getRobots();
-
     // Load alerts
     auto alerts = dbAdapter->retrieveAlerts();
     for (const auto& alert : alerts) {
@@ -188,44 +184,48 @@ void RobotManagementFrame::CreateAlertsPanel(wxNotebook* notebook) {
     notebook->AddPage(panel, "Alerts");
 }
 
-void RobotManagementFrame::CreateDashboardPanel(wxNotebook* notebook) {
-    wxPanel* panel = new wxPanel(notebook);
-    wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
+// void RobotManagementFrame::CreateDashboardPanel(wxNotebook* notebook) {
+//     wxPanel* panel = new wxPanel(notebook);
+//     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 
-    // Robot status grid
-    robotGrid = new wxGrid(panel, wxID_ANY);
-    robotGrid->CreateGrid(robots.size(), 3);
+//     // Robot status grid
+//     robotGrid = new wxGrid(panel, wxID_ANY);
+//     auto robotStatuses = simulator_->getRobotStatuses();
+//     robotGrid->CreateGrid(robotStatuses.size(), 3);
 
-    // Set column headers
-    robotGrid->SetColLabelValue(0, "Robot Name");
-    robotGrid->SetColLabelValue(1, "Battery Level");
-    robotGrid->SetColLabelValue(2, "Status");
+//     // Set column headers
+//     robotGrid->SetColLabelValue(0, "Robot Name");
+//     robotGrid->SetColLabelValue(1, "Battery Level");
+//     robotGrid->SetColLabelValue(2, "Status");
 
-    UpdateRobotGrid();
+//     UpdateRobotGrid();
 
-    sizer->Add(robotGrid, 1, wxEXPAND | wxALL, 5);
+//     sizer->Add(robotGrid, 1, wxEXPAND | wxALL, 5);
 
-    // Refresh button
-    wxButton* refreshBtn = new wxButton(panel, wxID_ANY, "Refresh Status");
-    refreshBtn->Bind(wxEVT_BUTTON, &RobotManagementFrame::OnRefreshStatus, this);
-    sizer->Add(refreshBtn, 0, wxALL, 5);
+//     // Refresh button
+//     wxButton* refreshBtn = new wxButton(panel, wxID_ANY, "Refresh Status");
+//     refreshBtn->Bind(wxEVT_BUTTON, &RobotManagementFrame::OnRefreshStatus, this);
+//     sizer->Add(refreshBtn, 0, wxALL, 5);
 
-    panel->SetSizer(sizer);
-    notebook->AddPage(panel, "Dashboard");
-}
+//     panel->SetSizer(sizer);
+//     notebook->AddPage(panel, "Dashboard");
+// }
 
 void RobotManagementFrame::CreateRobotControlPanel(wxNotebook* notebook) {
     wxPanel* panel = new wxPanel(notebook);
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 
+    // Initialize robotChoice before using it
+    robotChoice = new wxChoice(panel, wxID_ANY);
+
+    auto robotStatuses = simulator_->getRobotStatuses();
+    for (const auto& status : robotStatuses) {
+        robotChoice->Append(status.name);
+    }
+
     // Robot selection
     wxBoxSizer* robotSelectionSizer = new wxBoxSizer(wxHORIZONTAL);
     wxStaticText* robotLabel = new wxStaticText(panel, wxID_ANY, "Select Robot:");
-    robotChoice = new wxChoice(panel, wxID_ANY);
-
-    for (const auto& robot : robots) {
-        robotChoice->Append(robot->getName());
-    }
 
     robotSelectionSizer->Add(robotLabel, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     robotSelectionSizer->Add(robotChoice, 1, wxALL, 5);
@@ -249,74 +249,49 @@ void RobotManagementFrame::CreateRobotControlPanel(wxNotebook* notebook) {
     notebook->AddPage(panel, "Robot Control");
 }
 
-void RobotManagementFrame::CreateUserManagementPanel(wxNotebook* notebook) {
+void RobotManagementFrame::CreateDashboardPanel(wxNotebook* notebook) {
     wxPanel* panel = new wxPanel(notebook);
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 
-    // Users grid
-    wxGrid* userGrid = new wxGrid(panel, wxID_ANY);
-    userGrid->CreateGrid(users.size(), 2);
+    // Robot status grid
+    robotGrid = new wxGrid(panel, wxID_ANY);
+    auto robotStatuses = simulator_->getRobotStatuses();
+    robotGrid->CreateGrid(robotStatuses.size(), 3);
 
     // Set column headers
-    userGrid->SetColLabelValue(0, "Username");
-    userGrid->SetColLabelValue(1, "Role");
+    robotGrid->SetColLabelValue(0, "Robot Name");
+    robotGrid->SetColLabelValue(1, "Battery Level");
+    robotGrid->SetColLabelValue(2, "Status");
 
-    // Fill user data
-    for (size_t i = 0; i < users.size(); ++i) {
-        userGrid->SetCellValue(i, 0, users[i]->getName());
-        userGrid->SetCellValue(i, 1, users[i]->getRole().getName());
-    }
+    UpdateRobotGrid();
 
-    sizer->Add(userGrid, 1, wxEXPAND | wxALL, 5);
+    sizer->Add(robotGrid, 1, wxEXPAND | wxALL, 5);
+
+    // Refresh button
+    wxButton* refreshBtn = new wxButton(panel, wxID_ANY, "Refresh Status");
+    refreshBtn->Bind(wxEVT_BUTTON, &RobotManagementFrame::OnRefreshStatus, this);
+    sizer->Add(refreshBtn, 0, wxALL, 5);
+
     panel->SetSizer(sizer);
-    notebook->AddPage(panel, "User Management");
-}
-
-void RobotManagementFrame::OnExit(wxCommandEvent& evt) {
-    Close(true);
-}
-
-bool RobotManagementFrame::ShowLogin() {
-    LoginDialog dlg(this);
-    if (dlg.ShowModal() == wxID_OK) {
-        std::string username = dlg.GetUsername();
-        std::string password = dlg.GetPassword();
-
-        // Check credentials
-        if (userPasswords.find(username) != userPasswords.end() && userPasswords[username] == password) {
-            // Find user
-            for (const auto& user : users) {
-                if (user->getName() == username) {
-                    currentUser = user;
-                    return true;
-                }
-            }
-        }
-        wxMessageBox("Invalid credentials!", "Error", wxOK | wxICON_ERROR);
-    }
-    return false;
-}
-
-void RobotManagementFrame::BindEvents() {
-    Bind(wxEVT_TIMER, &RobotManagementFrame::OnCheckAlerts, this, alertTimer->GetId());
-    Bind(wxEVT_MENU, &RobotManagementFrame::OnExit, this, wxID_EXIT);
+    notebook->AddPage(panel, "Dashboard");
 }
 
 void RobotManagementFrame::UpdateRobotGrid() {
+    auto robotStatuses = simulator_->getRobotStatuses();
     robotGrid->ClearGrid();
-    if (robotGrid->GetNumberRows() != robots.size()) {
+    if (robotGrid->GetNumberRows() != robotStatuses.size()) {
         robotGrid->DeleteRows(0, robotGrid->GetNumberRows());
-        robotGrid->AppendRows(robots.size());
+        robotGrid->AppendRows(robotStatuses.size());
     }
-    for (size_t i = 0; i < robots.size(); ++i) {
-        robotGrid->SetCellValue(i, 0, robots[i]->getName());
-        robotGrid->SetCellValue(i, 1, wxString::Format("%d%%", robots[i]->getBatteryLevel()));
-        robotGrid->SetCellValue(i, 2, robots[i]->isCleaning() ? "Cleaning" : "Idle");
+    for (size_t i = 0; i < robotStatuses.size(); ++i) {
+        robotGrid->SetCellValue(i, 0, robotStatuses[i].name);
+        robotGrid->SetCellValue(i, 1, wxString::Format("%d%%", robotStatuses[i].batteryLevel));
+        robotGrid->SetCellValue(i, 2, robotStatuses[i].isCleaning ? "Cleaning" : "Idle");
 
         // Color coding for battery levels
-        if (robots[i]->getBatteryLevel() < 20) {
+        if (robotStatuses[i].batteryLevel < 20) {
             robotGrid->SetCellBackgroundColour(i, 1, wxColour(255, 200, 200)); // Light red
-        } else if (robots[i]->getBatteryLevel() < 50) {
+        } else if (robotStatuses[i].batteryLevel < 50) {
             robotGrid->SetCellBackgroundColour(i, 1, wxColour(255, 255, 200)); // Light yellow
         } else {
             robotGrid->SetCellBackgroundColour(i, 1, wxColour(200, 255, 200)); // Light green
@@ -324,6 +299,7 @@ void RobotManagementFrame::UpdateRobotGrid() {
     }
     robotGrid->AutoSize();
 }
+
 
 void RobotManagementFrame::CheckAndUpdateAlerts() {
     // Refresh the alerts from database
@@ -336,7 +312,7 @@ void RobotManagementFrame::CheckAndUpdateAlerts() {
 
 void RobotManagementFrame::OnRefreshStatus(wxCommandEvent& evt) {
     // Update robots from simulator
-    robots = simulator_->getRobots();
+    // robots = simulator_->getRobotStatuses();
     UpdateRobotGrid();
 }
 
@@ -404,7 +380,71 @@ void RobotManagementFrame::OnReturnToCharger(wxCommandEvent& evt) {
 }
 
 void RobotManagementFrame::OnStatusUpdateTimer(wxTimerEvent& evt) {
-    robots = simulator_->getRobots();
+    // robots = simulator_->getRobotStatuses();
     UpdateRobotGrid();
 }
+
+void RobotManagementFrame::BindEvents() {
+    // Bind the timer event for checking alerts
+    Bind(wxEVT_TIMER, &RobotManagementFrame::OnCheckAlerts, this, alertTimer->GetId());
+
+    // Bind the timer event for status updates
+    Bind(wxEVT_TIMER, &RobotManagementFrame::OnStatusUpdateTimer, this, statusUpdateTimer->GetId());
+
+    // Bind the menu event for exiting the application
+    Bind(wxEVT_MENU, &RobotManagementFrame::OnExit, this, wxID_EXIT);
+
+}
+
+
+
+void RobotManagementFrame::OnExit(wxCommandEvent& evt) {
+    Close(true);
+}
+
+bool RobotManagementFrame::ShowLogin() {
+    LoginDialog dlg(this);
+    if (dlg.ShowModal() == wxID_OK) {
+        std::string username = dlg.GetUsername();
+        std::string password = dlg.GetPassword();
+
+        // Check credentials
+        if (userPasswords.find(username) != userPasswords.end() && userPasswords[username] == password) {
+            // Find user
+            for (const auto& user : users) {
+                if (user->getName() == username) {
+                    currentUser = user;
+                    return true;
+                }
+            }
+        }
+        wxMessageBox("Invalid credentials!", "Error", wxOK | wxICON_ERROR);
+    }
+    return false;
+}
+
+
+void RobotManagementFrame::CreateUserManagementPanel(wxNotebook* notebook) {
+    wxPanel* panel = new wxPanel(notebook);
+    wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
+
+    // Users grid
+    wxGrid* userGrid = new wxGrid(panel, wxID_ANY);
+    userGrid->CreateGrid(users.size(), 2);
+
+    // Set column headers
+    userGrid->SetColLabelValue(0, "Username");
+    userGrid->SetColLabelValue(1, "Role");
+
+    // Fill user data
+    for (size_t i = 0; i < users.size(); ++i) {
+        userGrid->SetCellValue(i, 0, users[i]->getName());
+        userGrid->SetCellValue(i, 1, users[i]->getRole().getName());
+    }
+
+    sizer->Add(userGrid, 1, wxEXPAND | wxALL, 5);
+    panel->SetSizer(sizer);
+    notebook->AddPage(panel, "User Management");
+}
+
 

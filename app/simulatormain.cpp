@@ -1,5 +1,3 @@
-// simulatormain.cpp
-
 #include "RobotSimulator/RobotSimulator.hpp"
 #include "adapter/MongoDBAdapter.hpp"
 #include "Robot/Robot.h"
@@ -40,14 +38,14 @@ int main() {
         // Main loop
         while (keepRunning) {
             // Get the current state of robots
-            auto robots = simulator->getRobots();
+            auto robots = simulator->getRobotStatuses();
 
             // Display robot statuses
             std::cout << "\nCurrent Robot Statuses:\n";
             for (const auto& robot : robots) {
-                std::cout << "Robot Name: " << robot->getName()
-                          << ", Battery Level: " << robot->getBatteryLevel() << "%"
-                          << ", Cleaning: " << (robot->isCleaning() ? "Yes" : "No") << "\n";
+                std::cout << "Robot Name: " << robot.name
+                          << ", Battery Level: " << robot.batteryLevel << "%"
+                          << ", Cleaning: " << (robot.isCleaning ? "Yes" : "No") << "\n";
             }
 
             // Sleep for a while

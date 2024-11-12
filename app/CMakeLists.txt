@@ -1,27 +1,27 @@
 # app/CMakeLists.txt
 
-# Executable for the main application
-add_executable(main_test
-    main.cpp
-    # Include other source files if needed
-)
+# # Executable for the main application
+# add_executable(main_test
+#     main.cpp
+#     # Include other source files if needed
+# )
 
-# Set include directories for main_test
-target_include_directories(main_test
-    PRIVATE
-        ${PROJECT_SOURCE_DIR}/include
-)
+# # Set include directories for main_test
+# target_include_directories(main_test
+#     PRIVATE
+#         ${PROJECT_SOURCE_DIR}/include
+# )
 
-# Link main_test to main_proj, MongoDB, and spdlog
-target_link_libraries(main_test
-    PRIVATE
-        main_proj
-        mongo::mongocxx_shared
-        spdlog::spdlog_header_only
-)
+# # Link main_test to main_proj, MongoDB, and spdlog
+# target_link_libraries(main_test
+#     PRIVATE
+#         main_proj
+#         mongo::mongocxx_shared
+#         spdlog::spdlog_header_only
+# )
 
-# Ensure C++ standard is set for main_test
-target_compile_features(main_test PRIVATE cxx_std_17)
+# # Ensure C++ standard is set for main_test
+# target_compile_features(main_test PRIVATE cxx_std_17)
 
 # Executable for the wxWidgets application
 add_executable(wx_robot_test

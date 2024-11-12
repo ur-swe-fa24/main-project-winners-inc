@@ -65,7 +65,7 @@ void testAlertSystem() {
 
         // Update robot status and save asynchronously
         robot->depleteBattery(10);  // Decrease battery level by 10%
-        dbAdapter.saveRobotStatusAsync(robot);
+        dbAdapter.saveRobotStatus(robot);
 
         // Sleep for a short duration to simulate time between alerts
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -108,8 +108,8 @@ void testAlertSystem() {
 
     // Stop the alert system and database adapter threads before exiting
     alertSystem.stop();
-    dbAdapter.stop();
-    dbAdapter.stopRobotStatusThread();
+    // dbAdapter.stop();
+    // dbAdapter.stopRobotStatusThread();
 }
 
 int main() {

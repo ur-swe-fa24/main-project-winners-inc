@@ -4,14 +4,18 @@
 
 RobotSimulator::RobotSimulator(std::shared_ptr<MongoDBAdapter> dbAdapter)
     : dbAdapter_(dbAdapter), running_(false) {
-    // Initialize robots, you can retrieve from db or create new ones
+    // Initialize robots; you can retrieve from db or create new ones
     robots_.push_back(std::make_shared<Robot>("SimBot-1", 100));
     robots_.push_back(std::make_shared<Robot>("SimBot-2", 100));
     robots_.push_back(std::make_shared<Robot>("SimBot-3", 100));
 
-    // Save initial robots to database
-    for (const auto& robot : robots_) {
-        dbAdapter_->saveRobotStatusAsync(robot);
+    // Save initial robots to the database
+    try {
+        for (const auto& robot : robots_) {
+            dbAdapter_->saveRobotStatus(robot);
+        }
+    } catch (const std::exception& e) {
+        std::cerr << "Exception in RobotSimulator constructor while saving robot status: " << e.what() << std::endl;
     }
 }
 
@@ -34,50 +38,82 @@ void RobotSimulator::stop() {
 
 void RobotSimulator::simulationLoop() {
     while (running_) {
-        {
-            std::unique_lock<std::mutex> lock(robotsMutex_);
-            // Simulate robots' battery decreasing
-            for (auto& robot : robots_) {
+        // Iterate over the robots
+        for (auto& robot : robots_) {
+            bool needsSave = false;
+            bool generateLowBatteryAlert = false;
+            bool generateChargingAlert = false;
+
+            // Update robot state within a mutex lock
+            {
+                std::lock_guard<std::mutex> lock(robotsMutex_);
                 if (robot->isCleaning()) {
-                    robot->depleteBattery(1); // Deplete battery by 1%
+                    robot->depleteBattery(1);  // Deplete battery by 1%
+                    needsSave = true;
                 }
 
-                dbAdapter_->saveRobotStatusAsync(robot);
-
-                // If battery level is below threshold, generate alert
+                // Check battery level for low battery alert
                 if (robot->getBatteryLevel() < 20 && !robot->isLowBatteryAlertSent()) {
-                    auto room = std::make_shared<Room>("Simulation Area", 1);
-                    Alert alert("Low Battery",
-                                "Robot " + robot->getName() + " battery level critical: " + std::to_string(robot->getBatteryLevel()) + "%",
-                                robot, room, std::time(nullptr));
-                    dbAdapter_->saveAlert(alert);
+                    generateLowBatteryAlert = true;
                     robot->setLowBatteryAlertSent(true);
                 }
 
-                // If battery is zero, recharge the robot
+                // If battery is zero or below, recharge the robot
                 if (robot->getBatteryLevel() <= 0) {
                     robot->recharge();
-                    dbAdapter_->saveRobotStatusAsync(robot);
+                    needsSave = true;
+                    generateChargingAlert = true;
+                }
+            }  // Mutex lock is released here
 
-                    auto room = std::make_shared<Room>("Charging Station", 0);
-                    Alert alert("Charging", "Robot " + robot->getName() + " has returned to charger",
-                                robot, room, std::time(nullptr));
+            // Perform database operations without holding the mutex
+            try {
+                if (needsSave) {
+                    dbAdapter_->saveRobotStatus(robot);
+                }
+
+                if (generateLowBatteryAlert) {
+                    auto room = std::make_shared<Room>("Simulation Area", 1);
+                    Alert alert(
+                        "Low Battery",
+                        "Robot " + robot->getName() + " battery level critical: " +
+                            std::to_string(robot->getBatteryLevel()) + "%",
+                        robot, room, std::time(nullptr));
+
                     dbAdapter_->saveAlert(alert);
                 }
+
+                if (generateChargingAlert) {
+                    auto room = std::make_shared<Room>("Charging Station", 0);
+                    Alert alert(
+                        "Charging",
+                        "Robot " + robot->getName() + " has returned to charger",
+                        robot, room, std::time(nullptr));
+
+                    dbAdapter_->saveAlert(alert);
+                }
+            } catch (const std::exception& e) {
+                std::cerr << "Exception during database operation: " << e.what() << std::endl;
             }
         }
 
-        // Sleep for a while before next simulation step
+        // Sleep before the next simulation step
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 }
 
-std::vector<std::shared_ptr<Robot>> RobotSimulator::getRobots() {
+std::vector<RobotSimulator::RobotStatus> RobotSimulator::getRobotStatuses() {
     std::lock_guard<std::mutex> lock(robotsMutex_);
-    return robots_;
+    std::vector<RobotStatus> statuses;
+    for (const auto& robot : robots_) {
+        RobotStatus status;
+        status.name = robot->getName();
+        status.batteryLevel = robot->getBatteryLevel();
+        status.isCleaning = robot->isCleaning();
+        statuses.push_back(status);
+    }
+    return statuses;
 }
-
-// RobotSimulator.cpp
 
 std::shared_ptr<Robot> RobotSimulator::getRobotByName(const std::string& name) {
     std::lock_guard<std::mutex> lock(robotsMutex_);
@@ -88,7 +124,6 @@ std::shared_ptr<Robot> RobotSimulator::getRobotByName(const std::string& name) {
     }
     return nullptr;  // Return nullptr if not found
 }
-
 
 void RobotSimulator::startCleaning(const std::string& robotName) {
     std::lock_guard<std::mutex> lock(robotsMutex_);

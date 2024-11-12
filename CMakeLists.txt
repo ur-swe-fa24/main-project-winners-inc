@@ -24,8 +24,8 @@ add_library(main_proj
     src/Robot.cpp
     src/Room.cpp
     src/alert_system.cpp
-    src/MongoDBAdapter.cpp
-    src/RobotSimulator.cpp  # Include RobotSimulator source file
+    src/MongoDBAdapter.cpp  # Ensure this path is correct
+    src/RobotSimulator.cpp
 )
 
 # Set include directories for main_proj

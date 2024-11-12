@@ -7,6 +7,7 @@ class Robot {
 public:
     // Constructor
     Robot(const std::string& name, int batteryLevel);
+    
 
     // Status update method (for demonstration purposes)
     void sendStatusUpdate() const;

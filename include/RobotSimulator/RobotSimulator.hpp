@@ -19,12 +19,19 @@ public:
     void stop();
 
     // Methods to interact with the simulator
-    std::vector<std::shared_ptr<Robot>> getRobots();
     std::shared_ptr<Robot> getRobotByName(const std::string& name);
     void startCleaning(const std::string& robotName);
     void stopCleaning(const std::string& robotName);
     void returnToCharger(const std::string& robotName);
 
+    // Nested struct for robot status
+    struct RobotStatus {
+        std::string name;
+        int batteryLevel;
+        bool isCleaning;
+    };
+
+    std::vector<RobotStatus> getRobotStatuses();
 
 private:
     void simulationLoop();

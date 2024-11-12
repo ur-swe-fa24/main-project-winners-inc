@@ -52,11 +52,10 @@ private:
     void OnStatusUpdateTimer(wxTimerEvent& evt);
     void OnRefreshAlerts(wxCommandEvent& evt);
 
-
     // Members
     std::shared_ptr<MongoDBAdapter> dbAdapter;
     std::unique_ptr<RobotSimulator> simulator_;
-    std::vector<std::shared_ptr<Robot>> robots;
+    // std::vector<std::shared_ptr<Robot>> robots;
     std::vector<std::shared_ptr<User>> users;
     std::shared_ptr<User> currentUser;
     std::unique_ptr<AlertSystem> alertSystem;
