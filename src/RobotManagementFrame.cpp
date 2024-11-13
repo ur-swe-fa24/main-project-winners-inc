@@ -193,21 +193,54 @@ void RobotManagementFrame::CreateAlertsPanel(wxNotebook* notebook) {
     notebook->AddPage(panel, "Alerts");
 }
 
+// void RobotManagementFrame::CreateRobotControlPanel(wxNotebook* notebook) {
+//     wxPanel* panel = new wxPanel(notebook);
+//     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
+
+//     // Initialize robotChoice before using it
+//     robotChoice = new wxChoice(panel, wxID_ANY);
+
+//     auto robotStatuses = simulator_->getRobotStatuses();
+//     for (const auto& status : robotStatuses) {
+//         robotChoice->Append(status.name);
+//     }
+
+//     // Robot selection
+//     wxBoxSizer* robotSelectionSizer = new wxBoxSizer(wxHORIZONTAL);
+//     wxStaticText* robotLabel = new wxStaticText(panel, wxID_ANY, "Select Robot:");
+
+//     robotSelectionSizer->Add(robotLabel, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
+//     robotSelectionSizer->Add(robotChoice, 1, wxALL, 5);
+
+//     // Control buttons
+//     wxButton* startBtn = new wxButton(panel, wxID_ANY, "Start Cleaning");
+//     wxButton* stopBtn = new wxButton(panel, wxID_ANY, "Stop Cleaning");
+//     wxButton* chargeBtn = new wxButton(panel, wxID_ANY, "Return to Charger");
+
+//     // Bind button events
+//     startBtn->Bind(wxEVT_BUTTON, &RobotManagementFrame::OnStartCleaning, this);
+//     stopBtn->Bind(wxEVT_BUTTON, &RobotManagementFrame::OnStopCleaning, this);
+//     chargeBtn->Bind(wxEVT_BUTTON, &RobotManagementFrame::OnReturnToCharger, this);
+
+//     sizer->Add(robotSelectionSizer, 0, wxEXPAND | wxALL, 5);
+//     sizer->Add(startBtn, 0, wxEXPAND | wxALL, 5);
+//     sizer->Add(stopBtn, 0, wxEXPAND | wxALL, 5);
+//     sizer->Add(chargeBtn, 0, wxEXPAND | wxALL, 5);
+
+//     panel->SetSizer(sizer);
+//     notebook->AddPage(panel, "Robot Control");
+// }
+
 void RobotManagementFrame::CreateRobotControlPanel(wxNotebook* notebook) {
     wxPanel* panel = new wxPanel(notebook);
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 
-    // Initialize robotChoice before using it
-    robotChoice = new wxChoice(panel, wxID_ANY);
-
-    auto robotStatuses = simulator_->getRobotStatuses();
-    for (const auto& status : robotStatuses) {
-        robotChoice->Append(status.name);
-    }
-
     // Robot selection
     wxBoxSizer* robotSelectionSizer = new wxBoxSizer(wxHORIZONTAL);
     wxStaticText* robotLabel = new wxStaticText(panel, wxID_ANY, "Select Robot:");
+
+    robotChoice = new wxChoice(panel, wxID_ANY);
+    UpdateRobotChoices();  // Initialize robot choices
 
     robotSelectionSizer->Add(robotLabel, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
     robotSelectionSizer->Add(robotChoice, 1, wxALL, 5);
@@ -217,19 +250,30 @@ void RobotManagementFrame::CreateRobotControlPanel(wxNotebook* notebook) {
     wxButton* stopBtn = new wxButton(panel, wxID_ANY, "Stop Cleaning");
     wxButton* chargeBtn = new wxButton(panel, wxID_ANY, "Return to Charger");
 
+    // Robot management buttons
+    wxButton* addRobotBtn = new wxButton(panel, wxID_ANY, "Add Robot");
+    wxButton* deleteRobotBtn = new wxButton(panel, wxID_ANY, "Delete Robot");
+
     // Bind button events
     startBtn->Bind(wxEVT_BUTTON, &RobotManagementFrame::OnStartCleaning, this);
     stopBtn->Bind(wxEVT_BUTTON, &RobotManagementFrame::OnStopCleaning, this);
     chargeBtn->Bind(wxEVT_BUTTON, &RobotManagementFrame::OnReturnToCharger, this);
+    addRobotBtn->Bind(wxEVT_BUTTON, &RobotManagementFrame::OnAddRobot, this);
+    deleteRobotBtn->Bind(wxEVT_BUTTON, &RobotManagementFrame::OnDeleteRobot, this);
 
     sizer->Add(robotSelectionSizer, 0, wxEXPAND | wxALL, 5);
     sizer->Add(startBtn, 0, wxEXPAND | wxALL, 5);
     sizer->Add(stopBtn, 0, wxEXPAND | wxALL, 5);
     sizer->Add(chargeBtn, 0, wxEXPAND | wxALL, 5);
 
+    // Add robot management buttons
+    sizer->Add(addRobotBtn, 0, wxEXPAND | wxALL, 5);
+    sizer->Add(deleteRobotBtn, 0, wxEXPAND | wxALL, 5);
+
     panel->SetSizer(sizer);
     notebook->AddPage(panel, "Robot Control");
 }
+
 
 void RobotManagementFrame::CreateDashboardPanel(wxNotebook* notebook) {
     wxPanel* panel = new wxPanel(notebook);
@@ -258,31 +302,6 @@ void RobotManagementFrame::CreateDashboardPanel(wxNotebook* notebook) {
     panel->SetSizer(sizer);
     notebook->AddPage(panel, "Dashboard");
 }
-
-// void RobotManagementFrame::UpdateRobotGrid() {
-//     auto robotStatuses = simulator_->getRobotStatuses();
-//     robotGrid->ClearGrid();
-//     if (robotGrid->GetNumberRows() != robotStatuses.size()) {
-//         robotGrid->DeleteRows(0, robotGrid->GetNumberRows());
-//         robotGrid->AppendRows(robotStatuses.size());
-//     }
-//     for (size_t i = 0; i < robotStatuses.size(); ++i) {
-//         robotGrid->SetCellValue(i, 0, robotStatuses[i].name);
-//         robotGrid->SetCellValue(i, 1, wxString::Format("%d%%", robotStatuses[i].batteryLevel));
-//         robotGrid->SetCellValue(i, 2, robotStatuses[i].isCleaning ? "Cleaning" : "Idle");
-//         robotGrid->SetCellValue(i, 3, robotStatuses[i].currentRoomName);
-
-//         // Color coding for battery levels
-//         if (robotStatuses[i].batteryLevel < 20) {
-//             robotGrid->SetCellBackgroundColour(i, 1, wxColour(255, 200, 200)); // Light red
-//         } else if (robotStatuses[i].batteryLevel < 50) {
-//             robotGrid->SetCellBackgroundColour(i, 1, wxColour(255, 255, 200)); // Light yellow
-//         } else {
-//             robotGrid->SetCellBackgroundColour(i, 1, wxColour(200, 255, 200)); // Light green
-//         }
-//     }
-//     robotGrid->AutoSize();
-// }
 
 
 void RobotManagementFrame::UpdateRobotGrid() {
@@ -487,11 +506,9 @@ void RobotManagementFrame::CreateUserManagementPanel(wxNotebook* notebook) {
 void RobotManagementFrame::CreateMapPanel(wxNotebook* notebook) {
     wxPanel* panel = new wxPanel(notebook);
 
-    // Get robots from simulator
-    const std::vector<std::shared_ptr<Robot>>& robots = simulator_->getRobots();
+    // Create MapPanel, passing simulator_
+    mapPanel_ = new MapPanel(panel, simulator_->getMap(), simulator_.get());
 
-    // Create MapPanel
-    mapPanel_ = new MapPanel(panel, simulator_->getMap(), robots);
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
     sizer->Add(mapPanel_, 1, wxEXPAND | wxALL, 5);
     panel->SetSizer(sizer);
@@ -502,10 +519,75 @@ void RobotManagementFrame::OnStatusUpdateTimer(wxTimerEvent& evt) {
     // Update robot statuses
     UpdateRobotGrid();
 
+    // Refresh the robot choices in case robots were added/deleted
+    UpdateRobotChoices();
+
     // Refresh the map panel
     if (mapPanel_) {
         mapPanel_->Refresh();
     }
 }
 
+void RobotManagementFrame::UpdateRobotChoices() {
+    if (robotChoice) {
+        robotChoice->Clear();
+        auto robotStatuses = simulator_->getRobotStatuses();
+        for (const auto& status : robotStatuses) {
+            robotChoice->Append(status.name);
+        }
+    }
+}
+
+void RobotManagementFrame::OnAddRobot(wxCommandEvent& evt) {
+    wxTextEntryDialog dlg(this, "Enter new robot name:", "Add Robot");
+    if (dlg.ShowModal() == wxID_OK) {
+        std::string robotName = dlg.GetValue().ToStdString();
+        try {
+            simulator_->addRobot(robotName);
+
+            // Update UI
+            UpdateRobotChoices();
+            UpdateRobotGrid();
+
+            // Optionally, create an alert for the new robot
+            auto robot = simulator_->getRobotByName(robotName);
+            auto room = std::make_shared<Room>("Starting Area", 1);
+            auto alert = std::make_shared<Alert>("New Robot Added", "Robot " + robotName + " has been added",
+                                                 robot, room, std::time(nullptr));
+            alertSystem->sendAlert(currentUser.get(), alert);
+            dbAdapter->saveAlert(*alert);
+        } catch (const std::exception& e) {
+            wxMessageBox(wxString::Format("Failed to add robot: %s", e.what()), "Error",
+                         wxOK | wxICON_ERROR);
+        }
+    }
+}
+
+void RobotManagementFrame::OnDeleteRobot(wxCommandEvent& evt) {
+    if (robotChoice && robotChoice->GetSelection() != wxNOT_FOUND) {
+        std::string robotName = robotChoice->GetString(robotChoice->GetSelection()).ToStdString();
+        int response = wxMessageBox(wxString::Format("Are you sure you want to delete robot '%s'?", robotName),
+                                    "Confirm Deletion", wxYES_NO | wxICON_QUESTION);
+        if (response == wxYES) {
+            try {
+                simulator_->deleteRobot(robotName);
+
+                // Update UI
+                UpdateRobotChoices();
+                UpdateRobotGrid();
+
+                // Optionally, create an alert for robot deletion
+                auto alert = std::make_shared<Alert>("Robot Deleted", "Robot " + robotName + " has been deleted",
+                                                     nullptr, nullptr, std::time(nullptr));
+                alertSystem->sendAlert(currentUser.get(), alert);
+                dbAdapter->saveAlert(*alert);
+            } catch (const std::exception& e) {
+                wxMessageBox(wxString::Format("Failed to delete robot: %s", e.what()), "Error",
+                             wxOK | wxICON_ERROR);
+            }
+        }
+    } else {
+        wxMessageBox("Please select a robot to delete.", "Error", wxOK | wxICON_ERROR);
+    }
+}
 

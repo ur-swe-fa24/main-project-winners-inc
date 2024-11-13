@@ -26,6 +26,9 @@ public:
     void startCleaning(const std::string& robotName);
     void stopCleaning(const std::string& robotName);
     void returnToCharger(const std::string& robotName);
+    void addRobot(const std::string& robotName);
+    void deleteRobot(const std::string& robotName);
+
 
     // Nested struct for robot status
     struct RobotStatus {

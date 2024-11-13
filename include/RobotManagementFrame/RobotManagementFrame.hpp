@@ -57,6 +57,13 @@ private:
     void OnExit(wxCommandEvent& evt);
     void OnStatusUpdateTimer(wxTimerEvent& evt);
     void OnRefreshAlerts(wxCommandEvent& evt);
+    // Event Handlers for robot management
+    void OnAddRobot(wxCommandEvent& evt);
+    void OnDeleteRobot(wxCommandEvent& evt);
+
+    // Helper method to refresh robot choices
+    void UpdateRobotChoices();
+
 
     // Members
     std::shared_ptr<MongoDBAdapter> dbAdapter;

@@ -1,20 +1,24 @@
-// MapPanel.hpp
 #ifndef MAP_PANEL_HPP
 #define MAP_PANEL_HPP
 
 #include <wx/wx.h>
 #include <wx/panel.h>
+#include <vector>
+#include <memory>
+
 #include "map/map.h"
 #include "Robot/Robot.h"
+#include "RobotSimulator/RobotSimulator.hpp"
 
 class MapPanel : public wxPanel {
 public:
-    MapPanel(wxWindow* parent, const Map& map, const std::vector<std::shared_ptr<Robot>>& robots);
+    MapPanel(wxWindow* parent, const Map& map, RobotSimulator* simulator);
+
+    void OnPaint(wxPaintEvent& event);
 
 private:
-    void OnPaint(wxPaintEvent& event);
     const Map& map_;
-    const std::vector<std::shared_ptr<Robot>>& robots_;
+    RobotSimulator* simulator_;
 
     DECLARE_EVENT_TABLE()
 };

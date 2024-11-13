@@ -195,3 +195,20 @@ void MongoDBAdapter::dropRobotStatusCollection() {
         std::cerr << "Error dropping robot status collection: " << e.what() << std::endl;
     }
 }
+
+// Delete robot status by name
+void MongoDBAdapter::deleteRobotStatus(const std::string& robotName) {
+    // Create client instance locally
+    mongocxx::client client(mongocxx::uri{});
+    auto db = client[dbName_];
+    auto collection = db["robot_statuses"];
+
+    try {
+        auto filter = make_document(kvp("name", robotName));
+        collection.delete_one(filter.view());
+        std::cout << "Robot status for '" << robotName << "' deleted from MongoDB." << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "Failed to delete robot status from MongoDB: " << e.what() << std::endl;
+        throw;
+    }
+}

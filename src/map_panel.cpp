@@ -1,14 +1,14 @@
 #include "map_panel/map_panel.hpp"
 #include <cmath>
-#include <map>          // Included to use std::map
-#include <algorithm>    // Included for std::min
+#include <map>
+#include <algorithm>
 
 BEGIN_EVENT_TABLE(MapPanel, wxPanel)
     EVT_PAINT(MapPanel::OnPaint)
 END_EVENT_TABLE()
 
-MapPanel::MapPanel(wxWindow* parent, const Map& map, const std::vector<std::shared_ptr<Robot>>& robots)
-    : wxPanel(parent), map_(map), robots_(robots) {
+MapPanel::MapPanel(wxWindow* parent, const Map& map, RobotSimulator* simulator)
+    : wxPanel(parent), map_(map), simulator_(simulator) {
     // Set background color if needed
     SetBackgroundColour(*wxWHITE);
 }
@@ -33,6 +33,8 @@ void MapPanel::OnPaint(wxPaintEvent& event) {
 
     // For simplicity, arrange rooms in a circle
     size_t numRooms = rooms.size();
+    if (numRooms == 0) return;  // Handle case with no rooms
+
     double angleIncrement = 2 * M_PI / numRooms;
     double radius = std::min(drawableWidth, drawableHeight) / 2 - margin;
 
@@ -78,7 +80,10 @@ void MapPanel::OnPaint(wxPaintEvent& event) {
     }
 
     // Draw robot positions
-    for (const auto& robot : robots_) {
+    // Get the latest robots from the simulator
+    std::vector<std::shared_ptr<Robot>> robots = simulator_->getRobots();
+
+    for (const auto& robot : robots) {
         Room* currentRoom = robot->getCurrentRoom();
         if (currentRoom) {
             wxPoint pos = roomPositions[currentRoom->getRoomId()];

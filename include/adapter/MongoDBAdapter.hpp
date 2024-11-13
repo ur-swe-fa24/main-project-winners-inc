@@ -21,9 +21,13 @@ public:
 
     // Robot status methods
     void saveRobotStatus(std::shared_ptr<Robot> robot);
+
+    void deleteRobotStatus(const std::string& robotName);
+
     std::vector<std::shared_ptr<Robot>> retrieveRobotStatuses();
     void deleteAllRobotStatuses();
     void dropRobotStatusCollection();
+
 
 private:
     std::string dbName_;
