@@ -2,14 +2,17 @@
 #define ROBOT_H
 
 #include <string>
+#include <vector>    // For std::vector
+#include <queue>     // For std::queue
 #include "Room/Room.h"
+#include "map/map.h" // For Map class
 
 class Robot {
 public:
     // Constructor
     Robot(const std::string& name, int batteryLevel);
 
-    // Status update method (for demonstration purposes)
+    // Status update method
     void sendStatusUpdate() const;
 
     // Methods to manage battery
@@ -34,6 +37,9 @@ public:
     Room* getCurrentRoom() const;
     bool moveToRoom(Room* room);  // Move to an adjacent room
 
+    void setMovementPath(const std::vector<int>& roomIds, Map& map);
+    void update();  // Update robot status (move along path, deplete battery)
+
 private:
     // Attributes
     std::string name;
@@ -41,6 +47,7 @@ private:
     bool cleaning_;
     bool lowBatteryAlertSent_;
     Room* currentRoom_;
+    std::queue<Room*> movementQueue_;
 };
 
 #endif // ROBOT_H

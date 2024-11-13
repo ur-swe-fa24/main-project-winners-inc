@@ -2,28 +2,33 @@
 #include "LoginDialog/LoginDialog.hpp"
 #include "AlertDialog/AlertDialog.hpp"
 #include "map_panel/map_panel.hpp"
+#include <wx/notebook.h>
+#include <wx/grid.h>
 #include <iostream>
 #include <wx/filename.h>
+
+const std::string RobotManagementFrame::DB_URI = "mongodb://localhost:27017";
+const std::string RobotManagementFrame::DB_NAME = "mydb9";
+const std::string RobotManagementFrame::MAP_FILE = "map.json";
+// Define the event table
+wxBEGIN_EVENT_TABLE(RobotManagementFrame, wxFrame)
+    // Event table entries (if any)
+wxEND_EVENT_TABLE()
 
 
 // Constructor
 RobotManagementFrame::RobotManagementFrame()
-    : wxFrame(nullptr, wxID_ANY, "Robot Management System", wxDefaultPosition, wxSize(800, 600)) {
+    : wxFrame(nullptr, wxID_ANY, "Robot Management System", wxDefaultPosition, wxSize(800, 600)),
+      dbAdapter(std::make_shared<MongoDBAdapter>(DB_URI, DB_NAME)),
+      simulator_(std::make_unique<RobotSimulator>(dbAdapter, MAP_FILE)),
+      scheduler_(simulator_->getMap(), simulator_->getRobots())  // Correct initialization
+{
     try {
-        // Initialize MongoDB
-        std::string uri = "mongodb://localhost:27017";
-        std::string dbName = "mydb9";
-        dbAdapter = std::make_shared<MongoDBAdapter>(uri, dbName);
+        // Start the simulator
+        simulator_->start();
 
         wxString cwd = wxGetCwd();
         std::cout << "Current working directory: " << cwd.mb_str() << std::endl;
-
-        // Specify the map file path
-        std::string mapFile = "map.json"; // Ensurfe map.json is in the working directory
-
-        // Initialize the RobotSimulator with shared dbAdapter and map file
-        simulator_ = std::make_unique<RobotSimulator>(dbAdapter, mapFile);
-        simulator_->start();
 
         // Initialize alert system
         alertSystem = std::make_unique<AlertSystem>();
@@ -43,6 +48,9 @@ RobotManagementFrame::RobotManagementFrame()
         wxPanel* mainPanel = new wxPanel(this);
         wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
 
+        // wxPanel* mainPanel = new wxPanel(this);
+        // wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
+
         // Create notebook for tabs
         wxNotebook* notebook = new wxNotebook(mainPanel, wxID_ANY);
 
@@ -51,6 +59,7 @@ RobotManagementFrame::RobotManagementFrame()
         CreateRobotControlPanel(notebook);
         CreateAlertsPanel(notebook);
         CreateMapPanel(notebook); // Create the map panel
+        CreateSchedulerPanel(notebook); // Create the scheduler panel
 
         // User Management Panel (only for admin)
         if (currentUser && currentUser->getRole().hasPermission("ADMIN")) {
@@ -116,7 +125,7 @@ RobotManagementFrame::~RobotManagementFrame() {
     }
 }
 
-// Implementations of the missing methods
+// Implementations of the methods
 
 void RobotManagementFrame::CreateMenuBar() {
     wxMenuBar* menuBar = new wxMenuBar();
@@ -193,44 +202,6 @@ void RobotManagementFrame::CreateAlertsPanel(wxNotebook* notebook) {
     notebook->AddPage(panel, "Alerts");
 }
 
-// void RobotManagementFrame::CreateRobotControlPanel(wxNotebook* notebook) {
-//     wxPanel* panel = new wxPanel(notebook);
-//     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
-
-//     // Initialize robotChoice before using it
-//     robotChoice = new wxChoice(panel, wxID_ANY);
-
-//     auto robotStatuses = simulator_->getRobotStatuses();
-//     for (const auto& status : robotStatuses) {
-//         robotChoice->Append(status.name);
-//     }
-
-//     // Robot selection
-//     wxBoxSizer* robotSelectionSizer = new wxBoxSizer(wxHORIZONTAL);
-//     wxStaticText* robotLabel = new wxStaticText(panel, wxID_ANY, "Select Robot:");
-
-//     robotSelectionSizer->Add(robotLabel, 0, wxALL | wxALIGN_CENTER_VERTICAL, 5);
-//     robotSelectionSizer->Add(robotChoice, 1, wxALL, 5);
-
-//     // Control buttons
-//     wxButton* startBtn = new wxButton(panel, wxID_ANY, "Start Cleaning");
-//     wxButton* stopBtn = new wxButton(panel, wxID_ANY, "Stop Cleaning");
-//     wxButton* chargeBtn = new wxButton(panel, wxID_ANY, "Return to Charger");
-
-//     // Bind button events
-//     startBtn->Bind(wxEVT_BUTTON, &RobotManagementFrame::OnStartCleaning, this);
-//     stopBtn->Bind(wxEVT_BUTTON, &RobotManagementFrame::OnStopCleaning, this);
-//     chargeBtn->Bind(wxEVT_BUTTON, &RobotManagementFrame::OnReturnToCharger, this);
-
-//     sizer->Add(robotSelectionSizer, 0, wxEXPAND | wxALL, 5);
-//     sizer->Add(startBtn, 0, wxEXPAND | wxALL, 5);
-//     sizer->Add(stopBtn, 0, wxEXPAND | wxALL, 5);
-//     sizer->Add(chargeBtn, 0, wxEXPAND | wxALL, 5);
-
-//     panel->SetSizer(sizer);
-//     notebook->AddPage(panel, "Robot Control");
-// }
-
 void RobotManagementFrame::CreateRobotControlPanel(wxNotebook* notebook) {
     wxPanel* panel = new wxPanel(notebook);
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
@@ -274,7 +245,6 @@ void RobotManagementFrame::CreateRobotControlPanel(wxNotebook* notebook) {
     notebook->AddPage(panel, "Robot Control");
 }
 
-
 void RobotManagementFrame::CreateDashboardPanel(wxNotebook* notebook) {
     wxPanel* panel = new wxPanel(notebook);
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
@@ -302,7 +272,6 @@ void RobotManagementFrame::CreateDashboardPanel(wxNotebook* notebook) {
     panel->SetSizer(sizer);
     notebook->AddPage(panel, "Dashboard");
 }
-
 
 void RobotManagementFrame::UpdateRobotGrid() {
     auto robotStatuses = simulator_->getRobotStatuses();
@@ -355,7 +324,6 @@ void RobotManagementFrame::UpdateRobotGrid() {
     robotGrid->AutoSize();
 }
 
-
 void RobotManagementFrame::CheckAndUpdateAlerts() {
     // Refresh the alerts from database
     alertsList->Clear();
@@ -366,8 +334,6 @@ void RobotManagementFrame::CheckAndUpdateAlerts() {
 }
 
 void RobotManagementFrame::OnRefreshStatus(wxCommandEvent& evt) {
-    // Update robots from simulator
-    // robots = simulator_->getRobotStatuses();
     UpdateRobotGrid();
 }
 
@@ -379,7 +345,6 @@ void RobotManagementFrame::OnClearAlerts(wxCommandEvent& evt) {
 void RobotManagementFrame::OnRefreshAlerts(wxCommandEvent& evt) {
     CheckAndUpdateAlerts();
 }
-
 
 void RobotManagementFrame::OnStartCleaning(wxCommandEvent& evt) {
     if (robotChoice && robotChoice->GetSelection() != wxNOT_FOUND) {
@@ -434,10 +399,18 @@ void RobotManagementFrame::OnReturnToCharger(wxCommandEvent& evt) {
     }
 }
 
-// void RobotManagementFrame::OnStatusUpdateTimer(wxTimerEvent& evt) {
-//     // robots = simulator_->getRobotStatuses();
-//     UpdateRobotGrid();
-// }
+void RobotManagementFrame::OnStatusUpdateTimer(wxTimerEvent& evt) {
+    // Update robot statuses
+    UpdateRobotGrid();
+
+    // Refresh the robot choices in case robots were added/deleted
+    UpdateRobotChoices();
+
+    // Refresh the map panel
+    if (mapPanel_) {
+        mapPanel_->Refresh();
+    }
+}
 
 void RobotManagementFrame::BindEvents() {
     // Bind the timer event for checking alerts
@@ -448,10 +421,7 @@ void RobotManagementFrame::BindEvents() {
 
     // Bind the menu event for exiting the application
     Bind(wxEVT_MENU, &RobotManagementFrame::OnExit, this, wxID_EXIT);
-
 }
-
-
 
 void RobotManagementFrame::OnExit(wxCommandEvent& evt) {
     Close(true);
@@ -478,7 +448,6 @@ bool RobotManagementFrame::ShowLogin() {
     return false;
 }
 
-
 void RobotManagementFrame::CreateUserManagementPanel(wxNotebook* notebook) {
     wxPanel* panel = new wxPanel(notebook);
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
@@ -502,7 +471,6 @@ void RobotManagementFrame::CreateUserManagementPanel(wxNotebook* notebook) {
     notebook->AddPage(panel, "User Management");
 }
 
-
 void RobotManagementFrame::CreateMapPanel(wxNotebook* notebook) {
     wxPanel* panel = new wxPanel(notebook);
 
@@ -513,19 +481,6 @@ void RobotManagementFrame::CreateMapPanel(wxNotebook* notebook) {
     sizer->Add(mapPanel_, 1, wxEXPAND | wxALL, 5);
     panel->SetSizer(sizer);
     notebook->AddPage(panel, "Map");
-}
-
-void RobotManagementFrame::OnStatusUpdateTimer(wxTimerEvent& evt) {
-    // Update robot statuses
-    UpdateRobotGrid();
-
-    // Refresh the robot choices in case robots were added/deleted
-    UpdateRobotChoices();
-
-    // Refresh the map panel
-    if (mapPanel_) {
-        mapPanel_->Refresh();
-    }
 }
 
 void RobotManagementFrame::UpdateRobotChoices() {
@@ -591,3 +546,63 @@ void RobotManagementFrame::OnDeleteRobot(wxCommandEvent& evt) {
     }
 }
 
+void RobotManagementFrame::CreateSchedulerPanel(wxNotebook* notebook) {
+    wxPanel* panel = new wxPanel(notebook);
+    wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
+
+    wxStaticText* robotLabel = new wxStaticText(panel, wxID_ANY, "Select Robot:");
+    wxChoice* schedulerRobotChoice = new wxChoice(panel, wxID_ANY);
+
+    // Populate schedulerRobotChoice with robot names
+    if (robotChoice) {
+        for (unsigned int i = 0; i < robotChoice->GetCount(); ++i) {
+            schedulerRobotChoice->Append(robotChoice->GetString(i));
+        }
+    }
+
+    wxStaticText* roomLabel = new wxStaticText(panel, wxID_ANY, "Enter Room ID:");
+    roomIdInput = new wxTextCtrl(panel, wxID_ANY);
+
+    wxStaticText* strategyLabel = new wxStaticText(panel, wxID_ANY, "Cleaning Strategy:");
+    strategyChoice = new wxChoice(panel, wxID_ANY);
+    strategyChoice->Append("Standard");
+    strategyChoice->Append("Deep Clean");
+
+    wxButton* assignTaskBtn = new wxButton(panel, wxID_ANY, "Assign Task");
+    assignTaskBtn->Bind(wxEVT_BUTTON, &RobotManagementFrame::OnAssignTask, this);
+
+    sizer->Add(robotLabel, 0, wxALL, 5);
+    sizer->Add(schedulerRobotChoice, 0, wxEXPAND | wxALL, 5);
+    sizer->Add(roomLabel, 0, wxALL, 5);
+    sizer->Add(roomIdInput, 0, wxEXPAND | wxALL, 5);
+    sizer->Add(strategyLabel, 0, wxALL, 5);
+    sizer->Add(strategyChoice, 0, wxEXPAND | wxALL, 5);
+    sizer->Add(assignTaskBtn, 0, wxEXPAND | wxALL, 5);
+
+    panel->SetSizer(sizer);
+    notebook->AddPage(panel, "Scheduler");
+}
+
+void RobotManagementFrame::OnAssignTask(wxCommandEvent& event) {
+    if (!robotChoice || robotChoice->GetSelection() == wxNOT_FOUND) {
+        wxMessageBox("Please select a robot.", "Error", wxOK | wxICON_ERROR);
+        return;
+    }
+    std::string robotName = robotChoice->GetStringSelection().ToStdString();
+
+    if (roomIdInput->GetValue().IsEmpty()) {
+        wxMessageBox("Please enter a room ID.", "Error", wxOK | wxICON_ERROR);
+        return;
+    }
+    int roomId = std::stoi(roomIdInput->GetValue().ToStdString());
+
+    if (strategyChoice->GetSelection() == wxNOT_FOUND) {
+        wxMessageBox("Please select a cleaning strategy.", "Error", wxOK | wxICON_ERROR);
+        return;
+    }
+    std::string strategy = strategyChoice->GetStringSelection().ToStdString();
+
+    scheduler_.assignCleaningTask(robotName, roomId, strategy);
+
+    mapPanel_->Refresh(); // Update UI
+}

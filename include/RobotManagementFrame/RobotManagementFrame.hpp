@@ -1,5 +1,3 @@
-// RobotManagementFrame.hpp
-
 #ifndef ROBOT_MANAGEMENT_FRAME_HPP
 #define ROBOT_MANAGEMENT_FRAME_HPP
 
@@ -18,6 +16,7 @@
 #include "alert/Alert.h"
 #include "RobotSimulator/RobotSimulator.hpp"
 #include "map_panel/map_panel.hpp"
+#include "Schedular/Schedular.hpp"  // Include Scheduler header
 
 // Forward declarations
 class LoginDialog;
@@ -41,11 +40,9 @@ private:
     void CreateUserManagementPanel(wxNotebook* notebook);
     void UpdateRobotGrid();
     void CheckAndUpdateAlerts();
-    // Add MapPanel pointer
-    MapPanel* mapPanel_;
-    // Modify methods
     void CreateMapPanel(wxNotebook* notebook);
-
+    void CreateSchedulerPanel(wxNotebook* notebook);
+    void UpdateRobotChoices();
 
     // Event Handlers
     void OnCheckAlerts(wxTimerEvent& evt);
@@ -57,18 +54,20 @@ private:
     void OnExit(wxCommandEvent& evt);
     void OnStatusUpdateTimer(wxTimerEvent& evt);
     void OnRefreshAlerts(wxCommandEvent& evt);
-    // Event Handlers for robot management
     void OnAddRobot(wxCommandEvent& evt);
     void OnDeleteRobot(wxCommandEvent& evt);
+    void OnAssignTask(wxCommandEvent& event);
 
-    // Helper method to refresh robot choices
-    void UpdateRobotChoices();
+    // Member variables
+    wxChoice* strategyChoice;
+    wxTextCtrl* roomIdInput;
 
+    MapPanel* mapPanel_;
+    wxChoice* robotChoice;
 
-    // Members
+    // Other members
     std::shared_ptr<MongoDBAdapter> dbAdapter;
     std::unique_ptr<RobotSimulator> simulator_;
-    // std::vector<std::shared_ptr<Robot>> robots;
     std::vector<std::shared_ptr<User>> users;
     std::shared_ptr<User> currentUser;
     std::unique_ptr<AlertSystem> alertSystem;
@@ -76,8 +75,18 @@ private:
     wxListBox* alertsList;
     wxTimer* alertTimer;
     wxTimer* statusUpdateTimer;
-    wxChoice* robotChoice;
     std::map<std::string, std::string> userPasswords;
+    // Other members
+    Scheduler scheduler_;  // Scheduler instance
+    
+    wxDECLARE_EVENT_TABLE();
+
+
+    static const std::string DB_URI;
+    static const std::string DB_NAME;
+    static const std::string MAP_FILE;
+
+
 };
 
 #endif // ROBOT_MANAGEMENT_FRAME_HPP

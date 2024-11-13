@@ -15,9 +15,6 @@ find_package(mongocxx REQUIRED)
 find_package(Catch2 3 REQUIRED)
 find_package(wxWidgets REQUIRED COMPONENTS core base)
 
-# Remove or comment out this line
-# find_package(nlohmann_json REQUIRED)
-
 # Define the main_proj library with all necessary source files
 add_library(main_proj
     src/role.cpp
@@ -26,11 +23,13 @@ add_library(main_proj
     src/alert.cpp
     src/Robot.cpp
     src/Room.cpp
-    src/virtual_wall.cpp   # Include this line
+    src/virtual_wall.cpp
     src/map.cpp
     src/alert_system.cpp
     src/MongoDBAdapter.cpp
     src/RobotSimulator.cpp
+    src/Schedular.cpp       # Include Scheduler.cpp
+    # Include other source files if needed
 )
 
 # Set include directories for main_proj
@@ -44,7 +43,7 @@ target_link_libraries(main_proj
     PUBLIC
         spdlog::spdlog_header_only
         mongo::mongocxx_shared
-        nlohmann_json::nlohmann_json  # Use the target provided by CPMAddPackage
+        nlohmann_json::nlohmann_json
 )
 
 # Add the app subdirectory where executables are defined

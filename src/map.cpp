@@ -4,9 +4,14 @@
 #include <iostream>
 #include <fstream>
 #include <nlohmann/json.hpp>
-#include <deque>  // Include the deque header
 #include <map>
 #include <algorithm>
+#include <queue>
+#include <unordered_map>
+#include <climits> // For INT_MAX
+#include <unordered_set> // Add this line
+
+
 using json = nlohmann::json;
 
 Map::Map() {
@@ -89,40 +94,62 @@ const std::vector<VirtualWall>& Map::getVirtualWalls() const {
     return virtualWallMap;
 }
 
-std::vector<int> Map::getRoute(Room& start, Room& end){
-    // Implementation with BFS
-    // Initializing data structures
-    std::deque<Room*> queue;  // Use std::deque
-    std::vector<int> proposedRoute;
-    std::map<int, int> cameFrom; // For reconstructing the path
+std::vector<int> Map::getRoute(Room& start, Room& end) {
+    std::unordered_map<int, int> dist;
+    std::unordered_map<int, int> prev;
+    std::unordered_set<int> visited;
+    std::priority_queue<std::pair<int, int>, std::vector<std::pair<int, int>>, std::greater<>> pq;
 
+    // Initialize distances
+    for (const auto& room : roomMap) {
+        dist[room->getRoomId()] = INT_MAX;
+    }
 
-    // Setting up start
-    queue.push_back(&start);
-    cameFrom[start.roomId] = -1;
+    dist[start.getRoomId()] = 0;
+    pq.push({0, start.getRoomId()});
 
-    while(!queue.empty()) {
-        Room* current = queue.front();
-        queue.pop_front();
+    while (!pq.empty()) {
+        int current_dist = pq.top().first;
+        int current_id = pq.top().second;
+        pq.pop();
 
-        if(current->roomId == end.roomId){
-            // Reconstruct the path
-            int currentId = end.roomId;
-            while(currentId != -1) {
-                proposedRoute.push_back(currentId);
-                currentId = cameFrom[currentId];
-            }
-            std::reverse(proposedRoute.begin(), proposedRoute.end());
-            return proposedRoute;
+        if (current_id == end.getRoomId()) {
+            break;
         }
 
-        for(Room* neighbor : current->neighbors){
-            if(cameFrom.find(neighbor->roomId) == cameFrom.end()){
-                queue.push_back(neighbor);
-                cameFrom[neighbor->roomId] = current->roomId;
+        if (visited.find(current_id) != visited.end()) {
+            continue;
+        }
+        visited.insert(current_id);
+
+        Room* currentRoom = getRoomById(current_id);
+        if (!currentRoom) {
+            continue;
+        }
+
+        for (Room* neighbor : currentRoom->neighbors) {
+            int neighbor_id = neighbor->getRoomId();
+            int alt = dist[current_id] + 1; // Assume cost of 1 per room transition
+            if (alt < dist[neighbor_id]) {
+                dist[neighbor_id] = alt;
+                prev[neighbor_id] = current_id;
+                pq.push({alt, neighbor_id});
             }
         }
     }
-    // Return empty path if no route found
-    return proposedRoute;
+
+    // Reconstruct path
+    std::vector<int> path;
+    int at = end.getRoomId();
+    if (prev.find(at) == prev.end() && at != start.getRoomId()) {
+        // No path found
+        return path;
+    }
+    while (at != start.getRoomId()) {
+        path.push_back(at);
+        at = prev[at];
+    }
+    path.push_back(start.getRoomId());
+    std::reverse(path.begin(), path.end());
+    return path;
 }

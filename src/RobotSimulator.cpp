@@ -1,5 +1,4 @@
 // RobotSimulator.cpp
-
 #include "RobotSimulator/RobotSimulator.hpp"
 #include <chrono>
 #include <iostream>
@@ -47,10 +46,36 @@ void RobotSimulator::stop() {
     }
 }
 
+// Define getMap() methods
+Map& RobotSimulator::getMap() {
+    return map_;
+}
+
+const Map& RobotSimulator::getMap() const {
+    return map_;
+}
+
+// Define getRobots() methods
+std::vector<std::shared_ptr<Robot>>& RobotSimulator::getRobots() {
+    return robots_;
+}
+
+const std::vector<std::shared_ptr<Robot>>& RobotSimulator::getRobots() const {
+    return robots_;
+}
+
 void RobotSimulator::simulationLoop() {
     while (running_) {
-        // Iterate over the robots
-        for (auto& robot : robots_) {
+        std::vector<std::shared_ptr<Robot>> robotsCopy;
+
+        // Copy the robots vector while holding the mutex
+        {
+            std::lock_guard<std::mutex> lock(robotsMutex_);
+            robotsCopy = robots_;
+        }
+
+        // Iterate over the copied robots
+        for (auto& robot : robotsCopy) {
             bool needsSave = false;
             bool generateLowBatteryAlert = false;
             bool generateChargingAlert = false;
@@ -58,8 +83,12 @@ void RobotSimulator::simulationLoop() {
             // Update robot state within a mutex lock
             {
                 std::lock_guard<std::mutex> lock(robotsMutex_);
+
+                // Update the robot
+                robot->update();  // Update robot movement and status
+
                 if (robot->isCleaning()) {
-                    robot->depleteBattery(1);  // Deplete battery by 1%
+                    robot->depleteBattery(3);  // Deplete battery by 3%
                     needsSave = true;
                 }
 
@@ -107,6 +136,8 @@ void RobotSimulator::simulationLoop() {
                 std::cerr << "Exception during database operation: " << e.what() << std::endl;
             }
         }
+
+        // Simulate robot movement outside the loop
         simulateRobotMovement();
 
         // Sleep before the next simulation step
@@ -213,14 +244,14 @@ Room* RobotSimulator::getNextRoomToClean(Room* currentRoom) {
     return nullptr;  // No dirty rooms found
 }
 
-const std::vector<std::shared_ptr<Robot>>& RobotSimulator::getRobots() const {
+// const std::vector<std::shared_ptr<Robot>>& RobotSimulator::getRobots() const {
 
-    return robots_;
-}
+//     return robots_;
+// }
 
-const Map& RobotSimulator::getMap() const {
-    return map_;
-}
+// const Map& RobotSimulator::getMap() const {
+//     return map_;
+// }
 
 void RobotSimulator::addRobot(const std::string& robotName) {
     std::lock_guard<std::mutex> lock(robotsMutex_);
@@ -268,5 +299,3 @@ void RobotSimulator::deleteRobot(const std::string& robotName) {
         throw std::runtime_error("Robot with name '" + robotName + "' does not exist.");
     }
 }
-
-

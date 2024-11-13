@@ -1,11 +1,12 @@
 #include "Robot/Robot.h"
+#include "map/map.h"
 #include <iostream>
 
 // Constructor implementation
 Robot::Robot(const std::string& name, int batteryLevel)
-    : name(name), batteryLevel(batteryLevel), cleaning_(false), lowBatteryAlertSent_(false) {}
+    : name(name), batteryLevel(batteryLevel), cleaning_(false), lowBatteryAlertSent_(false), currentRoom_(nullptr) {}
 
-// New methods
+// Methods to start and stop cleaning
 void Robot::startCleaning() {
     cleaning_ = true;
 }
@@ -18,6 +19,7 @@ bool Robot::isCleaning() const {
     return cleaning_;
 }
 
+// Low battery alert methods
 void Robot::setLowBatteryAlertSent(bool sent) {
     lowBatteryAlertSent_ = sent;
 }
@@ -26,18 +28,18 @@ bool Robot::isLowBatteryAlertSent() const {
     return lowBatteryAlertSent_;
 }
 
-// Method to send a status update
+// Send status update
 void Robot::sendStatusUpdate() const {
     std::cout << "Robot " << name << " has " << batteryLevel << "% battery remaining." << std::endl;
 }
 
-// Method to recharge the robot's battery
+// Recharge battery
 void Robot::recharge() {
-    batteryLevel = 100;  // Set battery level to full
+    batteryLevel = 100;
     std::cout << "Robot " << name << " is fully recharged." << std::endl;
 }
 
-// Method to check if the robot needs maintenance (e.g., if battery is below a threshold)
+// Check if robot needs maintenance
 bool Robot::needsMaintenance() const {
     if (batteryLevel < 20) {
         std::cout << "Robot " << name << " needs maintenance (battery level is low)." << std::endl;
@@ -46,23 +48,23 @@ bool Robot::needsMaintenance() const {
     return false;
 }
 
-// Getter for robot name
+// Getters
 std::string Robot::getName() const {
     return name;
 }
 
-// Getter for battery level
 int Robot::getBatteryLevel() const {
     return batteryLevel;
 }
 
-// Method to deplete battery by a specified amount (for testing purposes)
+// Deplete battery
 void Robot::depleteBattery(int amount) {
     batteryLevel -= amount;
-    if (batteryLevel < 0) batteryLevel = 0;  // Prevent battery from going negative
+    if (batteryLevel < 0) batteryLevel = 0;
     std::cout << "Robot " << name << "'s battery depleted to " << batteryLevel << "%." << std::endl;
 }
 
+// Current room management
 void Robot::setCurrentRoom(Room* room) {
     currentRoom_ = room;
 }
@@ -71,8 +73,8 @@ Room* Robot::getCurrentRoom() const {
     return currentRoom_;
 }
 
+// Move to adjacent room
 bool Robot::moveToRoom(Room* room) {
-    // Check if the desired room is adjacent
     if (std::find(currentRoom_->neighbors.begin(), currentRoom_->neighbors.end(), room) != currentRoom_->neighbors.end()) {
         currentRoom_ = room;
         return true;
@@ -82,3 +84,29 @@ bool Robot::moveToRoom(Room* room) {
     return false;  // Can't move to the room
 }
 
+// Set movement path
+void Robot::setMovementPath(const std::vector<int>& roomIds, Map& map) {
+    while (!movementQueue_.empty()) {
+        movementQueue_.pop();
+    }
+    for (int roomId : roomIds) {
+        Room* room = map.getRoomById(roomId);
+        if (room) {
+            movementQueue_.push(room);
+        }
+    }
+}
+
+// Update robot status
+void Robot::update() {
+    if (!movementQueue_.empty()) {
+        Room* nextRoom = movementQueue_.front();
+        if (moveToRoom(nextRoom)) {
+            movementQueue_.pop();
+            depleteBattery(5);  // Deplete battery for movement
+        }
+    } else if (isCleaning()) {
+        depleteBattery(1);  // Deplete battery for cleaning
+        // Optionally perform cleaning actions
+    }
+}

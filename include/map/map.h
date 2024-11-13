@@ -11,7 +11,6 @@ private:
     std::vector<Room*> roomMap;
     std::vector<VirtualWall> virtualWallMap;
 
-
 public:
     // Constructor and destructor
     Map();
@@ -26,7 +25,7 @@ public:
     const std::vector<Room*>& getRooms() const;
     const std::vector<VirtualWall>& getVirtualWalls() const;
 
-    // Find some route from one room to another; returns a vector of room ID numbers in the order they should be visited
+    // Find route from one room to another
     std::vector<int> getRoute(Room& start, Room& end);
 };
 

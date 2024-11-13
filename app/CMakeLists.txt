@@ -6,7 +6,7 @@ add_executable(wx_robot_test
     ${PROJECT_SOURCE_DIR}/src/RobotManagementFrame.cpp
     ${PROJECT_SOURCE_DIR}/src/LoginDialog.cpp
     ${PROJECT_SOURCE_DIR}/src/AlertDialog.cpp
-    ${PROJECT_SOURCE_DIR}/src/map_panel.cpp   # Added MapPanel.cpp
+    ${PROJECT_SOURCE_DIR}/src/map_panel.cpp
     # Include other source files if needed
 )
 
@@ -23,7 +23,7 @@ target_link_libraries(wx_robot_test
         ${wxWidgets_LIBRARIES}
         mongo::mongocxx_shared
         spdlog::spdlog_header_only
-        nlohmann_json::nlohmann_json  # Use the target provided by CPMAddPackage
+        nlohmann_json::nlohmann_json
 )
 
 # Ensure C++ standard is set
@@ -47,7 +47,7 @@ target_link_libraries(simulator_test
         main_proj
         mongo::mongocxx_shared
         spdlog::spdlog_header_only
-        nlohmann_json::nlohmann_json  # Use the target provided by CPMAddPackage
+        nlohmann_json::nlohmann_json
 )
 
 # Ensure C++ standard is set

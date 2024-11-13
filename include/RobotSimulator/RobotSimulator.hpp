@@ -1,17 +1,14 @@
-// RobotSimulator.hpp
-
 #ifndef ROBOT_SIMULATOR_HPP
 #define ROBOT_SIMULATOR_HPP
 
 #include <vector>
 #include <memory>
 #include <thread>
-#include <atomic>
 #include <mutex>
 #include <condition_variable>
 #include "Robot/Robot.h"
-#include "adapter/MongoDBAdapter.hpp"
 #include "map/map.h"
+#include "adapter/MongoDBAdapter.hpp"
 
 class RobotSimulator {
 public:
@@ -21,16 +18,6 @@ public:
     void start();
     void stop();
 
-    // Methods to interact with the simulator
-    std::shared_ptr<Robot> getRobotByName(const std::string& name);
-    void startCleaning(const std::string& robotName);
-    void stopCleaning(const std::string& robotName);
-    void returnToCharger(const std::string& robotName);
-    void addRobot(const std::string& robotName);
-    void deleteRobot(const std::string& robotName);
-
-
-    // Nested struct for robot status
     struct RobotStatus {
         std::string name;
         int batteryLevel;
@@ -39,24 +26,35 @@ public:
     };
 
     std::vector<RobotStatus> getRobotStatuses();
-    const std::vector<std::shared_ptr<Robot>>& getRobots() const;
+
+    std::shared_ptr<Robot> getRobotByName(const std::string& name);
+
+    void startCleaning(const std::string& robotName);
+    void stopCleaning(const std::string& robotName);
+    void returnToCharger(const std::string& robotName);
+
+    Map& getMap();  // Non-const getter
     const Map& getMap() const;
+
+    std::vector<std::shared_ptr<Robot>>& getRobots();  // Non-const getter
+    const std::vector<std::shared_ptr<Robot>>& getRobots() const;
+
+    void addRobot(const std::string& robotName);
+    void deleteRobot(const std::string& robotName);
 
 private:
     void simulationLoop();
     void simulateRobotMovement();
     Room* getNextRoomToClean(Room* currentRoom);
 
-    std::shared_ptr<MongoDBAdapter> dbAdapter_;
     std::vector<std::shared_ptr<Robot>> robots_;
     Map map_;
+    std::shared_ptr<MongoDBAdapter> dbAdapter_;
 
     std::thread simulationThread_;
-    std::atomic<bool> running_;
-
-    // Concurrency control
     std::mutex robotsMutex_;
     std::condition_variable cv_;
+    bool running_;
 };
 
 #endif // ROBOT_SIMULATOR_HPP
