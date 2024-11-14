@@ -3,6 +3,7 @@
 #ifndef VIRTUAL_WALL_H
 #define VIRTUAL_WALL_H
 
+#include "Room/Room.h"
 #include <string>
 #include "Room/Room.h"
 

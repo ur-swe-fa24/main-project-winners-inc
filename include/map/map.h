@@ -11,7 +11,7 @@ private:
     std::vector<Room*> roomMap;
     std::vector<VirtualWall> virtualWallMap;
 
-public:
+  public:
     // Constructor and destructor
     Map();
     ~Map();

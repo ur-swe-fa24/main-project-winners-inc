@@ -1,20 +1,26 @@
 #ifndef MONGODB_ADAPTER_HPP
 #define MONGODB_ADAPTER_HPP
 
-#include "alert/Alert.h"
 #include "Robot/Robot.h"
+#include "alert/Alert.h"
+#include <atomic>
+#include <condition_variable>
+#include <memory>
 #include <mongocxx/client.hpp>
+#include <mutex>
+#include <queue>
 #include <string>
+#include <thread>
 #include <vector>
 #include <memory>
 
 class MongoDBAdapter {
-public:
-    MongoDBAdapter(const std::string& uri, const std::string& dbName);
+  public:
+    MongoDBAdapter(const std::string &uri, const std::string &dbName);
     ~MongoDBAdapter();
 
     // Alert methods
-    void saveAlert(const Alert& alert);
+    void saveAlert(const Alert &alert);
     std::vector<Alert> retrieveAlerts();
     void deleteAllAlerts();
     void dropAlertCollection();
