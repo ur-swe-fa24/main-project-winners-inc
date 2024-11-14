@@ -11,12 +11,18 @@ Robot::Robot(const std::string& name, int batteryLevel)
 // Methods to start and stop cleaning
 void Robot::startCleaning() {
     cleaning_ = true;
-    // Adjust cleaning time based on room type
-    if (currentRoom_->flooringType == "Hardwood") {
-        cleaningTimeRemaining_ = 15.0;
-    } else if (currentRoom_->flooringType == "Carpet") {
-        cleaningTimeRemaining_ = 20.0;
+    if (currentRoom_) {
+        // Adjust cleaning time based on room type
+        if (currentRoom_->flooringType == "Hardwood") {
+            cleaningTimeRemaining_ = 15.0;
+        } else if (currentRoom_->flooringType == "Carpet") {
+            cleaningTimeRemaining_ = 20.0;
+        } else {
+            cleaningTimeRemaining_ = 10.0; // Default cleaning time
+        }
     } else {
+        // Handle the case where currentRoom_ is null
+        std::cerr << "Error: currentRoom_ is null in startCleaning()" << std::endl;
         cleaningTimeRemaining_ = 10.0; // Default cleaning time
     }
 }
@@ -130,18 +136,20 @@ void Robot::update(const Map& map) {
             batteryLevel = 100;
             stopCharging();
         }
-    } else if (movementProgress_ > 0.0) {
-        // Movement logic
-        movementProgress_ -= 0.5;
-        if (movementProgress_ <= 0.0) {
-            movementProgress_ = 0.0;
-            currentRoom_ = nextRoom_;
-            nextRoom_ = nullptr;
-            depleteBattery(5);
-            if (currentRoom_ == targetRoom_) {
-                startCleaning();
-            }
+    } else if(movementProgress_ <= 0.0) {
+    movementProgress_ = 0.0;
+    if (nextRoom_) {
+        currentRoom_ = nextRoom_;
+        nextRoom_ = nullptr;
+        depleteBattery(5);
+        if (currentRoom_ == targetRoom_) {
+            startCleaning();
         }
+    } else {
+        std::cerr << "Error: nextRoom_ is null when movementProgress_ <= 0" << std::endl;
+        // Handle the error appropriately
+    }
+
     } else if (!movementQueue_.empty()) {
         // Start moving to the next room
         nextRoom_ = movementQueue_.front();

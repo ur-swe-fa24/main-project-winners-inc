@@ -113,6 +113,7 @@ void MapPanel::OnPaint(wxPaintEvent& event) {
 
             pos.x = from.x + static_cast<int>((to.x - from.x) * progress);
             pos.y = from.y + static_cast<int>((to.y - from.y) * progress);
+            
         } else if (currentRoom) {
             // Robot is stationary
             pos = roomPositions[currentRoom->getRoomId()];
