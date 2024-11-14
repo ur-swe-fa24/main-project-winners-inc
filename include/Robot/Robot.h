@@ -32,6 +32,11 @@ public:
     // Getters
     std::string getName() const;
     int getBatteryLevel() const;
+    std::string getStatus() const;
+    int getMovementProgress() const;
+    Room* getNextRoom() const;
+
+
 
     void setCurrentRoom(Room* room);
     Room* getCurrentRoom() const;
@@ -39,6 +44,14 @@ public:
 
     void setMovementPath(const std::vector<int>& roomIds, Map& map);
     void update();  // Update robot status (move along path, deplete battery)
+    void startCharging();
+    void stopCharging();
+    bool isCharging() const;
+
+    void setTargetRoom(Room* room);
+    void update(const Map& map);  // Modify the update method
+
+
 
 private:
     // Attributes
@@ -48,6 +61,17 @@ private:
     bool lowBatteryAlertSent_;
     Room* currentRoom_;
     std::queue<Room*> movementQueue_;
+    Room* nextRoom_; // The room the robot is moving towards
+
+    bool isCharging_;
+    int chargingTimeRemaining_; // in seconds
+    double movementProgress_; // Time remaining to move to next room
+
+    double cleaningTimeRemaining_; // Time remaining to clean the room
+
+
+    Room* targetRoom_; // The room the robot is assigned to clean
+
 };
 
 #endif // ROBOT_H

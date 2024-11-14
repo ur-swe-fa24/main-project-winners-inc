@@ -18,8 +18,17 @@ void Scheduler::assignCleaningTask(const std::string& robotName, int targetRoomI
         return;
     }
 
-    // Execute cleaning (this could be asynchronous if desired)
-    executeCleaning(robot, targetRoom, cleaningStrategy);
+    // Get route to target room
+    std::vector<int> route = map_.getRoute(*robot->getCurrentRoom(), *targetRoom);
+
+    // Set the movement path for the robot
+    robot->setMovementPath(route, map_);
+
+    // Set the target room
+    robot->setTargetRoom(targetRoom);
+
+    // Optionally, set cleaning strategy
+    // robot->setCleaningStrategy(cleaningStrategy);
 }
 
 void Scheduler::executeCleaning(std::shared_ptr<Robot> robot, Room* targetRoom, const std::string& strategy) {

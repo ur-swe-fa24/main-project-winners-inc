@@ -83,7 +83,7 @@ RobotManagementFrame::RobotManagementFrame()
 
         // Initialize and start the status update timer
         statusUpdateTimer = new wxTimer(this, wxID_ANY);
-        statusUpdateTimer->Start(2000); // Refresh every 2 seconds
+        statusUpdateTimer->Start(1000); // Refresh every 2 seconds
 
         BindEvents();
 
@@ -308,8 +308,9 @@ void RobotManagementFrame::UpdateRobotGrid() {
     for (size_t i = 0; i < robotStatuses.size(); ++i) {
         robotGrid->SetCellValue(i, 0, robotStatuses[i].name);
         robotGrid->SetCellValue(i, 1, wxString::Format("%d%%", robotStatuses[i].batteryLevel));
-        robotGrid->SetCellValue(i, 2, robotStatuses[i].isCleaning ? "Cleaning" : "Idle");
+        robotGrid->SetCellValue(i, 2, robotStatuses[i].status);
         robotGrid->SetCellValue(i, 3, robotStatuses[i].currentRoomName);
+
 
         // Color coding for battery levels
         if (robotStatuses[i].batteryLevel < 20) {
@@ -405,6 +406,8 @@ void RobotManagementFrame::OnStatusUpdateTimer(wxTimerEvent& evt) {
 
     // Refresh the robot choices in case robots were added/deleted
     UpdateRobotChoices();
+    UpdateSchedulerRobotChoices(); // Add this line
+
 
     // Refresh the map panel
     if (mapPanel_) {
@@ -502,6 +505,8 @@ void RobotManagementFrame::OnAddRobot(wxCommandEvent& evt) {
 
             // Update UI
             UpdateRobotChoices();
+            UpdateSchedulerRobotChoices(); // Add this line
+
             UpdateRobotGrid();
 
             // Optionally, create an alert for the new robot
@@ -529,6 +534,7 @@ void RobotManagementFrame::OnDeleteRobot(wxCommandEvent& evt) {
 
                 // Update UI
                 UpdateRobotChoices();
+                UpdateSchedulerRobotChoices(); // Add this line
                 UpdateRobotGrid();
 
                 // Optionally, create an alert for robot deletion
@@ -552,6 +558,8 @@ void RobotManagementFrame::CreateSchedulerPanel(wxNotebook* notebook) {
 
     wxStaticText* robotLabel = new wxStaticText(panel, wxID_ANY, "Select Robot:");
     wxChoice* schedulerRobotChoice = new wxChoice(panel, wxID_ANY);
+
+    UpdateSchedulerRobotChoices();
 
     // Populate schedulerRobotChoice with robot names
     if (robotChoice) {
@@ -581,6 +589,16 @@ void RobotManagementFrame::CreateSchedulerPanel(wxNotebook* notebook) {
 
     panel->SetSizer(sizer);
     notebook->AddPage(panel, "Scheduler");
+}
+
+void RobotManagementFrame::UpdateSchedulerRobotChoices() {
+    if (schedulerRobotChoice) {
+        schedulerRobotChoice->Clear();
+        auto robotStatuses = simulator_->getRobotStatuses();
+        for (const auto& status : robotStatuses) {
+            schedulerRobotChoice->Append(status.name);
+        }
+    }
 }
 
 void RobotManagementFrame::OnAssignTask(wxCommandEvent& event) {

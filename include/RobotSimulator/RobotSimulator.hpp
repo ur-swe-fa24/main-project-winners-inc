@@ -21,7 +21,7 @@ public:
     struct RobotStatus {
         std::string name;
         int batteryLevel;
-        bool isCleaning;
+        std::string status;
         std::string currentRoomName;
     };
 

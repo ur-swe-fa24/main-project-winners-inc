@@ -43,6 +43,9 @@ private:
     void CreateMapPanel(wxNotebook* notebook);
     void CreateSchedulerPanel(wxNotebook* notebook);
     void UpdateRobotChoices();
+    void UpdateSchedulerRobotChoices(); // Declare the method
+
+
 
     // Event Handlers
     void OnCheckAlerts(wxTimerEvent& evt);
@@ -58,12 +61,15 @@ private:
     void OnDeleteRobot(wxCommandEvent& evt);
     void OnAssignTask(wxCommandEvent& event);
 
+
     // Member variables
     wxChoice* strategyChoice;
     wxTextCtrl* roomIdInput;
 
     MapPanel* mapPanel_;
     wxChoice* robotChoice;
+    wxChoice* schedulerRobotChoice; // Add this line
+
 
     // Other members
     std::shared_ptr<MongoDBAdapter> dbAdapter;
@@ -78,7 +84,7 @@ private:
     std::map<std::string, std::string> userPasswords;
     // Other members
     Scheduler scheduler_;  // Scheduler instance
-    
+
     wxDECLARE_EVENT_TABLE();
 
 

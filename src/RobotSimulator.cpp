@@ -11,7 +11,7 @@ RobotSimulator::RobotSimulator(std::shared_ptr<MongoDBAdapter> dbAdapter, const 
     map_.loadFromFile(mapFile);
 
     // Initialize robots at starting room
-    Room* startingRoom = map_.getRoomById(1);
+    Room* startingRoom = map_.getRoomById(0);
     if (!startingRoom) {
         throw std::runtime_error("Starting room not found in the map.");
     }
@@ -85,25 +85,49 @@ void RobotSimulator::simulationLoop() {
                 std::lock_guard<std::mutex> lock(robotsMutex_);
 
                 // Update the robot
-                robot->update();  // Update robot movement and status
+                robot->update(map_); // Update robot movement and status
 
                 if (robot->isCleaning()) {
-                    robot->depleteBattery(3);  // Deplete battery by 3%
+                    robot->depleteBattery(5);  // Deplete battery by 3%
                     needsSave = true;
                 }
 
-                // Check battery level for low battery alert
                 if (robot->getBatteryLevel() < 20 && !robot->isLowBatteryAlertSent()) {
                     generateLowBatteryAlert = true;
                     robot->setLowBatteryAlertSent(true);
+
+                    // Send robot to charging station
+                    if (!robot->isCharging()) {
+                        Room* chargingStation = map_.getRoomById(0);
+                        if (chargingStation) {
+                            std::vector<int> pathToCharger = map_.getRoute(*robot->getCurrentRoom(), *chargingStation);
+                            robot->setMovementPath(pathToCharger, map_);
+                        }
+                    }
                 }
 
-                // If battery is zero or below, recharge the robot
-                if (robot->getBatteryLevel() <= 0) {
-                    robot->recharge();
-                    needsSave = true;
-                    generateChargingAlert = true;
+                if (robot->getBatteryLevel() <= 20 && !robot->isCharging()) {
+                    // Send robot to charging station
+                    Room* chargingStation = map_.getRoomById(0);
+                    if (chargingStation) {
+                        std::vector<int> pathToCharger = map_.getRoute(*robot->getCurrentRoom(), *chargingStation);
+                        robot->setMovementPath(pathToCharger, map_);
+                        robot->setTargetRoom(chargingStation);
+                    }
                 }
+
+                                // Start charging when at charging station
+                if (robot->getCurrentRoom() && robot->getCurrentRoom()->getRoomId() == 0 && !robot->isCharging()) {
+                    robot->startCharging();
+                }
+
+
+                // // If battery is zero or below, recharge the robot
+                // if (robot->getBatteryLevel() <= 0) {
+                //     robot->recharge();
+                //     needsSave = true;
+                //     generateChargingAlert = true;
+                // }
             }  // Mutex lock is released here
 
             // Perform database operations without holding the mutex
@@ -113,7 +137,7 @@ void RobotSimulator::simulationLoop() {
                 }
 
                 if (generateLowBatteryAlert) {
-                    auto room = std::make_shared<Room>("Simulation Area", 1);
+                    auto room = std::make_shared<Room>("Simulation Area", 0);
                     Alert alert(
                         "Low Battery",
                         "Robot " + robot->getName() + " battery level critical: " +
@@ -152,7 +176,7 @@ std::vector<RobotSimulator::RobotStatus> RobotSimulator::getRobotStatuses() {
         RobotStatus status;
         status.name = robot->getName();
         status.batteryLevel = robot->getBatteryLevel();
-        status.isCleaning = robot->isCleaning();
+        status.status = robot->getStatus();
         status.currentRoomName = robot->getCurrentRoom() ? robot->getCurrentRoom()->getRoomName() : "Unknown";
         statuses.push_back(status);
     }
@@ -244,15 +268,6 @@ Room* RobotSimulator::getNextRoomToClean(Room* currentRoom) {
     return nullptr;  // No dirty rooms found
 }
 
-// const std::vector<std::shared_ptr<Robot>>& RobotSimulator::getRobots() const {
-
-//     return robots_;
-// }
-
-// const Map& RobotSimulator::getMap() const {
-//     return map_;
-// }
-
 void RobotSimulator::addRobot(const std::string& robotName) {
     std::lock_guard<std::mutex> lock(robotsMutex_);
     // Check if a robot with the same name already exists
@@ -263,7 +278,7 @@ void RobotSimulator::addRobot(const std::string& robotName) {
     }
 
     // Initialize the new robot at the starting room
-    Room* startingRoom = map_.getRoomById(1);  // Assuming room with ID 1 is the starting room
+    Room* startingRoom = map_.getRoomById(0);  // Assuming room with ID 0 is the charging station
     if (!startingRoom) {
         throw std::runtime_error("Starting room not found in the map.");
     }
