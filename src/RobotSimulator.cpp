@@ -85,7 +85,7 @@ void RobotSimulator::simulationLoop() {
                 std::lock_guard<std::mutex> lock(robotsMutex_);
 
                 // Update the robot
-                robot->update(map_); // Update robot movement and status
+                robot->update(map_);
 
                 if (robot->isCleaning()) {
                     robot->depleteBattery(5);  // Deplete battery by 3%

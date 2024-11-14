@@ -77,7 +77,7 @@ void Map::loadFromFile(const std::string& filename) {
     }
 }
 
-Room* Map::getRoomById(int id) {
+Room* Map::getRoomById(int id) const {
     for (auto room : roomMap) {
         if (room->getRoomId() == id) {
             return room;
@@ -94,7 +94,7 @@ const std::vector<VirtualWall>& Map::getVirtualWalls() const {
     return virtualWallMap;
 }
 
-std::vector<int> Map::getRoute(Room& start, Room& end) {
+std::vector<int> Map::getRoute(Room& start, Room& end) const{
     std::unordered_map<int, int> dist;
     std::unordered_map<int, int> prev;
     std::unordered_set<int> visited;

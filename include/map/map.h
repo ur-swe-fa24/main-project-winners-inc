@@ -21,12 +21,14 @@ public:
     void connectRooms(Room* room1, Room* room2);
     void addVirtualWall(Room* room1, Room* room2);
     void loadFromFile(const std::string& filename);
-    Room* getRoomById(int id);
+    
+    // Marked as const
+    Room* getRoomById(int id) const;
     const std::vector<Room*>& getRooms() const;
     const std::vector<VirtualWall>& getVirtualWalls() const;
 
-    // Find route from one room to another
-    std::vector<int> getRoute(Room& start, Room& end);
+    // Marked as const
+    std::vector<int> getRoute(Room& start, Room& end) const;
 };
 
 #endif // MAP_H

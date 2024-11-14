@@ -110,7 +110,7 @@ bool Robot::moveToRoom(Room* room) {
 
 
 // Set movement path
-void Robot::setMovementPath(const std::vector<int>& roomIds, Map& map) {
+void Robot::setMovementPath(const std::vector<int>& roomIds, const Map& map) {
     while (!movementQueue_.empty()) {
         movementQueue_.pop();
     }
@@ -121,62 +121,6 @@ void Robot::setMovementPath(const std::vector<int>& roomIds, Map& map) {
         }
     }
 }
-
-// void Robot::update() {
-//     // if (movementProgress_ > 0) {
-//     //     movementProgress_ -= 0.5; // Since timer is every 0.5 seconds
-//     //     if (movementProgress_ <= 0) {
-//     //         movementProgress_ = 0;
-//     //         // Movement to next room complete
-//     //         currentRoom_ = nextRoom_;
-//     //         nextRoom_ = nullptr;
-//     //         depleteBattery(1);
-//     //     }
-//     // }
-
-//     // if (isCharging_) {
-//     //     if (chargingTimeRemaining_ > 0) {
-//     //         chargingTimeRemaining_--;
-//     //         batteryLevel += 5; // Increase battery level per second
-//     //         if (batteryLevel > 100) batteryLevel = 100;
-//     //     } else {
-//     //         // Charging complete
-//     //         stopCharging();
-//     //     }
-//     if (isCharging_) {
-//         // Charging logic
-//         batteryLevel += 5; // Increase battery level per update
-//         if (batteryLevel >= 100) {
-//             batteryLevel = 100;
-//             stopCharging();
-//         }
-
-//     } else if (movementProgress_ > 0.0) {
-//         // Robot is moving between rooms
-//         movementProgress_ -= 0.5; // Decrement by 0.5 for 500ms intervals
-//         if (movementProgress_ <= 0.0) {
-//             // Movement to next room complete
-//             movementProgress_ = 0.0;
-//             currentRoom_ = nextRoom_;
-//             nextRoom_ = nullptr;
-//             depleteBattery(1);
-
-//             // Check if we've arrived at the target room
-//             if (currentRoom_ == targetRoom_) {
-//                 startCleaning();
-//             }
-//         }
-//     } else if (!movementQueue_.empty()) {
-//         // Start moving to the next room
-//         nextRoom_ = movementQueue_.front();
-//         movementQueue_.pop();
-//         movementProgress_ = 10.0; // Movement time in seconds
-
-        
-//     } else if (isCleaning()) {
-//         depleteBattery(1); // Deplete battery for cleaning
-//     }
-// }
 
 void Robot::update(const Map& map) {
     if (isCharging_) {
@@ -215,7 +159,7 @@ void Robot::update(const Map& map) {
             Room* chargingStation = map.getRoomById(0);
             if (chargingStation && currentRoom_ != chargingStation) {
                 std::vector<int> pathToCharger = map.getRoute(*currentRoom_, *chargingStation);
-                setMovementPath(pathToCharger, *map);
+                setMovementPath(pathToCharger, map);
                 setTargetRoom(chargingStation);
             }
         }
@@ -224,7 +168,7 @@ void Robot::update(const Map& map) {
         Room* chargingStation = map.getRoomById(0);
         if (chargingStation && currentRoom_ != chargingStation) {
             std::vector<int> pathToCharger = map.getRoute(*currentRoom_, *chargingStation);
-            setMovementPath(pathToCharger, *map);
+            setMovementPath(pathToCharger, map);
             setTargetRoom(chargingStation);
         } else if (currentRoom_ == chargingStation) {
             startCharging();
