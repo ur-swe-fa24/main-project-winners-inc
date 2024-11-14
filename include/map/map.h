@@ -29,6 +29,9 @@ public:
 
     // Marked as const
     std::vector<int> getRoute(Room& start, Room& end) const;
+
+    bool isVirtualWallBetween(Room* room1, Room* room2) const;
+
 };
 
 #endif // MAP_H

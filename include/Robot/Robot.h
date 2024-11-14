@@ -43,7 +43,7 @@ public:
     bool moveToRoom(Room* room);  // Move to an adjacent room
 
     void setMovementPath(const std::vector<int>& roomIds, const Map& map); // Changed Map& to const Map&
-    void update();  // Update robot status (move along path, deplete battery)
+    // void update();  // Update robot status (move along path, deplete battery)
     void startCharging();
     void stopCharging();
     bool isCharging() const;
@@ -71,8 +71,6 @@ private:
 
 
     Room* targetRoom_; // The room the robot is assigned to clean
-
-    Map* map_;  // Add this line
 
 
 };

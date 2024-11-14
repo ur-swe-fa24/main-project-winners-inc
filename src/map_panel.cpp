@@ -109,11 +109,11 @@ void MapPanel::OnPaint(wxPaintEvent& event) {
             // Interpolate position
             wxPoint from = roomPositions[currentRoom->getRoomId()];
             wxPoint to = roomPositions[nextRoom->getRoomId()];
-            double progress = 1.0 - static_cast<double>(movementProgress) / 10.0; // Adjust divisor if movementProgress_ is different
+            double progress = 1.0 - static_cast<double>(movementProgress) / 5.0; // Divisor matches movementProgress_ maximum value
 
             pos.x = from.x + static_cast<int>((to.x - from.x) * progress);
             pos.y = from.y + static_cast<int>((to.y - from.y) * progress);
-            
+
         } else if (currentRoom) {
             // Robot is stationary
             pos = roomPositions[currentRoom->getRoomId()];
@@ -140,9 +140,3 @@ void MapPanel::OnMouseClick(wxMouseEvent& event) {
 
     event.Skip();  // Allow the event to propagate if not fully handled
 }
-// BEGIN_EVENT_TABLE(MapPanel, wxPanel)
-//     EVT_PAINT(MapPanel::OnPaint)
-//     EVT_LEFT_DOWN(MapPanel::OnMouseClick)
-// END_EVENT_TABLE()
-
-

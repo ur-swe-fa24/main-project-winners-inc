@@ -20,6 +20,10 @@ void Scheduler::assignCleaningTask(const std::string& robotName, int targetRoomI
 
     // Get route to target room
     std::vector<int> route = map_.getRoute(*robot->getCurrentRoom(), *targetRoom);
+    if (route.empty()) {
+        std::cerr << "No available route for robot " << robotName << " to room " << targetRoomId << "." << std::endl;
+        return;
+    }
 
     // Set the movement path for the robot
     robot->setMovementPath(route, map_);
@@ -27,8 +31,7 @@ void Scheduler::assignCleaningTask(const std::string& robotName, int targetRoomI
     // Set the target room
     robot->setTargetRoom(targetRoom);
 
-    // Optionally, set cleaning strategy
-    // robot->setCleaningStrategy(cleaningStrategy);
+    std::cout << "Assigned task to robot " << robotName << " to clean room " << targetRoom->getRoomId() << " using strategy " << cleaningStrategy << "." << std::endl;
 }
 
 void Scheduler::executeCleaning(std::shared_ptr<Robot> robot, Room* targetRoom, const std::string& strategy) {

@@ -94,7 +94,18 @@ const std::vector<VirtualWall>& Map::getVirtualWalls() const {
     return virtualWallMap;
 }
 
-std::vector<int> Map::getRoute(Room& start, Room& end) const{
+bool Map::isVirtualWallBetween(Room* room1, Room* room2) const {
+    for (const auto& vw : virtualWallMap) {
+        if ((vw.getRoom1() == room1 && vw.getRoom2() == room2) ||
+            (vw.getRoom1() == room2 && vw.getRoom2() == room1)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
+std::vector<int> Map::getRoute(Room& start, Room& end) const {
     std::unordered_map<int, int> dist;
     std::unordered_map<int, int> prev;
     std::unordered_set<int> visited;
@@ -128,6 +139,12 @@ std::vector<int> Map::getRoute(Room& start, Room& end) const{
         }
 
         for (Room* neighbor : currentRoom->neighbors) {
+            // Check for virtual walls
+            if (isVirtualWallBetween(currentRoom, neighbor)) {
+                std::cout << "Map::getRoute: Virtual wall between room " << currentRoom->getRoomId() << " and room " << neighbor->getRoomId() << ". Skipping." << std::endl;
+                continue; // Skip this neighbor
+            }
+
             int neighbor_id = neighbor->getRoomId();
             int alt = dist[current_id] + 1; // Assume cost of 1 per room transition
             if (alt < dist[neighbor_id]) {
@@ -143,6 +160,7 @@ std::vector<int> Map::getRoute(Room& start, Room& end) const{
     int at = end.getRoomId();
     if (prev.find(at) == prev.end() && at != start.getRoomId()) {
         // No path found
+        std::cerr << "Map::getRoute: No path found from room " << start.getRoomId() << " to room " << end.getRoomId() << "." << std::endl;
         return path;
     }
     while (at != start.getRoomId()) {
@@ -151,5 +169,13 @@ std::vector<int> Map::getRoute(Room& start, Room& end) const{
     }
     path.push_back(start.getRoomId());
     std::reverse(path.begin(), path.end());
+
+    // Log the computed path
+    std::cout << "Map::getRoute: Path from room " << start.getRoomId() << " to room " << end.getRoomId() << ": ";
+    for (const auto& roomId : path) {
+        std::cout << roomId << " ";
+    }
+    std::cout << std::endl;
+
     return path;
 }

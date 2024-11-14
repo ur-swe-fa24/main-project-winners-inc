@@ -406,14 +406,14 @@ void RobotManagementFrame::OnStatusUpdateTimer(wxTimerEvent& evt) {
 
     // Refresh the robot choices in case robots were added/deleted
     UpdateRobotChoices();
-    UpdateSchedulerRobotChoices(); // Add this line
+    UpdateSchedulerRobotChoices(); // Ensure this method exists and works correctly
 
-
-    // Refresh the map panel
+    // Refresh the map panel to show updated robot positions
     if (mapPanel_) {
         mapPanel_->Refresh();
     }
 }
+
 
 void RobotManagementFrame::BindEvents() {
     // Bind the timer event for checking alerts
@@ -562,11 +562,11 @@ void RobotManagementFrame::CreateSchedulerPanel(wxNotebook* notebook) {
     UpdateSchedulerRobotChoices();
 
     // Populate schedulerRobotChoice with robot names
-    if (robotChoice) {
-        for (unsigned int i = 0; i < robotChoice->GetCount(); ++i) {
-            schedulerRobotChoice->Append(robotChoice->GetString(i));
-        }
-    }
+    // if (robotChoice) {
+    //     for (unsigned int i = 0; i < robotChoice->GetCount(); ++i) {
+    //         schedulerRobotChoice->Append(robotChoice->GetString(i));
+    //     }
+    // }
 
     wxStaticText* roomLabel = new wxStaticText(panel, wxID_ANY, "Enter Room ID:");
     roomIdInput = new wxTextCtrl(panel, wxID_ANY);
@@ -602,17 +602,23 @@ void RobotManagementFrame::UpdateSchedulerRobotChoices() {
 }
 
 void RobotManagementFrame::OnAssignTask(wxCommandEvent& event) {
-    if (!robotChoice || robotChoice->GetSelection() == wxNOT_FOUND) {
-        wxMessageBox("Please select a robot.", "Error", wxOK | wxICON_ERROR);
+    if (!schedulerRobotChoice || schedulerRobotChoice->GetSelection() == wxNOT_FOUND) {
+        wxMessageBox("Please select a robot from the Scheduler panel.", "Error", wxOK | wxICON_ERROR);
         return;
     }
-    std::string robotName = robotChoice->GetStringSelection().ToStdString();
+    std::string robotName = schedulerRobotChoice->GetStringSelection().ToStdString();
 
     if (roomIdInput->GetValue().IsEmpty()) {
         wxMessageBox("Please enter a room ID.", "Error", wxOK | wxICON_ERROR);
         return;
     }
-    int roomId = std::stoi(roomIdInput->GetValue().ToStdString());
+    int roomId;
+    try {
+        roomId = std::stoi(roomIdInput->GetValue().ToStdString());
+    } catch (const std::invalid_argument&) {
+        wxMessageBox("Invalid room ID. Please enter a numeric value.", "Error", wxOK | wxICON_ERROR);
+        return;
+    }
 
     if (strategyChoice->GetSelection() == wxNOT_FOUND) {
         wxMessageBox("Please select a cleaning strategy.", "Error", wxOK | wxICON_ERROR);
@@ -622,5 +628,33 @@ void RobotManagementFrame::OnAssignTask(wxCommandEvent& event) {
 
     scheduler_.assignCleaningTask(robotName, roomId, strategy);
 
+    // Log the task assignment
+    std::cout << "Task assigned: Robot " << robotName << " to clean Room " << roomId << " with strategy " << strategy << "." << std::endl;
+
+    // Retrieve the target room from the map
+    Room* targetRoom = simulator_->getMap().getRoomById(roomId);
+    if (!targetRoom) {
+        wxMessageBox("Target room does not exist in the map.", "Error", wxOK | wxICON_ERROR);
+        return;
+    }
+
+    // Create and save "Assigned Cleaning Task" alert using existing Room instance
+    auto robot = simulator_->getRobotByName(robotName);
+    if (!robot) {
+        wxMessageBox("Robot not found.", "Error", wxOK | wxICON_ERROR);
+        return;
+    }
+
+    auto alert = std::make_shared<Alert>(
+        "Assigned Cleaning Task",
+        "Robot " + robotName + " has been assigned to clean " + targetRoom->getRoomName(),
+        robot,
+        std::make_shared<Room>(*targetRoom),
+        std::time(nullptr)
+    );
+    alertSystem->sendAlert(currentUser.get(), alert);
+    dbAdapter->saveAlert(*alert);
+
     mapPanel_->Refresh(); // Update UI
+    UpdateRobotGrid();    // Update robot status grid
 }

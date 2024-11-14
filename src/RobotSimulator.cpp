@@ -88,7 +88,6 @@ void RobotSimulator::simulationLoop() {
                 robot->update(map_);
 
                 if (robot->isCleaning()) {
-                    robot->depleteBattery(5);  // Deplete battery by 3%
                     needsSave = true;
                 }
 
@@ -101,7 +100,12 @@ void RobotSimulator::simulationLoop() {
                         Room* chargingStation = map_.getRoomById(0);
                         if (chargingStation) {
                             std::vector<int> pathToCharger = map_.getRoute(*robot->getCurrentRoom(), *chargingStation);
-                            robot->setMovementPath(pathToCharger, map_);
+                            if (!pathToCharger.empty()) {
+                                robot->setMovementPath(pathToCharger, map_);
+                                robot->setTargetRoom(chargingStation);
+                            } else {
+                                std::cerr << "Robot " << robot->getName() << ": Cannot find path to charging station." << std::endl;
+                            }
                         }
                     }
                 }
@@ -111,23 +115,20 @@ void RobotSimulator::simulationLoop() {
                     Room* chargingStation = map_.getRoomById(0);
                     if (chargingStation) {
                         std::vector<int> pathToCharger = map_.getRoute(*robot->getCurrentRoom(), *chargingStation);
-                        robot->setMovementPath(pathToCharger, map_);
-                        robot->setTargetRoom(chargingStation);
+                        if (!pathToCharger.empty()) {
+                            robot->setMovementPath(pathToCharger, map_);
+                            robot->setTargetRoom(chargingStation);
+                        } else {
+                            std::cerr << "Robot " << robot->getName() << ": Cannot find path to charging station." << std::endl;
+                        }
                     }
                 }
 
                 // Start charging when at charging station
                 if (robot->getCurrentRoom() && robot->getCurrentRoom()->getRoomId() == 0 && !robot->isCharging()) {
                     robot->startCharging();
+                    std::cout << "Robot " << robot->getName() << " started charging at the charging station." << std::endl;
                 }
-
-
-                // // If battery is zero or below, recharge the robot
-                // if (robot->getBatteryLevel() <= 0) {
-                //     robot->recharge();
-                //     needsSave = true;
-                //     generateChargingAlert = true;
-                // }
             }  // Mutex lock is released here
 
             // Perform database operations without holding the mutex
@@ -157,17 +158,15 @@ void RobotSimulator::simulationLoop() {
                     dbAdapter_->saveAlert(alert);
                 }
             } catch (const std::exception& e) {
-                std::cerr << "Exception during database operation: " << e.what() << std::endl;
+                std::cerr << "RobotSimulator: Exception during database operation: " << e.what() << std::endl;
             }
         }
-
-        // Simulate robot movement outside the loop
-        // simulateRobotMovement();
 
         // Sleep before the next simulation step
         std::this_thread::sleep_for(std::chrono::seconds(1));
     }
 }
+
 
 std::vector<RobotSimulator::RobotStatus> RobotSimulator::getRobotStatuses() {
     std::lock_guard<std::mutex> lock(robotsMutex_);
