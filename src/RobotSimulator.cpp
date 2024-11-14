@@ -16,16 +16,20 @@ RobotSimulator::RobotSimulator(std::shared_ptr<MongoDBAdapter> dbAdapter, const 
         throw std::runtime_error("Starting room not found in the map.");
     }
 
-    robots_.push_back(std::make_shared<Robot>("SimBot-1", 100));
-    robots_.back()->setCurrentRoom(startingRoom);
+    // Predefine three robots
+    std::vector<std::string> predefinedRobotNames = {"SimBot-1", "SimBot-2", "SimBot-3"};
+    for (const auto& robotName : predefinedRobotNames) {
+        auto newRobot = std::make_shared<Robot>(robotName, 100);
+        newRobot->setCurrentRoom(startingRoom);
+        robots_.push_back(newRobot);
 
-    // Save initial robots to the database
-    try {
-        for (const auto& robot : robots_) {
-            dbAdapter_->saveRobotStatus(robot);
+        // Save each robot's status to the database
+        try {
+            dbAdapter_->saveRobotStatus(newRobot);
+            std::cout << "Predefined robot '" << robotName << "' added and saved to database." << std::endl;
+        } catch (const std::exception& e) {
+            std::cerr << "Exception while saving robot '" << robotName << "' status: " << e.what() << std::endl;
         }
-    } catch (const std::exception& e) {
-        std::cerr << "Exception in RobotSimulator constructor while saving robot status: " << e.what() << std::endl;
     }
 }
 

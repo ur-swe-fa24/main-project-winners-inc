@@ -48,9 +48,6 @@ RobotManagementFrame::RobotManagementFrame()
         wxPanel* mainPanel = new wxPanel(this);
         wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
 
-        // wxPanel* mainPanel = new wxPanel(this);
-        // wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
-
         // Create notebook for tabs
         wxNotebook* notebook = new wxNotebook(mainPanel, wxID_ANY);
 
@@ -83,10 +80,14 @@ RobotManagementFrame::RobotManagementFrame()
 
         // Initialize and start the status update timer
         statusUpdateTimer = new wxTimer(this, wxID_ANY);
-        statusUpdateTimer->Start(1000); // Refresh every 2 seconds
+        statusUpdateTimer->Start(1000); // Refresh every second
 
         BindEvents();
 
+        // Update robot choices after adding predefined robots
+        UpdateRobotChoices();
+        UpdateSchedulerRobotChoices();
+        UpdateRobotGrid();
     } catch (const std::exception& e) {
         wxMessageBox(wxString::Format("Initialization failed: %s", e.what()), "Error",
                      wxOK | wxICON_ERROR);
@@ -486,15 +487,93 @@ void RobotManagementFrame::CreateMapPanel(wxNotebook* notebook) {
     notebook->AddPage(panel, "Map");
 }
 
+// void RobotManagementFrame::UpdateRobotChoices() {
+//     if (robotChoice) {
+//         robotChoice->Clear();
+//         auto robotStatuses = simulator_->getRobotStatuses();
+//         for (const auto& status : robotStatuses) {
+//             robotChoice->Append(status.name);
+//         }
+//     }
+// }
+
+// void RobotManagementFrame::UpdateRobotChoices() {
+//     if (robotChoice) {
+//         robotChoice->Clear();
+//         auto robotStatuses = simulator_->getRobotStatuses();
+//         std::cout << "Updating Robot Control Choices:" << std::endl;
+//         for (const auto& status : robotStatuses) {
+//             robotChoice->Append(status.name);
+//             std::cout << " - " << status.name << std::endl;
+//         }
+//         robotChoice->Refresh(); // Ensure the UI reflects changes
+//     }
+// }
+
+// void RobotManagementFrame::UpdateSchedulerRobotChoices() {
+//     if (schedulerRobotChoice) {
+//         schedulerRobotChoice->Clear();
+//         auto robotStatuses = simulator_->getRobotStatuses();
+//         std::cout << "Updating Scheduler Robot Choices:" << std::endl;
+//         for (const auto& status : robotStatuses) {
+//             schedulerRobotChoice->Append(status.name);
+//             std::cout << " - " << status.name << std::endl;
+//         }
+//         schedulerRobotChoice->Refresh(); // Ensure the UI reflects changes
+//     }
+// }
+
 void RobotManagementFrame::UpdateRobotChoices() {
     if (robotChoice) {
+        // Save the currently selected robot name
+        wxString currentSelection = robotChoice->GetStringSelection();
+
         robotChoice->Clear();
         auto robotStatuses = simulator_->getRobotStatuses();
+        std::cout << "Updating Robot Control Choices:" << std::endl;
         for (const auto& status : robotStatuses) {
             robotChoice->Append(status.name);
+            std::cout << " - " << status.name << std::endl;
         }
+
+        // Restore the selection
+        int index = robotChoice->FindString(currentSelection);
+        if (index != wxNOT_FOUND) {
+            robotChoice->SetSelection(index);
+        } else if (robotChoice->GetCount() > 0) {
+            robotChoice->SetSelection(0); // Optionally select the first item
+        }
+
+        robotChoice->Refresh(); // Ensure the UI reflects changes
     }
 }
+
+void RobotManagementFrame::UpdateSchedulerRobotChoices() {
+    if (schedulerRobotChoice) {
+        // Save the currently selected robot name
+        wxString currentSelection = schedulerRobotChoice->GetStringSelection();
+
+        schedulerRobotChoice->Clear();
+        auto robotStatuses = simulator_->getRobotStatuses();
+        std::cout << "Updating Scheduler Robot Choices:" << std::endl;
+        for (const auto& status : robotStatuses) {
+            schedulerRobotChoice->Append(status.name);
+            std::cout << " - " << status.name << std::endl;
+        }
+
+        // Restore the selection
+        int index = schedulerRobotChoice->FindString(currentSelection);
+        if (index != wxNOT_FOUND) {
+            schedulerRobotChoice->SetSelection(index);
+        } else if (schedulerRobotChoice->GetCount() > 0) {
+            schedulerRobotChoice->SetSelection(0); // Optionally select the first item
+        }
+
+        schedulerRobotChoice->Refresh(); // Ensure the UI reflects changes
+    }
+}
+
+
 
 void RobotManagementFrame::OnAddRobot(wxCommandEvent& evt) {
     wxTextEntryDialog dlg(this, "Enter new robot name:", "Add Robot");
@@ -591,15 +670,15 @@ void RobotManagementFrame::CreateSchedulerPanel(wxNotebook* notebook) {
     notebook->AddPage(panel, "Scheduler");
 }
 
-void RobotManagementFrame::UpdateSchedulerRobotChoices() {
-    if (schedulerRobotChoice) {
-        schedulerRobotChoice->Clear();
-        auto robotStatuses = simulator_->getRobotStatuses();
-        for (const auto& status : robotStatuses) {
-            schedulerRobotChoice->Append(status.name);
-        }
-    }
-}
+// void RobotManagementFrame::UpdateSchedulerRobotChoices() {
+//     if (schedulerRobotChoice) {
+//         schedulerRobotChoice->Clear();
+//         auto robotStatuses = simulator_->getRobotStatuses();
+//         for (const auto& status : robotStatuses) {
+//             schedulerRobotChoice->Append(status.name);
+//         }
+//     }
+// }
 
 void RobotManagementFrame::OnAssignTask(wxCommandEvent& event) {
     if (!schedulerRobotChoice || schedulerRobotChoice->GetSelection() == wxNOT_FOUND) {
