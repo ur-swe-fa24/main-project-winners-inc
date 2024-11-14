@@ -9,7 +9,7 @@
 #include <vector>
 #include <map>
 #include "adapter/MongoDBAdapter.hpp"
-#include "alert_system/alert_system.h"
+#include "AlertSystem/alert_system.h"
 #include "Robot/Robot.h"
 #include "user/user.h"
 #include "role/role.h"

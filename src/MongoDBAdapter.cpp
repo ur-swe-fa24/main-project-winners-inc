@@ -3,7 +3,6 @@
 #include "adapter/MongoDBAdapter.hpp"
 #include "Robot/Robot.h"
 #include "Room/Room.h"
-#include <atomic>
 #include <bsoncxx/builder/basic/document.hpp>
 #include <bsoncxx/json.hpp>
 #include <mongocxx/exception/exception.hpp>
@@ -57,7 +56,7 @@ std::vector<Alert> MongoDBAdapter::retrieveAlerts() {
     auto alertCollection = db["alerts"];
 
     auto cursor = alertCollection.find({});
-    for (auto &&doc : cursor) {
+    for (auto&& doc : cursor) {
         // Extract fields from BSON document
         std::string title = doc["title"].get_string().value.to_string();
         std::string description = doc["description"].get_string().value.to_string();
@@ -65,12 +64,9 @@ std::vector<Alert> MongoDBAdapter::retrieveAlerts() {
         std::string room_name = doc["room_name"].get_string().value.to_string();
         int64_t timestamp = doc["timestamp"].get_int64().value;
 
-        // Declaration of neighbors vector to pass into Room below
-        std::vector<Room *> neighbors;
-
         // Create shared_ptr instances of Robot and Room
-        auto robot = std::make_shared<Robot>(robot_name, 100); // Example attributes
-        auto room = std::make_shared<Room>(room_name, 101, "wood", true, neighbors);
+        auto robot = std::make_shared<Robot>(robot_name, 100);  // Example attributes
+        auto room = std::make_shared<Room>(room_name, 101);     // Example attributes
 
         // Create an Alert instance and add it to the vector
         Alert alert(title, description, robot, room, timestamp);
@@ -97,7 +93,7 @@ void MongoDBAdapter::deleteAllAlerts() {
         } else {
             std::cout << "No alerts were deleted from MongoDB." << std::endl;
         }
-    } catch (const std::exception &e) {
+    } catch (const std::exception& e) {
         std::cerr << "Error deleting alerts: " << e.what() << std::endl;
     }
 }
@@ -112,7 +108,7 @@ void MongoDBAdapter::dropAlertCollection() {
     try {
         alertCollection.drop();
         std::cout << "Alert collection dropped successfully." << std::endl;
-    } catch (const std::exception &e) {
+    } catch (const std::exception& e) {
         std::cerr << "Error dropping alert collection: " << e.what() << std::endl;
     }
 }
@@ -149,7 +145,7 @@ std::vector<std::shared_ptr<Robot>> MongoDBAdapter::retrieveRobotStatuses() {
     auto robotStatusCollection = db["robot_statuses"];
 
     auto cursor = robotStatusCollection.find({});
-    for (auto &&doc : cursor) {
+    for (auto&& doc : cursor) {
         // Extract fields from BSON document
         std::string name = doc["name"].get_string().value.to_string();
         int battery_level = doc["battery_level"].get_int32().value;
@@ -180,7 +176,7 @@ void MongoDBAdapter::deleteAllRobotStatuses() {
         } else {
             std::cout << "No robot statuses were deleted from MongoDB." << std::endl;
         }
-    } catch (const std::exception &e) {
+    } catch (const std::exception& e) {
         std::cerr << "Error deleting robot statuses: " << e.what() << std::endl;
     }
 }
@@ -195,7 +191,7 @@ void MongoDBAdapter::dropRobotStatusCollection() {
     try {
         robotStatusCollection.drop();
         std::cout << "Robot status collection dropped successfully." << std::endl;
-    } catch (const std::exception &e) {
+    } catch (const std::exception& e) {
         std::cerr << "Error dropping robot status collection: " << e.what() << std::endl;
     }
 }
