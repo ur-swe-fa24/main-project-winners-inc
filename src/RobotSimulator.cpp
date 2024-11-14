@@ -125,7 +125,7 @@ void RobotSimulator::simulationLoop() {
                 }
 
                 // Start charging when at charging station
-                if (robot->getCurrentRoom() && robot->getCurrentRoom()->getRoomId() == 0 && !robot->isCharging()) {
+                if (robot->getCurrentRoom() && robot->getCurrentRoom()->getRoomId() == 0 && !robot->isCharging() && robot->getBatteryLevel() < 10) {
                     robot->startCharging();
                     std::cout << "Robot " << robot->getName() << " started charging at the charging station." << std::endl;
                 }
