@@ -222,7 +222,12 @@ void RobotSimulator::returnToCharger(const std::string& robotName) {
     std::lock_guard<std::mutex> lock(robotsMutex_);
     for (auto& robot : robots_) {
         if (robot->getName() == robotName) {
-            robot->recharge();
+            if (!robot->isCharging()) {
+                robot->recharge(); // Stops current tasks and sends robot to charger
+                std::cout << "Robot " << robotName << " is returning to charger." << std::endl;
+            } else {
+                std::cout << "Robot " << robotName << " is already charging." << std::endl;
+            }
             break;
         }
     }
