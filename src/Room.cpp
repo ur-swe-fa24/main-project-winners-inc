@@ -1,4 +1,3 @@
-// src/room.cpp
 #include "Room/Room.h"
 #include <iostream>
 
@@ -15,17 +14,23 @@ int Room::getRoomId() const { return roomId; }
 
 // Method to get room information
 void Room::getRoomInfo() const {
-    std::cout << "Room Name: " << roomName << ", Room ID: " << roomId << ", Flooring Type: " << flooringType
-              << ", Room is clean?: " << isRoomClean << std::endl;
+    std::cout << "Room Name: " << roomName
+              << ", Room ID: " << roomId
+              << ", Flooring Type: " << flooringType
+              << ", Room is clean?: " << (isRoomClean ? "Yes" : "No") << std::endl;
 }
 
 // Marking a given room as clean
-void Room::markClean(std::string roomName) { isRoomClean = true; }
+void Room::markClean(){
+    isRoomClean = true;
+}
 
 // Marking a given room as dirty
-void Room::markDirty(std::string roomName) { isRoomClean = false; }
+void Room::markDirty(){
+    isRoomClean = false;
+}
 
 // Adding a neighbor to neighbors vector
-// void Room:addNeighbor(Room* neighbor){
-//     neighbors.push_back(neighbor);
-// }
+void Room::addNeighbor(Room* neighbor){
+    neighbors.push_back(neighbor);
+}

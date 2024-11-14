@@ -17,8 +17,8 @@
 #include <thread>
 #include <vector>
 
-// Set up a MongoDB instance for the test environment
-mongocxx::instance instance{};
+// Create a global instance of mongocxx::instance
+mongocxx::instance instance{}; // Must be initialized before using the driver
 
 TEST_CASE("Alert System Integration Test") {
     // The mongocxx::instance is initialized in main(), so we remove it here.

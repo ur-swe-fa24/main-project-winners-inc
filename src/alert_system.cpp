@@ -1,5 +1,5 @@
 // In src/alert_system.cpp
-#include "AlertSystem/alert_system.h"
+#include "alert_system/alert_system.h"
 #include <iostream>
 
 AlertSystem::AlertSystem() : running_(true) { workerThread_ = std::thread(&AlertSystem::processAlerts, this); }
