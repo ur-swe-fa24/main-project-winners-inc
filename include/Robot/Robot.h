@@ -16,7 +16,7 @@ public:
     void sendStatusUpdate() const;
 
     // Methods to manage battery
-    void recharge();
+    void recharge(const Map& map);           // Updated declaration
     void depleteBattery(int amount);
 
     // Methods to perform actions
