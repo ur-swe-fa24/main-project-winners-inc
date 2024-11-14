@@ -136,53 +136,71 @@ void Robot::update(const Map& map) {
             batteryLevel = 100;
             stopCharging();
         }
-    } else if(movementProgress_ <= 0.0) {
-    movementProgress_ = 0.0;
-    if (nextRoom_) {
-        currentRoom_ = nextRoom_;
-        nextRoom_ = nullptr;
-        depleteBattery(5);
-        if (currentRoom_ == targetRoom_) {
-            startCleaning();
+    } else if (movementProgress_ <= 0.0) {
+        movementProgress_ = 0.0;
+        if (nextRoom_) {
+            currentRoom_ = nextRoom_;
+            nextRoom_ = nullptr;
+            depleteBattery(5);
+            if (currentRoom_ == targetRoom_) {
+                if (currentRoom_->getRoomId() == 0) {
+                    // If at charging station, start charging
+                    startCharging();
+                    std::cout << "Robot " << name << " started charging." << std::endl;
+                } else {
+                    // Start cleaning
+                    startCleaning();
+                    std::cout << "Robot " << name << " started cleaning room " << currentRoom_->getRoomId() << "." << std::endl;
+                }
+            }
+        } else {
+            std::cerr << "Error: nextRoom_ is null when movementProgress_ <= 0" << std::endl;
         }
-    } else {
-        std::cerr << "Error: nextRoom_ is null when movementProgress_ <= 0" << std::endl;
-        // Handle the error appropriately
     }
 
-    } else if (!movementQueue_.empty()) {
+    else if (!movementQueue_.empty()) {
         // Start moving to the next room
         nextRoom_ = movementQueue_.front();
         movementQueue_.pop();
         movementProgress_ = 10.0; // Movement time in seconds
-    } else if (isCleaning()) {
+        std::cout << "Robot " << name << " started moving to room " << nextRoom_->getRoomId() << "." << std::endl;
+    }
+
+    else if (isCleaning()) {
         // Continue cleaning
         depleteBattery(1); // Deplete battery for cleaning
         cleaningTimeRemaining_ -= 0.5;
+        std::cout << "Robot " << name << " is cleaning. Battery level: " << batteryLevel << "%" << std::endl;
         if (cleaningTimeRemaining_ <= 0.0) {
             // Cleaning completed
             stopCleaning();
-            currentRoom_->markClean();
+            // The room is marked clean in simulateRobotMovement
             // Set path back to charging station
             Room* chargingStation = map.getRoomById(0);
             if (chargingStation && currentRoom_ != chargingStation) {
                 std::vector<int> pathToCharger = map.getRoute(*currentRoom_, *chargingStation);
                 setMovementPath(pathToCharger, map);
                 setTargetRoom(chargingStation);
+                std::cout << "Robot " << name << " is returning to charging station." << std::endl;
             }
         }
-    } else if (batteryLevel <= 20 && !isCharging_) {
+    }
+
+    else if (batteryLevel <= 20 && !isCharging_) {
         // Battery low, return to charger
         Room* chargingStation = map.getRoomById(0);
         if (chargingStation && currentRoom_ != chargingStation) {
             std::vector<int> pathToCharger = map.getRoute(*currentRoom_, *chargingStation);
             setMovementPath(pathToCharger, map);
             setTargetRoom(chargingStation);
+            std::cout << "Robot " << name << " battery low. Returning to charging station." << std::endl;
         } else if (currentRoom_ == chargingStation) {
             startCharging();
+            std::cout << "Robot " << name << " started charging at the charging station." << std::endl;
         }
     }
 }
+
 
 
 void Robot::startCharging() {

@@ -116,7 +116,7 @@ void RobotSimulator::simulationLoop() {
                     }
                 }
 
-                                // Start charging when at charging station
+                // Start charging when at charging station
                 if (robot->getCurrentRoom() && robot->getCurrentRoom()->getRoomId() == 0 && !robot->isCharging()) {
                     robot->startCharging();
                 }
@@ -162,7 +162,7 @@ void RobotSimulator::simulationLoop() {
         }
 
         // Simulate robot movement outside the loop
-        simulateRobotMovement();
+        // simulateRobotMovement();
 
         // Sleep before the next simulation step
         std::this_thread::sleep_for(std::chrono::seconds(1));

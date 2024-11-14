@@ -557,7 +557,7 @@ void RobotManagementFrame::CreateSchedulerPanel(wxNotebook* notebook) {
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 
     wxStaticText* robotLabel = new wxStaticText(panel, wxID_ANY, "Select Robot:");
-    wxChoice* schedulerRobotChoice = new wxChoice(panel, wxID_ANY);
+    schedulerRobotChoice = new wxChoice(panel, wxID_ANY); // Assign to member variable
 
     UpdateSchedulerRobotChoices();
 
