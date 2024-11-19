@@ -1,16 +1,50 @@
 @startuml RobotFunctions
+left to right direction
+skinparam actorStyle awesome
+
 actor "Robot" as R
-rectangle "Robot Functionality and Mapping" {
-  usecase "Use Cleaning Functions" as UC1
-  usecase "Access Room Type" as UC2
-  usecase "Receive Map" as UC3
-  usecase "Follow Map" as UC4
-  usecase "Update Route" as UC5
+actor "System" as S
+
+rectangle "Robot Core Functions" {
+    usecase "Start Cleaning" as UC1
+    usecase "Stop Cleaning" as UC2
+    usecase "Return to Charger" as UC3
+    usecase "Navigate Rooms" as UC4
+    usecase "Update Status" as UC5
+    usecase "Monitor Battery" as UC6
+    usecase "Check Sensors" as UC7
+    usecase "Log Activities" as UC8
 }
 
+rectangle "Error Handling" {
+    usecase "Handle Non-existent Robot" as ERR1
+    usecase "Handle Navigation Errors" as ERR2
+    usecase "Handle Low Battery" as ERR3
+    usecase "Handle Sensor Failures" as ERR4
+}
+
+' Robot interactions
 R --> UC1
 R --> UC2
 R --> UC3
 R --> UC4
 R --> UC5
+R --> UC6
+R --> UC7
+R --> UC8
+
+' System interactions
+S --> ERR1
+S --> ERR2
+S --> ERR3
+S --> ERR4
+
+' Relationships
+UC6 ..> ERR3 : <<includes>>
+UC7 ..> ERR4 : <<includes>>
+UC4 ..> ERR2 : <<includes>>
+UC1 ..> ERR1 : <<includes>>
+UC2 ..> ERR1 : <<includes>>
+UC3 ..> ERR1 : <<includes>>
+
 @enduml

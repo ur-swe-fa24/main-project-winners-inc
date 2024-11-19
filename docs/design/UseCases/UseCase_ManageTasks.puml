@@ -1,20 +1,63 @@
-@startuml AssignTasks
+@startuml ManageTasks
+left to right direction
+skinparam actorStyle awesome
+
 actor "Building Manager" as BM
-actor "Building Staff Member" as BSM
+actor "Building Staff" as BS
+actor "System" as SYS
+actor "Robot" as R
 
-rectangle "Building Management and Scheduling" {
-  usecase "Create Daily Cleaning Schedule" as UC1
-  usecase "Edit Daily Cleaning Schedule" as UC2
-}
-rectangle "Cleaning Task" {
-  usecase "Assign Spot Cleaning Task" as UC3
-  usecase "Assign Room Cleaning Task" as UC4
+rectangle "Task Creation" {
+    usecase "Create Cleaning Schedule" as TC1
+    usecase "Assign Robot to Task" as TC2
+    usecase "Set Task Priority" as TC3
+    usecase "Define Cleaning Area" as TC4
 }
 
-BM --> UC1
-BM --> UC2
-BM --> UC3
-BM --> UC4
-BSM --> UC3
-BSM --> UC4
+rectangle "Task Management" {
+    usecase "Start Cleaning Task" as TM1
+    usecase "Stop Cleaning Task" as TM2
+    usecase "Monitor Task Progress" as TM3
+    usecase "View Task Status" as TM4
+}
+
+rectangle "Task Execution" {
+    usecase "Navigate to Target" as TE1
+    usecase "Perform Cleaning" as TE2
+    usecase "Return to Charger" as TE3
+    usecase "Log Task Completion" as TE4
+}
+
+' Building Manager actions
+BM --> TC1
+BM --> TC2
+BM --> TC3
+BM --> TC4
+
+' Building Staff actions
+BS --> TM1
+BS --> TM2
+BS --> TM3
+BS --> TM4
+
+' System actions
+SYS --> TM3
+SYS --> TM4
+SYS --> TE4
+
+' Robot actions
+R --> TE1
+R --> TE2
+R --> TE3
+
+' Relationships
+TC2 ..> TM1 : <<includes>>
+TM1 ..> TE1 : <<includes>>
+TE1 ..> TE2 : <<includes>>
+TE2 ..> TE3 : <<includes>>
+TE3 ..> TE4 : <<includes>>
+
+TM1 ..> TM3 : <<includes>>
+TM2 ..> TM4 : <<includes>>
+
 @enduml

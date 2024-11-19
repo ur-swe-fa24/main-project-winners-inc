@@ -4,49 +4,81 @@ skinparam DefaultFontName Inconsolata
 
 ' Declare participants 
 participant UI
+participant RobotSimulator
 participant SystemManager
 participant Database
-participant Simulation
+participant Robot
+
+== Monitoring Robot Status ==
+
+' Get robot status
+UI -> RobotSimulator : getRobotStatuses()
+activate RobotSimulator
+RobotSimulator -> Robot : Get current room
+activate Robot
+return Room info
+RobotSimulator -> Robot : Get battery level
+activate Robot
+return Battery level
+RobotSimulator -> Robot : Get cleaning status
+activate Robot
+return Cleaning status
+RobotSimulator -> Robot : Get charging status
+activate Robot
+return Charging status
+return Robot statuses
+deactivate RobotSimulator
+
+' Save status to database
+RobotSimulator -> Database : saveRobotStatus()
+activate Database
+return Status saved
 
 == Monitoring Task Progress ==
 
-' Loop continuously checking the status of the clean (active, not active)
-loop until_user_checks_status
-    Database -> Simulation: Check status of clean
-    activate Simulation
-    return Log status in database
-    deactivate Simulation
+' Loop continuously checking the status of the clean
+loop until_task_complete
+    RobotSimulator -> Robot : Check task progress
+    activate Robot
+    Robot -> Robot : Update current room
+    Robot -> Robot : Update cleaning status
+    return Task status
+    RobotSimulator -> Database : Log task progress
 end
 
-' User views page in UI where clean status is displayed, so data is retrieved and displayed
-UI -> SystemManager : User views clean status page in UI
+' User views task status
+UI -> SystemManager : View task status
 activate SystemManager
-SystemManager -> Database : Request clean status data
+SystemManager -> Database : Request task data
 activate Database
-return Return clean status data
+return Return task data
 deactivate Database
-SystemManager -> UI : Data displayed in UI
+SystemManager -> UI : Display task status
 deactivate SystemManager
 
+== Robot Health Monitoring ==
 
-== Monitoring Robot Statuses ==
-
-' Loop continuously checking the health status of the robot (battery, water, errors)
-loop until_user_checks_status
-    Database -> Simulation: Check battery, water, and error statuses
-    activate Simulation
-    return Log status in database
-    deactivate Simulation
+' Loop continuously checking robot health
+loop health_monitoring
+    RobotSimulator -> Robot : Check battery level
+    activate Robot
+    return Battery level
+    RobotSimulator -> Robot : Check sensor status
+    activate Robot
+    return Sensor status
+    RobotSimulator -> Robot : Check connectivity
+    activate Robot
+    return Connectivity status
+    
+    alt battery_low
+        RobotSimulator -> Robot : returnToCharger()
+        activate Robot
+        Robot -> Robot : Find charging station
+        Robot -> Robot : Navigate to charger
+        return Charging initiated
+    end
+    
+    RobotSimulator -> Database : Log health status
 end
-
-' User views page in UI where health status is displayed, so data is retrieved and displayed
-UI -> SystemManager : User views health status page in UI
-activate SystemManager
-SystemManager -> Database : Request health status data
-activate Database
-return Return health status data
-deactivate Database
-SystemManager -> UI : Data displayed in UI
-deactivate SystemManager
 
 @enduml
