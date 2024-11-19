@@ -20,7 +20,7 @@ wxEND_EVENT_TABLE()
 RobotManagementFrame::RobotManagementFrame()
     : wxFrame(nullptr, wxID_ANY, "Robot Management System", wxDefaultPosition, wxSize(800, 600)),
       dbAdapter(std::make_shared<MongoDBAdapter>(DB_URI, DB_NAME)),
-      simulator_(std::make_unique<RobotSimulator>(dbAdapter, MAP_FILE)),
+      simulator_(std::make_unique<RobotSimulator>(dbAdapter, (wxGetCwd() + "/" + MAP_FILE).ToStdString())),
       scheduler_(simulator_->getMap(), simulator_->getRobots())  // Correct initialization
 {
     try {
