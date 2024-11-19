@@ -15,6 +15,9 @@ find_package(mongocxx REQUIRED)
 find_package(Catch2 3 REQUIRED)
 find_package(wxWidgets REQUIRED COMPONENTS core base)
 
+# Enable testing
+enable_testing()
+
 # Define the main_proj library with all necessary source files
 add_library(main_proj
     src/role.cpp
@@ -28,7 +31,8 @@ add_library(main_proj
     src/alert_system.cpp
     src/MongoDBAdapter.cpp
     src/RobotSimulator.cpp
-    src/Schedular.cpp       # Include Scheduler.cpp
+    src/Schedular.cpp
+    src/robot_metrics.cpp  # Add robot_metrics.cpp
     # Include other source files if needed
 )
 
@@ -48,3 +52,6 @@ target_link_libraries(main_proj
 
 # Add the app subdirectory where executables are defined
 add_subdirectory(app)
+
+# Add the tests subdirectory
+add_subdirectory(tests)
