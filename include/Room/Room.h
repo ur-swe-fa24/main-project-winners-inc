@@ -14,7 +14,7 @@ public:
     std::vector<Room*> neighbors;
 
     // Constructor
-    Room(const std::string& roomName, int roomId, const std::string& flooringType = "", bool isRoomClean = true);
+    Room(const std::string& roomName, int roomId, const std::string& flooringType = "", bool isRoomClean = true, const std::vector<Room*>& neighbors = std::vector<Room*>());
 
     // Getter methods
     std::string getRoomName() const;
