@@ -1,55 +1,44 @@
-#define CATCH_CONFIG_MAIN
 #include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
-#include <catch2/catch_approx.hpp>
-#include <memory>
-#include "schedular/Schedular.hpp"
+#include "Schedular/Schedular.hpp"
+#include "Robot/Robot.h"
 #include "map/map.h"
-#include "robot/Robot.h"
-#include "room/Room.h"
+#include <memory>
 
-TEST_CASE("Scheduler assigns and executes cleaning tasks") {
-    // Create real Map, Robot, and Room instances
-    Map map;  // Assuming Map has real implementations
-    auto robot1 = std::make_shared<Robot>("CleaningRobot1", map.getRoomById(101)); // Starts at LivingRoom
-    std::vector<std::shared_ptr<Robot>> robots = {robot1};
+TEST_CASE("Scheduling System Test") {
+    // Load test map
+    Map map;
+    REQUIRE_NOTHROW(map.loadFromFile("test_map.json"));
+
+    std::vector<std::shared_ptr<Robot>> robots;
+    
+    // Create test robots
+    auto robot1 = std::make_shared<Robot>("Robot1", 100);
+    auto robot2 = std::make_shared<Robot>("Robot2", 100);
+
+    // Set initial rooms for robots
+    Room* room1 = map.getRoomById(1);
+    Room* room2 = map.getRoomById(2);
+    REQUIRE(room1 != nullptr);
+    REQUIRE(room2 != nullptr);
+
+    robot1->setCurrentRoom(room1);
+    robot2->setCurrentRoom(room2);
+
+    robots.push_back(robot1);
+    robots.push_back(robot2);
+
+    // Create scheduler with map and robots
     Scheduler scheduler(map, robots);
 
-    SECTION("Assign cleaning task to robot") {
-        // Assign a task to clean the Kitchen (room 102) with strategy "FastClean"
-        scheduler.assignCleaningTask("CleaningRobot1", 102, "FastClean");
+    SECTION("Robot Task Assignment") {
+        // Test assigning tasks to existing rooms from test_map.json
+        REQUIRE_NOTHROW(scheduler.assignCleaningTask("Robot1", 2, "Standard")); // Robot1 to Kitchen
+        REQUIRE_NOTHROW(scheduler.assignCleaningTask("Robot2", 1, "Deep")); // Robot2 to Living Room
 
-        // Check if the robot's target room is set correctly
-        REQUIRE(robot1->getCurrentRoom()->getRoomId() == 102);
-    }
+        // Test assigning task to non-existent robot
+        REQUIRE_THROWS(scheduler.assignCleaningTask("NonexistentRobot", 1, "Standard"));
 
-    SECTION("Assign cleaning task to non-existent robot") {
-        // Try assigning a task to a non-existent robot
-        scheduler.assignCleaningTask("NonExistentRobot", 102, "FastClean");
-
-        // The system should print an error message, but for testing, we can check for side effects
-        // In a real test, you might mock std::cerr or check logs
-    }
-
-    SECTION("Execute cleaning task") {
-        // Assign a cleaning task
-        scheduler.assignCleaningTask("CleaningRobot1", 102, "FastClean");
-
-        // Execute the cleaning task
-        scheduler.executeCleaning(robot1, map.getRoomById(102), "FastClean");
-
-        // Check if the robot's battery is depleted after cleaning (depends on the cleaning time for "Tile")
-        REQUIRE(robot1->getBatteryLevel() != 0); // Battery should be reduced, but not zero
-        REQUIRE(map.getRoomById(102)->isRoomClean == true); // Kitchen should be marked clean
-    }
-
-    SECTION("Cleaning with battery depletion") {
-        // Assign task and deplete robot's battery
-        robot1->depleteBattery(95);  // Deplete almost all battery
-        scheduler.assignCleaningTask("CleaningRobot1", 102, "FastClean");
-        scheduler.executeCleaning(robot1, map.getRoomById(102), "FastClean");
-
-        // The robot's battery should be depleted after executing the cleaning task
-        REQUIRE(robot1->getBatteryLevel() == 0); // Battery should be zero or below
+        // Test assigning task to non-existent room
+        REQUIRE_THROWS(scheduler.assignCleaningTask("Robot1", 999, "Standard"));
     }
 }

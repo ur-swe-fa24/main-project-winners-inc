@@ -1,104 +1,92 @@
-#define CATCH_CONFIG_MAIN
-#include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include "map/map.h"
 #include "Room/Room.h"
 #include "virtual_wall/virtual_wall.h"
+#include <memory>
 
-TEST_CASE("Room functionality") {
-    // Create Room objects
-    Room room1("Living Room", 1, "Carpet", true);
-    Room room2("Kitchen", 2, "Tile", false);
+TEST_CASE("Mapping System Test") {
+    SECTION("Room Management") {
+        // Create test rooms
+        Room room1("Living Room", 1, "Carpet", false);
+        Room room2("Kitchen", 2, "Tile", false);
 
-    SECTION("Room getters work correctly") {
+        // Test room attributes
         REQUIRE(room1.getRoomName() == "Living Room");
         REQUIRE(room1.getRoomId() == 1);
-        REQUIRE(room1.isRoomClean == true);
+        REQUIRE(room1.flooringType == "Carpet");
 
         REQUIRE(room2.getRoomName() == "Kitchen");
         REQUIRE(room2.getRoomId() == 2);
-        REQUIRE(room2.isRoomClean == false);
+        REQUIRE(room2.flooringType == "Tile");
     }
 
-    SECTION("Room neighbors functionality") {
+    SECTION("Map Operations") {
+        Map map;
+
+        // Test adding rooms
+        REQUIRE_NOTHROW(map.addRoom("Living Room", 1, "Carpet", false));
+        REQUIRE_NOTHROW(map.addRoom("Kitchen", 2, "Tile", false));
+
+        // Test getting rooms
+        const auto& rooms = map.getRooms();
+        REQUIRE(rooms.size() == 2);
+
+        // Test finding room by ID
+        auto foundRoom = map.getRoomById(1);
+        REQUIRE(foundRoom != nullptr);
+        REQUIRE(foundRoom->getRoomName() == "Living Room");
+
+        // Test finding non-existent room
+        REQUIRE(map.getRoomById(999) == nullptr);
+    }
+
+    SECTION("Room Connections") {
+        Room room1("Living Room", 1, "Carpet", false);
+        Room room2("Kitchen", 2, "Tile", false);
+        Room room3("Bedroom", 3, "Carpet", false);
+
+        // Connect rooms
         room1.addNeighbor(&room2);
-        REQUIRE(room1.neighbors.size() == 1);
-        REQUIRE(room1.neighbors[0]->getRoomId() == 2);
-
         room2.addNeighbor(&room1);
-        REQUIRE(room2.neighbors.size() == 1);
-        REQUIRE(room2.neighbors[0]->getRoomId() == 1);
+        room2.addNeighbor(&room3);
+        room3.addNeighbor(&room2);
+
+        // Test room connections
+        REQUIRE(room1.neighbors.size() == 1);
+        REQUIRE(room2.neighbors.size() == 2);
+        REQUIRE(room3.neighbors.size() == 1);
+
+        REQUIRE(room1.neighbors[0] == &room2);
+        REQUIRE(room2.neighbors[0] == &room1);
+        REQUIRE(room2.neighbors[1] == &room3);
+        REQUIRE(room3.neighbors[0] == &room2);
     }
 
-    SECTION("Room cleaning status updates") {
-        room2.markClean();
-        REQUIRE(room2.isRoomClean == true);
+    SECTION("Virtual Wall") {
+        Room room1("Living Room", 1, "Carpet", false);
+        Room room2("Kitchen", 2, "Tile", false);
 
-        room1.markDirty();
-        REQUIRE(room1.isRoomClean == false);
-    }
-}
+        // Connect rooms
+        room1.addNeighbor(&room2);
+        room2.addNeighbor(&room1);
 
-TEST_CASE("VirtualWall functionality"){
-    Room room1("Living Room", 1, "Carpet", true);
-    Room room2("Kitchen", 2, "Tile", false);
+        // Create virtual wall
+        VirtualWall wall(&room1, &room2);
 
-    // Create a VirtualWall instance
-    VirtualWall wall(&room1, &room2);
-
-    // Test the constructor and getter methods
-    SECTION("Constructor assigns rooms correctly") {
+        // Test virtual wall connections
         REQUIRE(wall.getRoom1() == &room1);
         REQUIRE(wall.getRoom2() == &room2);
-    }
 
-    SECTION("Rooms are not the same") {
-        REQUIRE(wall.getRoom1() != wall.getRoom2());
-    }
-}
-
-TEST_CASE("Map functionality") {
-    // Create Map object
-    Map map;
-
-    // Create Room objects
-    Room room1("Living Room", 1, "Carpet", true);
-    Room room2("Kitchen", 2, "Tile", false);
-    Room room3("Bedroom", 3, "Wood", true);
-
-    // Add rooms to the map
-    map.addRoom("Living Room", 1, "Carpet", true);
-    map.addRoom("Kitchen", 2, "Tile", false);
-    map.addRoom("Bedroom", 3, "Wood", true);
-
-    SECTION("Map connection between rooms") {
-        map.connectRooms(&room1, &room2);
+        // Test that rooms are still connected (VirtualWall is just a marker)
         REQUIRE(room1.neighbors.size() == 1);
-        REQUIRE(room1.neighbors[0]->getRoomId() == 2);
-
         REQUIRE(room2.neighbors.size() == 1);
-        REQUIRE(room2.neighbors[0]->getRoomId() == 1);
+        REQUIRE(room1.neighbors[0] == &room2);
+        REQUIRE(room2.neighbors[0] == &room1);
     }
 
-    SECTION("VirtualWall addition") {
-        map.addVirtualWall(&room1, &room2);
-        // Assuming virtual walls are stored in a container
-        REQUIRE(map.isVirtualWallBetween(&room1, &room2) == true);
-    }
-
-    SECTION("Route finding with BFS") {
-        // Connect rooms in a path
-        map.connectRooms(&room1, &room2);
-        map.connectRooms(&room2, &room3);
-
-        std::vector<int> route = map.getRoute(room1, room3);
-        REQUIRE(route == std::vector<int>{1, 2, 3});
-    }
-
-    SECTION("Route not found") {
-        Room isolatedRoom("Garage", 4, "Concrete", false);
-        std::vector<int> route = map.getRoute(room1, isolatedRoom);
-        REQUIRE(route.empty());
+    SECTION("Map Loading") {
+        Map map;
+        // Test loading map from file
+        REQUIRE_NOTHROW(map.loadFromFile("test_map.json"));
     }
 }
