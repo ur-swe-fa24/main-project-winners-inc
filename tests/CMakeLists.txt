@@ -6,6 +6,11 @@ enable_testing()
 # Include the Catch2 package
 include(${Catch2_SOURCE_DIR}/extras/Catch.cmake)
 
+# Copy test data files
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/test_map.json
+              ${CMAKE_CURRENT_BINARY_DIR}/test_map.json
+              COPYONLY)
+
 # Define test executables
 add_executable(test_mongoDB test_mongoDB.cpp)
 add_executable(test_AlertSystem test_AlertSystem.cpp)
