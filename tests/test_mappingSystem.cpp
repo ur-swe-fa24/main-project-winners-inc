@@ -22,13 +22,14 @@ TEST_CASE("Mapping System Test") {
 
     SECTION("Map Operations") {
         Map map;
-
+        // Create a fresh map without loading from file for this test
+        
         // Test adding rooms
         REQUIRE_NOTHROW(map.addRoom("Living Room", 1, "Carpet", false));
         REQUIRE_NOTHROW(map.addRoom("Kitchen", 2, "Tile", false));
 
         // Test getting rooms
-        const auto& rooms = map.getRooms();
+        auto rooms = map.getRooms();
         REQUIRE(rooms.size() == 2);
 
         // Test finding room by ID
@@ -87,6 +88,6 @@ TEST_CASE("Mapping System Test") {
     SECTION("Map Loading") {
         Map map;
         // Test loading map from file
-        REQUIRE_NOTHROW(map.loadFromFile("test_map.json"));
+        REQUIRE_NOTHROW(map.loadFromFile("map.json"));
     }
 }

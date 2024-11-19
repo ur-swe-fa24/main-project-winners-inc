@@ -1,6 +1,12 @@
 {
     "rooms": [
       {
+        "name": "Charging Station",
+        "id": 0,
+        "flooringType": "Hardwood",
+        "isRoomClean": false
+      },
+      {
         "name": "Living Room",
         "id": 1,
         "flooringType": "Hardwood",
@@ -62,6 +68,10 @@
       }
     ],
     "connections": [
+      {
+        "room1": 0,
+        "room2": 1
+      },
       {
         "room1": 1,
         "room2": 2

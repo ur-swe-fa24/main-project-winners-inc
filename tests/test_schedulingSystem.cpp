@@ -7,7 +7,7 @@
 TEST_CASE("Scheduling System Test") {
     // Load test map
     Map map;
-    REQUIRE_NOTHROW(map.loadFromFile("test_map.json"));
+    REQUIRE_NOTHROW(map.loadFromFile("map.json"));
 
     std::vector<std::shared_ptr<Robot>> robots;
     

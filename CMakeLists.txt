@@ -50,8 +50,21 @@ target_link_libraries(main_proj
         nlohmann_json::nlohmann_json
 )
 
-# Add the app subdirectory where executables are defined
-add_subdirectory(app)
+# Set up resources directory
+set(RESOURCES_DIR ${CMAKE_SOURCE_DIR}/resources)
+set(MAP_FILE ${RESOURCES_DIR}/map.json)
 
-# Add the tests subdirectory
+# Function to copy resources to target directory
+function(copy_resources TARGET_NAME)
+    add_custom_command(
+        TARGET ${TARGET_NAME} POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+            ${MAP_FILE}
+            $<TARGET_FILE_DIR:${TARGET_NAME}>/map.json
+        COMMENT "Copying map.json for ${TARGET_NAME}"
+    )
+endfunction()
+
+# Add subdirectories
+add_subdirectory(app)
 add_subdirectory(tests)

@@ -14,8 +14,8 @@ TEST_CASE("Robot Simulator Test") {
     // Create MongoDB adapter
     auto dbAdapter = std::make_shared<MongoDBAdapter>("mongodb://localhost:27017", "test_db");
     
-    // Create simulator with test map
-    RobotSimulator simulator(dbAdapter, "test_map.json");
+    // Create simulator with map
+    RobotSimulator simulator(dbAdapter, "map.json");
 
     SECTION("Robot Management") {
         // Test adding robots

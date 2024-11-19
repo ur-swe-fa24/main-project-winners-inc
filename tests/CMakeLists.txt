@@ -6,18 +6,30 @@ enable_testing()
 # Include the Catch2 package
 include(${Catch2_SOURCE_DIR}/extras/Catch.cmake)
 
-# Copy test data files
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/test_map.json
-              ${CMAKE_CURRENT_BINARY_DIR}/test_map.json
-              COPYONLY)
-
 # Define test executables
 add_executable(test_mongoDB test_mongoDB.cpp)
+target_link_libraries(test_mongoDB PRIVATE main_proj Catch2::Catch2WithMain)
+copy_resources(test_mongoDB)
+
 add_executable(test_AlertSystem test_AlertSystem.cpp)
+target_link_libraries(test_AlertSystem PRIVATE main_proj Catch2::Catch2WithMain)
+copy_resources(test_AlertSystem)
+
 add_executable(test_mappingSystem test_mappingSystem.cpp)
+target_link_libraries(test_mappingSystem PRIVATE main_proj Catch2::Catch2WithMain)
+copy_resources(test_mappingSystem)
+
 add_executable(test_robotMetrics test_robotMetrics.cpp)
+target_link_libraries(test_robotMetrics PRIVATE main_proj Catch2::Catch2WithMain)
+copy_resources(test_robotMetrics)
+
 add_executable(test_schedulingSystem test_schedulingSystem.cpp)
+target_link_libraries(test_schedulingSystem PRIVATE main_proj Catch2::Catch2WithMain)
+copy_resources(test_schedulingSystem)
+
 add_executable(test_simulation test_simulation.cpp)
+target_link_libraries(test_simulation PRIVATE main_proj Catch2::Catch2WithMain)
+copy_resources(test_simulation)
 
 # Set include directories for all test executables
 foreach(test_target
@@ -36,8 +48,6 @@ foreach(test_target
     # Link common libraries
     target_link_libraries(${test_target}
         PRIVATE
-            main_proj
-            Catch2::Catch2WithMain
             mongo::mongocxx_shared
             spdlog::spdlog_header_only
     )
