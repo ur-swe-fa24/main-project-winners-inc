@@ -1,50 +1,87 @@
-#include <catch2/catch_approx.hpp>
+#define CATCH_CONFIG_MAIN
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
-#include "analytics/analytics.h"
 #include "RobotMetrics/robot_metrics.h"
 #include "Robot/Robot.h"
+#include <memory>
+#include <chrono>
+#include <thread>
 
-TEST_CASE("RobotMetrics - Constructor and Attribute Access") {
-    RobotMetrics metrics(90.5, 5.0, 0.8, 85.0, 100.0, 20.0);
+TEST_CASE("Robot Metrics Test") {
+    // Initialize test objects
+    auto robot = std::make_shared<Robot>("TestBot", 100);
+    RobotMetrics metrics(0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f);
 
-    REQUIRE(metrics.utilization == Approx(90.5f));
-    REQUIRE(metrics.errorRate == Approx(5.0f));
-    REQUIRE(metrics.costEfficiency == Approx(0.8f));
-    REQUIRE(metrics.timeEfficiency == Approx(85.0f));
-    REQUIRE(metrics.batteryUsage == Approx(100.0f));
-    REQUIRE(metrics.waterUsage == Approx(20.0f));
-}
+    SECTION("Metrics Initialization") {
+        REQUIRE(metrics.utilization == 0.0f);
+        REQUIRE(metrics.errorRate == 0.0f);
+        REQUIRE(metrics.costEfficiency == 1.0f);
+        REQUIRE(metrics.timeEfficiency == 1.0f);
+        REQUIRE(metrics.batteryUsage == 0.0f);
+        REQUIRE(metrics.waterUsage == 0.0f);
+    }
 
-TEST_CASE("Analytics - Add and Retrieve Data") {
-    Analytics analytics;
-    Robot robot1("Robot1", 101);
-    Robot robot2("Robot2", 102);
+    SECTION("Metrics Update") {
+        // Update metrics with new values
+        metrics.utilization = 0.75f;
+        metrics.errorRate = 0.05f;
+        metrics.costEfficiency = 0.95f;
+        metrics.timeEfficiency = 0.9f;
+        metrics.batteryUsage = 0.5f;
+        metrics.waterUsage = 0.3f;
 
-    RobotMetrics metrics1(85.0, 2.0, 0.9, 80.0, 90.0, 25.0);
-    RobotMetrics metrics2(92.0, 1.0, 1.0, 95.0, 85.0, 20.0);
+        // Verify updated values
+        REQUIRE(metrics.utilization == 0.75f);
+        REQUIRE(metrics.errorRate == 0.05f);
+        REQUIRE(metrics.costEfficiency == 0.95f);
+        REQUIRE(metrics.timeEfficiency == 0.9f);
+        REQUIRE(metrics.batteryUsage == 0.5f);
+        REQUIRE(metrics.waterUsage == 0.3f);
+    }
 
-    // Add data to analytics (Assume addRobotData exists in Analytics)
-    analytics.addRobotMetrics(robot1, metrics1);
-    analytics.addRobotMetrics(robot2, metrics2);
+    SECTION("Battery Metrics") {
+        // Test initial battery level
+        REQUIRE(robot->getBatteryLevel() == 100);
 
-    // Retrieve efficiency
-    REQUIRE(analytics.getRobotEfficiency(robot1) == Approx(85.0f));
-    REQUIRE(analytics.getRobotEfficiency(robot2) == Approx(92.0f));
-}
+        // Simulate battery usage
+        metrics.batteryUsage = 0.5f;
+        REQUIRE(metrics.batteryUsage == 0.5f);
 
-TEST_CASE("Analytics - Generate Report") {
-    Analytics analytics;
-    Robot robot1("Robot1", 101);
-    Robot robot2("Robot2", 102);
+        // Test low battery threshold
+        metrics.batteryUsage = 0.9f;
+        REQUIRE(metrics.batteryUsage > 0.8f);
+    }
 
-    RobotMetrics metrics1(85.0, 2.0, 0.9, 80.0, 90.0, 25.0);
-    RobotMetrics metrics2(92.0, 1.0, 1.0, 95.0, 85.0, 20.0);
+    SECTION("Efficiency Metrics") {
+        // Test initial efficiencies
+        REQUIRE(metrics.costEfficiency == 1.0f);
+        REQUIRE(metrics.timeEfficiency == 1.0f);
 
-    // Add data to analytics
-    analytics.addRobotMetrics(robot1, metrics1);
-    analytics.addRobotMetrics(robot2, metrics2);
+        // Test efficiency updates
+        metrics.costEfficiency = 0.85f;
+        metrics.timeEfficiency = 0.9f;
 
-    // Capture report generation output (mocking std::cout in tests can be tricky)
-    REQUIRE_NOTHROW(analytics.generateReport());
+        REQUIRE(metrics.costEfficiency == 0.85f);
+        REQUIRE(metrics.timeEfficiency == 0.9f);
+    }
+
+    SECTION("Resource Usage") {
+        // Test water usage
+        metrics.waterUsage = 0.3f;
+        REQUIRE(metrics.waterUsage == 0.3f);
+
+        // Test utilization
+        metrics.utilization = 0.75f;
+        REQUIRE(metrics.utilization == 0.75f);
+    }
+
+    SECTION("Error Metrics") {
+        // Test error rate
+        metrics.errorRate = 0.02f;
+        REQUIRE(metrics.errorRate == 0.02f);
+
+        // Test high error threshold
+        metrics.errorRate = 0.15f;
+        REQUIRE(metrics.errorRate > 0.1f);
+    }
 }

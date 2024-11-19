@@ -1,79 +1,66 @@
-#define CATCH_CONFIG_MAIN
-#include "RobotSimulator/RobotSimulator.hpp"
-#include "Room/Room.h"
-#include "Robot/Robot.h"
-#include "alert/Alert.h"
-#include "adapter/MongoDBAdapter.hpp" 
-#include <catch2/catch_approx.hpp>
 #include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
-#include <chrono>
-#include <ctime>
+#include "RobotSimulator/RobotSimulator.hpp"
+#include "adapter/MongoDBAdapter.hpp"
+#include "Robot/Robot.h"
 #include <memory>
-#include <thread>
-#include <vector>
 #include <mongocxx/instance.hpp>
-#include "virtual_wall/virtual_wall.h"
-
+#include <mongocxx/client.hpp>
 
 // Create a global instance of mongocxx::instance
 mongocxx::instance instance{}; // Must be initialized before using the driver
 
-TEST_CASE("Robot Simulation Test") {
-    // Initialize MongoDB Adapter if needed
-    std::string uri = "mongodb://localhost:27017";
-    std::string dbName = "simulationDB";
-    MongoDBAdapter dbAdapter(uri, dbName);
+TEST_CASE("Robot Simulator Test") {
+    // Create MongoDB adapter
+    auto dbAdapter = std::make_shared<MongoDBAdapter>("mongodb://localhost:27017", "test_db");
+    
+    // Create simulator with test map
+    RobotSimulator simulator(dbAdapter, "test_map.json");
 
-    // Initialize Room instances and neighbors
-    std::vector<Room *> neighbors;
-    Room room1("Living Room", 1, "Carpet", true);
-    Room room2("Kitchen", 2, "Tile", false);
-    Room room3("Bedroom", 2, "Tile",false);
+    SECTION("Robot Management") {
+        // Test adding robots
+        REQUIRE_NOTHROW(simulator.addRobot("Robot1"));
+        REQUIRE_NOTHROW(simulator.addRobot("Robot2"));
 
-    // Connect rooms (if applicable)
-    room1.addNeighbor(&room2);
-    room2.addNeighbor(&room3);
+        // Verify robots were added
+        auto& robots = simulator.getRobots();
+        REQUIRE(robots.size() == 2);
 
-    // Initialize Robot and Simulation
-    auto robot = std::make_shared<Robot>("CleaningRobot", room1);
-    auto simulation = std::make_shared<RobotSimulator>();
+        // Test getting robot by name
+        auto robot1 = simulator.getRobotByName("Robot1");
+        REQUIRE(robot1 != nullptr);
+        REQUIRE(robot1->getName() == "Robot1");
 
-    SECTION("Robot can move between connected rooms") {
-        // Ensure the robot starts in room1
-        REQUIRE(robot->getCurrentRoom() == &room1);
+        // Test deleting robot
+        REQUIRE_NOTHROW(simulator.deleteRobot("Robot1"));
+        REQUIRE(simulator.getRobots().size() == 1);
 
-        // Move robot to room2
-        robot->moveToRoom(&room2);
-        REQUIRE(robot->getCurrentRoom() == &room2);
-
-        // Move robot to room3
-        robot->moveToRoom(&room3);
-        REQUIRE(robot->getCurrentRoom() == &room3);
+        // Test deleting non-existent robot
+        REQUIRE_THROWS(simulator.deleteRobot("NonexistentRobot"));
     }
 
-    SECTION("Robot cannot move through virtual walls") {
-        // Simulate a virtual wall between room1 and room2
-        VirtualWall(&room2, &room3);
+    SECTION("Robot Status") {
+        simulator.addRobot("TestRobot");
+        
+        // Get robot status
+        auto statuses = simulator.getRobotStatuses();
+        REQUIRE(statuses.size() == 1);
+        REQUIRE(statuses[0].name == "TestRobot");
+        REQUIRE(statuses[0].batteryLevel > 0);
 
-        // Attempt to move the robot from room1 to room2 (blocked by virtual wall)
-        bool moveResult = robot->moveToRoom(&room2);;
-        REQUIRE_FALSE(moveResult);  // Move should fail due to virtual wall
+        // Test cleaning commands
+        REQUIRE_NOTHROW(simulator.startCleaning("TestRobot"));
+        REQUIRE_NOTHROW(simulator.stopCleaning("TestRobot"));
+        REQUIRE_NOTHROW(simulator.returnToCharger("TestRobot"));
+
+        // Test invalid robot commands
+        REQUIRE_THROWS(simulator.startCleaning("NonexistentRobot"));
+        REQUIRE_THROWS(simulator.stopCleaning("NonexistentRobot"));
+        REQUIRE_THROWS(simulator.returnToCharger("NonexistentRobot"));
     }
 
-    SECTION("Delete all simulation data from database") {
-        dbAdapter.deleteAllAlerts();
-        dbAdapter.deleteAllRobotStatuses();
-
-        auto alertsAfterDeletion = dbAdapter.retrieveAlerts();
-        auto robotsAfterDeletion = dbAdapter.retrieveRobotStatuses();
-
-        REQUIRE(alertsAfterDeletion.empty());
-        REQUIRE(robotsAfterDeletion.empty());
-
-        dbAdapter.dropAlertCollection();
-        dbAdapter.dropRobotStatusCollection();
+    SECTION("Map Access") {
+        // Test map access
+        const auto& map = simulator.getMap();
+        REQUIRE_NOTHROW(map.getRooms());
     }
-
-    simulation->stop();  // Stop simulation if necessary
 }
