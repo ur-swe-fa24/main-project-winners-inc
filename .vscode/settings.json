@@ -92,6 +92,8 @@
         "codecvt": "cpp",
         "stop_token": "cpp",
         "text_encoding": "cpp",
-        "hash_set": "cpp"
+        "hash_set": "cpp",
+        "execution": "cpp",
+        "valarray": "cpp"
     }
 }
