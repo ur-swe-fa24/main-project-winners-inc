@@ -16,13 +16,13 @@ TEST_CASE("Scheduling System Test") {
     auto robot2 = std::make_shared<Robot>("Robot2", 100);
 
     // Set initial rooms for robots
-    Room* room1 = map.getRoomById(1);
-    Room* room2 = map.getRoomById(2);
-    REQUIRE(room1 != nullptr);
-    REQUIRE(room2 != nullptr);
+    Room* room3 = map.getRoomById(3);
+    Room* room5 = map.getRoomById(5);
+    REQUIRE(room3 != nullptr);
+    REQUIRE(room5 != nullptr);
 
-    robot1->setCurrentRoom(room1);
-    robot2->setCurrentRoom(room2);
+    robot1->setCurrentRoom(room3);
+    robot2->setCurrentRoom(room5);
 
     robots.push_back(robot1);
     robots.push_back(robot2);
@@ -32,11 +32,16 @@ TEST_CASE("Scheduling System Test") {
 
     SECTION("Robot Task Assignment") {
         // Test assigning tasks to existing rooms from test_map.json
-        REQUIRE_NOTHROW(scheduler.assignCleaningTask("Robot1", 2, "Standard")); // Robot1 to Kitchen
-        REQUIRE_NOTHROW(scheduler.assignCleaningTask("Robot2", 1, "Deep")); // Robot2 to Living Room
+        // Note: Due to virtual wall between rooms 3 and 5, we expect this to throw
+        REQUIRE_THROWS_AS(scheduler.assignCleaningTask("Robot1", 5, "Standard"), 
+                         std::runtime_error);
+
+        // Test assigning task to robot's current room (should work)
+        REQUIRE_NOTHROW(scheduler.assignCleaningTask("Robot1", 3, "Standard")); // Robot1 to its current room
+        REQUIRE_NOTHROW(scheduler.assignCleaningTask("Robot2", 5, "Deep")); // Robot2 to its current room
 
         // Test assigning task to non-existent robot
-        REQUIRE_THROWS(scheduler.assignCleaningTask("NonexistentRobot", 1, "Standard"));
+        REQUIRE_THROWS(scheduler.assignCleaningTask("NonexistentRobot", 3, "Standard"));
 
         // Test assigning task to non-existent room
         REQUIRE_THROWS(scheduler.assignCleaningTask("Robot1", 999, "Standard"));
