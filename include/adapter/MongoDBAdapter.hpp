@@ -21,22 +21,42 @@ class MongoDBAdapter {
 
     // Alert methods
     void saveAlert(const Alert &alert);
+    void saveAlertAsync(const Alert &alert);  // Async version
     std::vector<Alert> retrieveAlerts();
     void deleteAllAlerts();
     void dropAlertCollection();
 
     // Robot status methods
     void saveRobotStatus(std::shared_ptr<Robot> robot);
-
+    void saveRobotStatusAsync(std::shared_ptr<Robot> robot);  // Async version
     void deleteRobotStatus(const std::string& robotName);
-
     std::vector<std::shared_ptr<Robot>> retrieveRobotStatuses();
     void deleteAllRobotStatuses();
     void dropRobotStatusCollection();
 
+    // Thread management
+    void stop();  // Stop all background threads
+    void stopRobotStatusThread();  // Stop robot status monitoring thread
 
 private:
     std::string dbName_;
+    mongocxx::client client_;
+    mongocxx::database db_;
+    
+    // Thread management
+    std::atomic<bool> running_;
+    std::thread robotStatusThread_;
+    std::thread alertThread_;
+    std::mutex mutex_;
+    std::condition_variable cv_;
+    
+    // Queues for async operations
+    std::queue<std::shared_ptr<Alert>> alertQueue_;
+    std::queue<std::shared_ptr<Robot>> robotStatusQueue_;
+    
+    // Helper methods
+    void processAlertQueue();
+    void processRobotStatusQueue();
 };
 
 #endif // MONGODB_ADAPTER_HPP

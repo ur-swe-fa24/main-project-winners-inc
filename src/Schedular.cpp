@@ -8,21 +8,18 @@ Scheduler::Scheduler(Map& map, std::vector<std::shared_ptr<Robot>>& robots)
 void Scheduler::assignCleaningTask(const std::string& robotName, int targetRoomId, const std::string& cleaningStrategy) {
     auto robot = findRobotByName(robotName);
     if (!robot) {
-        std::cerr << "Robot " << robotName << " not found.\n";
-        return;
+        throw std::runtime_error("Robot " + robotName + " not found.");
     }
 
     Room* targetRoom = map_.getRoomById(targetRoomId);
     if (!targetRoom) {
-        std::cerr << "Target room " << targetRoomId << " not found.\n";
-        return;
+        throw std::runtime_error("Target room " + std::to_string(targetRoomId) + " not found.");
     }
 
     // Get route to target room
     std::vector<int> route = map_.getRoute(*robot->getCurrentRoom(), *targetRoom);
     if (route.empty()) {
-        std::cerr << "No available route for robot " << robotName << " to room " << targetRoomId << "." << std::endl;
-        return;
+        throw std::runtime_error("No available route for robot " + robotName + " to room " + std::to_string(targetRoomId) + ".");
     }
 
     // Set the movement path for the robot

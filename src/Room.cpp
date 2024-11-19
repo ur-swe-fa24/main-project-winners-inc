@@ -2,8 +2,8 @@
 #include <iostream>
 
 // Constructor implementation
-Room::Room(const std::string& roomName, int roomId, const std::string& flooringType, bool isRoomClean)
-    : roomName(roomName), roomId(roomId), flooringType(flooringType), isRoomClean(isRoomClean) {}
+Room::Room(const std::string& roomName, int roomId, const std::string& flooringType, bool isRoomClean, const std::vector<Room*>& neighbors)
+    : roomName(roomName), roomId(roomId), flooringType(flooringType), isRoomClean(isRoomClean), neighbors(neighbors) {}
 
 // Getter for room name
 std::string Room::getRoomName() const {
