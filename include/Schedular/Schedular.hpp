@@ -13,12 +13,12 @@ public:
 
     void assignCleaningTask(const std::string& robotName, int targetRoomId, const std::string& cleaningStrategy);
     void update(); // Regularly called to update tasks
+    void executeCleaning(std::shared_ptr<Robot> robot, Room* targetRoom, const std::string& strategy);
 
 private:
     Map& map_;
     std::vector<std::shared_ptr<Robot>>& robots_;
     int getCleaningTime(const Room& room) const;
-    void executeCleaning(std::shared_ptr<Robot> robot, Room* targetRoom, const std::string& strategy);
 
     // Helper to find robot by name
     std::shared_ptr<Robot> findRobotByName(const std::string& name);
