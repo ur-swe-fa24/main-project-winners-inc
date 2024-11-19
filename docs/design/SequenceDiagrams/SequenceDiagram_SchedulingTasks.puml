@@ -5,35 +5,81 @@ skinparam DefaultFontName Inconsolata
 ' Declare participants 
 participant UI
 participant SystemManager
+participant RobotSimulator
 participant Database
-participant Simulation
+participant Robot
 
 == User Requests Robot Availability ==
 
 ' User requests preferences and receives availability that most closely matches their input
 UI -> SystemManager : Submit user input for time, date, and clean type
 activate SystemManager
-SystemManager -> Database : Check robot availability
+SystemManager -> RobotSimulator : getRobotStatuses()
+activate RobotSimulator
+RobotSimulator -> Robot : Get current room
+activate Robot
+return Room info
+RobotSimulator -> Robot : Get cleaning status
+activate Robot
+return Cleaning status
+RobotSimulator -> Robot : Get charging status
+activate Robot
+return Charging status
+return Robot statuses
+deactivate RobotSimulator
+
+SystemManager -> Database : Check robot schedule
 activate Database
-return Return robot availability 
+return Return schedule conflicts
 deactivate Database
+
 SystemManager -> UI : Return robot availability
 deactivate SystemManager
 
-
-== User Submits Request to Robot ==
+== User Submits Cleaning Request ==
 
 ' User selects from returned availability and request is submitted
-UI -> SystemManager : Submit user selection
+UI -> SystemManager : Submit cleaning request
 activate SystemManager
-SystemManager -> Database : Add user selection to robot schedule
+SystemManager -> RobotSimulator : startCleaning(robotName)
+activate RobotSimulator
+
+alt robot_not_found
+    RobotSimulator --> SystemManager : throw runtime_error("Robot not found")
+    SystemManager --> UI : Display error message
+else robot_found
+    RobotSimulator -> Robot : Start cleaning task
+    activate Robot
+    Robot -> Robot : Navigate to target room
+    Robot -> Robot : Begin cleaning
+    return Cleaning started
+    RobotSimulator -> Database : Log task start
+    activate Database
+    return Task logged
+    RobotSimulator --> SystemManager : Success
+    SystemManager --> UI : Display confirmation
+end
+
+deactivate RobotSimulator
+deactivate SystemManager
+
+== Task Completion ==
+
+' Robot completes the cleaning task
+RobotSimulator -> Robot : Check task completion
+activate Robot
+Robot -> Robot : Verify room cleaned
+return Task complete
+
+RobotSimulator -> Robot : returnToCharger()
+activate Robot
+Robot -> Robot : Navigate to charger
+return At charger
+
+RobotSimulator -> Database : Log task completion
 activate Database
-return Added to schedule confirmation
-deactivate Database
-SystemManager -> Simulation : Send request to robot
-activate Simulation
-Simulation -> UI : Confirmation message
-deactivate Simulation
-deactivate UI
+return Task logged
+
+RobotSimulator -> UI : Display completion notification
 
 @enduml

@@ -1,18 +1,72 @@
 @startuml AlertsAndErrors
+left to right direction
+skinparam actorStyle awesome
+
 actor "Field Engineer" as FE
-actor "Building Staff Member" as BSM
-rectangle "Field Engineer Support" {
-  usecase "Receive Robot Error" as UC3
-  usecase "Resolve Robot Error" as UC4
+actor "Building Staff" as BS
+actor "System" as SYS
+actor "Robot" as R
+
+rectangle "Error Detection" {
+    usecase "Detect Non-existent Robot" as ED1
+    usecase "Detect Navigation Error" as ED2
+    usecase "Detect Low Battery" as ED3
+    usecase "Detect Sensor Failure" as ED4
 }
-rectangle "Receiving Alerts" {
-  usecase "Receive Low Battery Alert" as UC1
-  usecase "Receive Low Water Alert" as UC2
+
+rectangle "Alert Management" {
+    usecase "Send Error Alert" as AM1
+    usecase "Log Error Details" as AM2
+    usecase "Track Error Status" as AM3
+    usecase "Generate Error Report" as AM4
 }
-BSM --> UC1
-BSM --> UC2
-FE --> UC1
-FE --> UC2
-FE --> UC3
-FE --> UC4
+
+rectangle "Error Resolution" {
+    usecase "Handle Robot Errors" as ER1
+    usecase "Handle System Errors" as ER2
+    usecase "Return Robot to Charger" as ER3
+    usecase "Reset Robot State" as ER4
+}
+
+' System error detection
+SYS --> ED1
+SYS --> ED2
+SYS --> ED3
+SYS --> ED4
+
+' Robot interactions
+R --> ED2
+R --> ED3
+R --> ED4
+R --> ER3
+
+' Alert handling
+SYS --> AM1
+SYS --> AM2
+SYS --> AM3
+SYS --> AM4
+
+' Staff notifications
+BS --> AM1
+BS --> AM3
+
+' Engineer responsibilities
+FE --> ER1
+FE --> ER2
+FE --> ER4
+FE --> AM4
+
+' Relationships
+ED1 ..> AM1 : <<includes>>
+ED2 ..> AM1 : <<includes>>
+ED3 ..> AM1 : <<includes>>
+ED4 ..> AM1 : <<includes>>
+
+AM1 ..> AM2 : <<includes>>
+AM2 ..> AM3 : <<includes>>
+AM3 ..> AM4 : <<extends>>
+
+ER1 ..> ER3 : <<includes>>
+ER2 ..> ER4 : <<includes>>
+
 @enduml

@@ -1,24 +1,49 @@
-@startuml SendingAlerts
+@startuml ErrorHandling
 skinparam dpi 200
 skinparam DefaultFontName Inconsolata
 
 ' Declare participants 
 participant UI
+participant RobotSimulator
 participant SystemManager
 participant Database
-participant Simulation
+participant Robot
 
-== Monitoring Task Progress ==
+== Robot Operation Errors ==
 
-' Loop continuously checking the status of the clean (active, not active)
+' Robot not found error handling
+UI -> RobotSimulator : startCleaning("NonexistentRobot")
+activate RobotSimulator
+RobotSimulator -> RobotSimulator : Check robot exists
+RobotSimulator --> UI : throw runtime_error("Robot not found")
+deactivate RobotSimulator
+
+UI -> RobotSimulator : stopCleaning("NonexistentRobot")
+activate RobotSimulator
+RobotSimulator -> RobotSimulator : Check robot exists
+RobotSimulator --> UI : throw runtime_error("Robot not found")
+deactivate RobotSimulator
+
+UI -> RobotSimulator : returnToCharger("NonexistentRobot")
+activate RobotSimulator
+RobotSimulator -> RobotSimulator : Check robot exists
+RobotSimulator --> UI : throw runtime_error("Robot not found")
+deactivate RobotSimulator
+
+== System Errors ==
+
+' Loop continuously checking the status of the clean
 loop until_error_occurs
-    Simulation -> Simulation: Clean
+    RobotSimulator -> Robot : Clean
+    activate Robot
+    Robot -> Robot : Check battery level
+    Robot -> Robot : Check sensor status
+    Robot -> Robot : Check connectivity
+    deactivate Robot
 end
 
-== In Case of Error ==
-
 ' Error is handled by pausing robot, alerting user, and logging error/statuses in database
-Simulation -> SystemManager : Send error message
+Robot -> SystemManager : Send error message
 activate SystemManager
 SystemManager -> UI : Alert user
 activate UI
@@ -26,7 +51,6 @@ return User acknowledges issue
 deactivate UI
 deactivate SystemManager
 
-Simulation -> Database : Log error and robot statuses
-
+Robot -> Database : Log error and robot status
 
 @enduml

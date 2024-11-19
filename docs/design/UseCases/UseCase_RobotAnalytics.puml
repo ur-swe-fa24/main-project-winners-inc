@@ -1,27 +1,63 @@
 @startuml RobotAnalytics
+left to right direction
+skinparam actorStyle awesome
+
 actor "Senior Manager" as SM
 actor "Building Manager" as BM
-actor "Feild Engineer" as FE
+actor "Field Engineer" as FE
+actor "System" as SYS
 
-rectangle "Real-Time Analytics" {
-  usecase "Access Battery Life" as UC2
-  usecase "Access Cost Efficiency" as UC3
-  usecase "Access Water Usage" as UC5
+rectangle "Real-Time Monitoring" {
+    usecase "View Robot Status" as UC1
+    usecase "View Battery Level" as UC2
+    usecase "View Current Room" as UC3
+    usecase "View Cleaning Status" as UC4
+    usecase "View Charging Status" as UC5
 }
 
-rectangle "Senior Management Analytics" {
-  usecase "Access Error Rate" as UC1 
-  usecase "Access Time Efficiency" as UC4
+rectangle "Performance Analytics" {
+    usecase "View Task Completion Rate" as PA1
+    usecase "View Error Statistics" as PA2
+    usecase "View Battery Efficiency" as PA3
+    usecase "View Navigation Patterns" as PA4
 }
 
-SM --> UC1
-SM --> UC2
-SM --> UC3
-SM --> UC4
-SM --> UC5
+rectangle "System Management" {
+    usecase "Monitor Robot Health" as SM1
+    usecase "Handle System Errors" as SM2
+    usecase "Log Robot Activities" as SM3
+    usecase "Track Robot Location" as SM4
+}
+
+' Real-time monitoring access
+BM --> UC1
 BM --> UC2
 BM --> UC3
+BM --> UC4
 BM --> UC5
-FE --> UC1
-FE --> UC4
+
+' Performance analytics access
+SM --> PA1
+SM --> PA2
+SM --> PA3
+SM --> PA4
+
+' Field engineer access
+FE --> SM1
+FE --> SM2
+FE --> PA2
+FE --> PA3
+
+' System interactions
+SYS --> SM1
+SYS --> SM2
+SYS --> SM3
+SYS --> SM4
+
+' Relationships
+UC1 ..> SM3 : <<includes>>
+SM1 ..> SM2 : <<extends>>
+SM4 ..> UC3 : <<includes>>
+PA2 ..> SM2 : <<uses>>
+
 @enduml
