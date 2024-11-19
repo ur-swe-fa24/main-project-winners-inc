@@ -106,6 +106,13 @@ bool Map::isVirtualWallBetween(Room* room1, Room* room2) const {
 
 
 std::vector<int> Map::getRoute(Room& start, Room& end) const {
+    // First check if there's a virtual wall between start and end rooms
+    if (isVirtualWallBetween(&start, &end)) {
+        std::cout << "Map::getRoute: Virtual wall exists between room " << start.getRoomId() 
+                 << " and room " << end.getRoomId() << ". No path available." << std::endl;
+        return std::vector<int>();
+    }
+
     std::unordered_map<int, int> dist;
     std::unordered_map<int, int> prev;
     std::unordered_set<int> visited;
@@ -139,14 +146,18 @@ std::vector<int> Map::getRoute(Room& start, Room& end) const {
         }
 
         for (Room* neighbor : currentRoom->neighbors) {
-            // Check for virtual walls
+            // Skip if there's a virtual wall between current room and neighbor
             if (isVirtualWallBetween(currentRoom, neighbor)) {
-                std::cout << "Map::getRoute: Virtual wall between room " << currentRoom->getRoomId() << " and room " << neighbor->getRoomId() << ". Skipping." << std::endl;
-                continue; // Skip this neighbor
+                continue;
+            }
+
+            // Also skip if there's a virtual wall between neighbor and destination
+            if (isVirtualWallBetween(neighbor, &end)) {
+                continue;
             }
 
             int neighbor_id = neighbor->getRoomId();
-            int alt = dist[current_id] + 1; // Assume cost of 1 per room transition
+            int alt = dist[current_id] + 1;
             if (alt < dist[neighbor_id]) {
                 dist[neighbor_id] = alt;
                 prev[neighbor_id] = current_id;
@@ -159,8 +170,8 @@ std::vector<int> Map::getRoute(Room& start, Room& end) const {
     std::vector<int> path;
     int at = end.getRoomId();
     if (prev.find(at) == prev.end() && at != start.getRoomId()) {
-        // No path found
-        std::cerr << "Map::getRoute: No path found from room " << start.getRoomId() << " to room " << end.getRoomId() << "." << std::endl;
+        std::cerr << "Map::getRoute: No path found from room " << start.getRoomId() 
+                 << " to room " << end.getRoomId() << "." << std::endl;
         return path;
     }
     while (at != start.getRoomId()) {
