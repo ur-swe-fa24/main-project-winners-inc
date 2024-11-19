@@ -29,9 +29,18 @@ target_link_libraries(wx_robot_test
 # Ensure C++ standard is set
 target_compile_features(wx_robot_test PRIVATE cxx_std_17)
 
-# Executable for testing the simulator (simulatormain.cpp)
+# Copy map.json for wx_robot_test
+add_custom_command(
+    TARGET wx_robot_test POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+        ${PROJECT_SOURCE_DIR}/map.json
+        ${CMAKE_BINARY_DIR}/app/map.json
+    COMMENT "Copying map.json for wx_robot_test"
+)
+
+# Executable for testing the simulator (RobotSimulationMain.cpp)
 add_executable(simulator_test
-    simulatormain.cpp
+    RobotSimulationMain.cpp
     # Include other source files if needed
 )
 
@@ -52,3 +61,12 @@ target_link_libraries(simulator_test
 
 # Ensure C++ standard is set
 target_compile_features(simulator_test PRIVATE cxx_std_17)
+
+# Copy map.json to build directory for simulator_test
+add_custom_command(
+    TARGET simulator_test POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy
+        ${PROJECT_SOURCE_DIR}/map.json
+        ${CMAKE_BINARY_DIR}/app/map.json
+    COMMENT "Copying map.json for simulator_test"
+)
