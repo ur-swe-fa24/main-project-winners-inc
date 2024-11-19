@@ -36,6 +36,12 @@ RobotManagementFrame::RobotManagementFrame()
         // Initialize users
         InitializeUsers();
 
+        // Add initial robots
+        simulator_->addRobot("Cleaner1");
+        simulator_->addRobot("Cleaner2");
+        simulator_->addRobot("Cleaner3");
+        std::cout << "Added initial robots to the system" << std::endl;
+
         // Show login dialog
         if (!ShowLogin()) {
             Close();
