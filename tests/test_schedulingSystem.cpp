@@ -1,13 +1,22 @@
 #include <catch2/catch_test_macros.hpp>
 #include "Schedular/Schedular.hpp"
+#include "config/ResourceConfig.hpp"
 #include "Robot/Robot.h"
 #include "map/map.h"
 #include <memory>
+#include <filesystem>
 
-TEST_CASE("Scheduling System Test") {
-    // Load test map
+TEST_CASE("Test Scheduling System", "[scheduling]") {
+    // Initialize resource config with the correct path
+    std::filesystem::path currentPath = std::filesystem::current_path();
+    std::filesystem::path resourcePath = currentPath / "resources";
+    if (!std::filesystem::exists(resourcePath)) {
+        resourcePath = currentPath / ".." / "resources";
+    }
+    config::ResourceConfig::initialize(resourcePath.string());
+    
     Map map;
-    REQUIRE_NOTHROW(map.loadFromFile("map.json"));
+    REQUIRE_NOTHROW(map.loadFromFile(config::ResourceConfig::getMapPath()));
 
     std::vector<std::shared_ptr<Robot>> robots;
     

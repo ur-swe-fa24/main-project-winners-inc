@@ -2,6 +2,7 @@
 #include "LoginDialog/LoginDialog.hpp"
 #include "AlertDialog/AlertDialog.hpp"
 #include "map_panel/map_panel.hpp"
+#include "config/ResourceConfig.hpp"
 #include <wx/notebook.h>
 #include <wx/grid.h>
 #include <iostream>
@@ -9,21 +10,18 @@
 
 const std::string RobotManagementFrame::DB_URI = "mongodb://localhost:27017";
 const std::string RobotManagementFrame::DB_NAME = "mydb9";
-const std::string RobotManagementFrame::MAP_FILE = "map.json";
-// Define the event table
-wxBEGIN_EVENT_TABLE(RobotManagementFrame, wxFrame)
-    // Event table entries (if any)
-wxEND_EVENT_TABLE()
-
 
 // Constructor
-RobotManagementFrame::RobotManagementFrame()
-    : wxFrame(nullptr, wxID_ANY, "Robot Management System", wxDefaultPosition, wxSize(800, 600)),
+RobotManagementFrame::RobotManagementFrame(const wxString& title)
+    : wxFrame(nullptr, wxID_ANY, title, wxDefaultPosition, wxSize(800, 600)),
       dbAdapter(std::make_shared<MongoDBAdapter>(DB_URI, DB_NAME)),
-      simulator_(std::make_unique<RobotSimulator>(dbAdapter, (wxGetCwd() + "/" + MAP_FILE).ToStdString())),
-      scheduler_(simulator_->getMap(), simulator_->getRobots())  // Correct initialization
+      simulator_(std::make_unique<RobotSimulator>(dbAdapter, config::ResourceConfig::getMapPath())),
+      scheduler_(simulator_->getMap(), simulator_->getRobots())
 {
     try {
+        // Initialize resource configuration
+        config::ResourceConfig::initialize();
+        
         // Start the simulator
         simulator_->start();
 
@@ -701,3 +699,7 @@ void RobotManagementFrame::OnAssignTask(wxCommandEvent& event) {
     mapPanel_->Refresh(); // Update UI
     UpdateRobotGrid();    // Update robot status grid
 }
+
+wxBEGIN_EVENT_TABLE(RobotManagementFrame, wxFrame)
+    // Event table entries (if any)
+wxEND_EVENT_TABLE()

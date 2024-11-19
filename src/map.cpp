@@ -10,12 +10,14 @@
 #include <unordered_map>
 #include <climits> // For INT_MAX
 #include <unordered_set> // Add this line
-
+#include "config/ResourceConfig.hpp"
 
 using json = nlohmann::json;
 
-Map::Map() {
-    // Constructor implementation
+Map::Map(bool loadDefaultMap) {
+    if (loadDefaultMap) {
+        loadFromFile(config::ResourceConfig::getMapPath());
+    }
 }
 
 Map::~Map() {

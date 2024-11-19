@@ -24,7 +24,7 @@ class AlertDialog;
 
 class RobotManagementFrame : public wxFrame {
 public:
-    RobotManagementFrame();
+    RobotManagementFrame(const wxString& title = "Robot Management System");
     ~RobotManagementFrame();
 
 private:

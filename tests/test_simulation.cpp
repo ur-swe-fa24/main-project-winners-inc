@@ -1,21 +1,29 @@
 #include <catch2/catch_test_macros.hpp>
 #include "RobotSimulator/RobotSimulator.hpp"
 #include "adapter/MongoDBAdapter.hpp"
+#include "config/ResourceConfig.hpp"
 #include "Robot/Robot.h"
 #include <memory>
 #include <mongocxx/instance.hpp>
 #include <mongocxx/client.hpp>
 #include <iostream>
+#include <filesystem>
 
 // Create a global instance of mongocxx::instance
 mongocxx::instance instance{}; // Must be initialized before using the driver
 
-TEST_CASE("Robot Simulator Test") {
-    // Create MongoDB adapter
-    auto dbAdapter = std::make_shared<MongoDBAdapter>("mongodb://localhost:27017", "test_db");
+TEST_CASE("Test Robot Simulator", "[simulation]") {
+    std::shared_ptr<MongoDBAdapter> dbAdapter = std::make_shared<MongoDBAdapter>("mongodb://localhost:27017", "test_db");
     
-    // Create simulator with map
-    RobotSimulator simulator(dbAdapter, "map.json");
+    // Initialize resource config with the correct path
+    std::filesystem::path currentPath = std::filesystem::current_path();
+    std::filesystem::path resourcePath = currentPath / "resources";
+    if (!std::filesystem::exists(resourcePath)) {
+        resourcePath = currentPath / ".." / "resources";
+    }
+    config::ResourceConfig::initialize(resourcePath.string());
+    
+    RobotSimulator simulator(dbAdapter, config::ResourceConfig::getMapPath());
 
     SECTION("Robot Management") {
         // Test adding robots

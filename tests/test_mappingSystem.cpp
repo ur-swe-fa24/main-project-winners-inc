@@ -1,11 +1,21 @@
 #include <catch2/catch_test_macros.hpp>
 #include "map/map.h"
+#include "config/ResourceConfig.hpp"
 #include "Room/Room.h"
 #include "virtual_wall/virtual_wall.h"
 #include <memory>
+#include <filesystem>
 
-TEST_CASE("Mapping System Test") {
-    SECTION("Room Management") {
+TEST_CASE("Test Mapping System", "[mapping]") {
+    // Initialize resource config with the correct path
+    std::filesystem::path currentPath = std::filesystem::current_path();
+    std::filesystem::path resourcePath = currentPath / "resources";
+    if (!std::filesystem::exists(resourcePath)) {
+        resourcePath = currentPath / ".." / "resources";
+    }
+    config::ResourceConfig::initialize(resourcePath.string());
+    
+    SECTION("Room Class") {
         // Create test rooms
         Room room1("Living Room", 1, "Carpet", false);
         Room room2("Kitchen", 2, "Tile", false);
@@ -21,8 +31,7 @@ TEST_CASE("Mapping System Test") {
     }
 
     SECTION("Map Operations") {
-        Map map;
-        // Create a fresh map without loading from file for this test
+        Map map;  // Create a fresh map for testing basic operations
         
         // Test adding rooms
         REQUIRE_NOTHROW(map.addRoom("Living Room", 1, "Carpet", false));
@@ -39,6 +48,20 @@ TEST_CASE("Mapping System Test") {
 
         // Test finding non-existent room
         REQUIRE(map.getRoomById(999) == nullptr);
+    }
+
+    SECTION("Map File Loading") {
+        Map map(true);  // Load the default map
+        
+        // Test that the map was loaded correctly
+        auto rooms = map.getRooms();
+        REQUIRE(rooms.size() == 11);  // Map has 11 rooms (id 0 to 10)
+        
+        // Test finding specific rooms from the loaded map
+        auto chargingStation = map.getRoomById(0);
+        REQUIRE(chargingStation != nullptr);
+        REQUIRE(chargingStation->getRoomName() == "Charging Station");
+        REQUIRE(chargingStation->flooringType == "Hardwood");
     }
 
     SECTION("Room Connections") {
@@ -83,11 +106,5 @@ TEST_CASE("Mapping System Test") {
         REQUIRE(room2.neighbors.size() == 1);
         REQUIRE(room1.neighbors[0] == &room2);
         REQUIRE(room2.neighbors[0] == &room1);
-    }
-
-    SECTION("Map Loading") {
-        Map map;
-        // Test loading map from file
-        REQUIRE_NOTHROW(map.loadFromFile("map.json"));
     }
 }

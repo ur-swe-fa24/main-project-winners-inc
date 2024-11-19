@@ -14,6 +14,7 @@ find_package(spdlog REQUIRED)
 find_package(mongocxx REQUIRED)
 find_package(Catch2 3 REQUIRED)
 find_package(wxWidgets REQUIRED COMPONENTS core base)
+include(${wxWidgets_USE_FILE})
 
 # Enable testing
 enable_testing()
@@ -32,7 +33,8 @@ add_library(main_proj
     src/MongoDBAdapter.cpp
     src/RobotSimulator.cpp
     src/Schedular.cpp
-    src/robot_metrics.cpp  # Add robot_metrics.cpp
+    src/robot_metrics.cpp
+    src/config/ResourceConfig.cpp
     # Include other source files if needed
 )
 
@@ -40,6 +42,7 @@ add_library(main_proj
 target_include_directories(main_proj
     PUBLIC
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
+        ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
 # Link libraries to main_proj
@@ -48,6 +51,7 @@ target_link_libraries(main_proj
         spdlog::spdlog_header_only
         mongo::mongocxx_shared
         nlohmann_json::nlohmann_json
+        ${wxWidgets_LIBRARIES}
 )
 
 # Set up resources directory
@@ -58,10 +62,10 @@ set(MAP_FILE ${RESOURCES_DIR}/map.json)
 function(copy_resources TARGET_NAME)
     add_custom_command(
         TARGET ${TARGET_NAME} POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-            ${MAP_FILE}
-            $<TARGET_FILE_DIR:${TARGET_NAME}>/map.json
-        COMMENT "Copying map.json for ${TARGET_NAME}"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${RESOURCES_DIR}
+            $<TARGET_FILE_DIR:${TARGET_NAME}>/resources
+        COMMENT "Copying resources for ${TARGET_NAME}"
     )
 endfunction()
 

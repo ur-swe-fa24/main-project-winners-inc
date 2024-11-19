@@ -13,7 +13,7 @@ private:
 
   public:
     // Constructor and destructor
-    Map();
+    Map(bool loadDefaultMap = false);
     ~Map();
 
     // Setting up or making changes to the map

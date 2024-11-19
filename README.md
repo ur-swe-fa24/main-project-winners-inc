@@ -28,6 +28,78 @@ Our software product includes many important features that make our robots uniqu
 + The **tests** directory is comprised of all test files used to guide our development and test our libraries and app.
 ---
 
+## Building and Running the Project
+
+### Prerequisites
+- CMake (version 3.16 or higher)
+- C++ compiler with C++17 support
+- wxWidgets library
+- MongoDB C++ Driver
+- MongoDB server running locally on default port (27017)
+
+### Quick Start
+We provide a convenient script to build, test, and run the application:
+
+```bash
+# Make the script executable (first time only)
+chmod +x build_test_run.sh
+
+# Build, test, and run
+./build_test_run.sh
+```
+
+This script will:
+1. Clean the build directory
+2. Configure the project with CMake
+3. Build all targets
+4. Run all tests
+5. Launch the wxWidgets application
+
+### Manual Build Steps
+If you prefer to build manually:
+
+1. Create and enter build directory:
+```bash
+mkdir -p build && cd build
+```
+
+2. Configure with CMake:
+```bash
+cmake ..
+```
+
+3. Build the project:
+```bash
+cmake --build . -j8
+```
+
+4. Run tests:
+```bash
+ctest --output-on-failure
+```
+
+5. Run the application:
+```bash
+./app/wx_robot_test
+```
+
+### Development
+- Source code is in the `src` directory
+- Header files are in the `include` directory
+- Tests are in the `tests` directory
+- Resources (like map files) are in the `resources` directory
+
+### Testing
+The project uses Catch2 for testing. Tests are organized into several categories:
+- MongoDB Integration Tests
+- Alert System Tests
+- Mapping System Tests
+- Robot Metrics Tests
+- Scheduling System Tests
+- Robot Simulator Tests
+
+Run individual test executables from the `build/tests` directory for more detailed output.
+
 ## Updates Since Sprint 3
 + Continued work on simulator implementation
 + More progress on UI implementation
@@ -35,4 +107,3 @@ Our software product includes many important features that make our robots uniqu
 + Updated design documents, mainly making changes to our *class_diagram* files
 + Creating README.md and USER_GUIDE.md files
 + Implementation for SchedulingSystem
-
