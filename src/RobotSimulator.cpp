@@ -11,25 +11,9 @@ RobotSimulator::RobotSimulator(std::shared_ptr<MongoDBAdapter> dbAdapter, const 
     map_.loadFromFile(mapFile);
 
     // Initialize robots at starting room
-    Room* startingRoom = map_.getRoomById(0);
+    Room* startingRoom = map_.getRoomById(1); // Use room 1 as starting room
     if (!startingRoom) {
         throw std::runtime_error("Starting room not found in the map.");
-    }
-
-    // Predefine three robots
-    std::vector<std::string> predefinedRobotNames = {"SimBot-1", "SimBot-2", "SimBot-3"};
-    for (const auto& robotName : predefinedRobotNames) {
-        auto newRobot = std::make_shared<Robot>(robotName, 100);
-        newRobot->setCurrentRoom(startingRoom);
-        robots_.push_back(newRobot);
-
-        // Save each robot's status to the database
-        try {
-            dbAdapter_->saveRobotStatus(newRobot);
-            std::cout << "Predefined robot '" << robotName << "' added and saved to database." << std::endl;
-        } catch (const std::exception& e) {
-            std::cerr << "Exception while saving robot '" << robotName << "' status: " << e.what() << std::endl;
-        }
     }
 }
 
@@ -101,7 +85,7 @@ void RobotSimulator::simulationLoop() {
 
                     // Send robot to charging station
                     if (!robot->isCharging()) {
-                        Room* chargingStation = map_.getRoomById(0);
+                        Room* chargingStation = map_.getRoomById(1);
                         if (chargingStation) {
                             std::vector<int> pathToCharger = map_.getRoute(*robot->getCurrentRoom(), *chargingStation);
                             if (!pathToCharger.empty()) {
@@ -116,7 +100,7 @@ void RobotSimulator::simulationLoop() {
 
                 if (robot->getBatteryLevel() <= 20 && !robot->isCharging()) {
                     // Send robot to charging station
-                    Room* chargingStation = map_.getRoomById(0);
+                    Room* chargingStation = map_.getRoomById(1);
                     if (chargingStation) {
                         std::vector<int> pathToCharger = map_.getRoute(*robot->getCurrentRoom(), *chargingStation);
                         if (!pathToCharger.empty()) {
@@ -129,7 +113,7 @@ void RobotSimulator::simulationLoop() {
                 }
 
                 // Start charging when at charging station
-                if (robot->getCurrentRoom() && robot->getCurrentRoom()->getRoomId() == 0 && !robot->isCharging() && robot->getBatteryLevel() < 10) {
+                if (robot->getCurrentRoom() && robot->getCurrentRoom()->getRoomId() == 1 && !robot->isCharging() && robot->getBatteryLevel() < 10) {
                     robot->startCharging();
                     std::cout << "Robot " << robot->getName() << " started charging at the charging station." << std::endl;
                 }
@@ -147,7 +131,7 @@ void RobotSimulator::simulationLoop() {
                         "Robot " + robot->getName() + " battery level critical: " +
                             std::to_string(robot->getBatteryLevel()) + "%",
                         robot, 
-                        std::make_shared<Room>("Simulation Area", 0), 
+                        std::make_shared<Room>("Simulation Area", 1), 
                         std::time(nullptr)
                     );
 
@@ -159,7 +143,7 @@ void RobotSimulator::simulationLoop() {
                         "Charging",
                         "Robot " + robot->getName() + " has returned to charger",
                         robot, 
-                        std::make_shared<Room>("Charging Station", 0), 
+                        std::make_shared<Room>("Charging Station", 1), 
                         std::time(nullptr)
                     );
 
@@ -201,28 +185,39 @@ std::shared_ptr<Robot> RobotSimulator::getRobotByName(const std::string& name) {
 
 void RobotSimulator::startCleaning(const std::string& robotName) {
     std::lock_guard<std::mutex> lock(robotsMutex_);
+    bool found = false;
     for (auto& robot : robots_) {
         if (robot->getName() == robotName) {
             robot->startCleaning();
+            found = true;
             break;
         }
+    }
+    if (!found) {
+        throw std::runtime_error("Robot not found: " + robotName);
     }
     cv_.notify_one();
 }
 
 void RobotSimulator::stopCleaning(const std::string& robotName) {
     std::lock_guard<std::mutex> lock(robotsMutex_);
+    bool found = false;
     for (auto& robot : robots_) {
         if (robot->getName() == robotName) {
             robot->stopCleaning();
+            found = true;
             break;
         }
+    }
+    if (!found) {
+        throw std::runtime_error("Robot not found: " + robotName);
     }
     cv_.notify_one();
 }
 
 void RobotSimulator::returnToCharger(const std::string& robotName) {
     std::lock_guard<std::mutex> lock(robotsMutex_);
+    bool found = false;
     for (auto& robot : robots_) {
         if (robot->getName() == robotName) {
             if (!robot->isCharging()) {
@@ -231,8 +226,12 @@ void RobotSimulator::returnToCharger(const std::string& robotName) {
             } else {
                 std::cout << "Robot " << robotName << " is already charging." << std::endl;
             }
+            found = true;
             break;
         }
+    }
+    if (!found) {
+        throw std::runtime_error("Robot not found: " + robotName);
     }
     cv_.notify_one();
 }
@@ -279,13 +278,61 @@ Room* RobotSimulator::getNextRoomToClean(Room* currentRoom) {
     return nullptr;  // No dirty rooms found
 }
 
-// The addRobot and deleteRobot methods remain unchanged or can be uncommented if needed
-/*
 void RobotSimulator::addRobot(const std::string& robotName) {
-    // Existing implementation
+    std::lock_guard<std::mutex> lock(robotsMutex_);
+    
+    // Check if robot with this name already exists
+    auto it = std::find_if(robots_.begin(), robots_.end(),
+        [&robotName](const std::shared_ptr<Robot>& robot) {
+            return robot->getName() == robotName;
+        });
+    
+    if (it != robots_.end()) {
+        throw std::runtime_error("Robot with name '" + robotName + "' already exists");
+    }
+    
+    // Create new robot at starting room
+    Room* startingRoom = map_.getRoomById(1);
+    if (!startingRoom) {
+        throw std::runtime_error("Starting room not found in the map");
+    }
+    
+    auto newRobot = std::make_shared<Robot>(robotName, 100);
+    newRobot->setCurrentRoom(startingRoom);
+    robots_.push_back(newRobot);
+    
+    // Save robot status to database
+    try {
+        dbAdapter_->saveRobotStatus(newRobot);
+        std::cout << "Robot '" << robotName << "' added and saved to database." << std::endl;
+    } catch (const std::exception& e) {
+        // If database save fails, still keep the robot but log the error
+        std::cerr << "Exception while saving robot '" << robotName << "' status: " << e.what() << std::endl;
+    }
 }
 
 void RobotSimulator::deleteRobot(const std::string& robotName) {
-    // Existing implementation
+    std::lock_guard<std::mutex> lock(robotsMutex_);
+    
+    // Find robot with the given name
+    auto it = std::find_if(robots_.begin(), robots_.end(),
+        [&robotName](const std::shared_ptr<Robot>& robot) {
+            return robot->getName() == robotName;
+        });
+    
+    if (it == robots_.end()) {
+        throw std::runtime_error("Robot with name '" + robotName + "' not found");
+    }
+    
+    // Remove robot from database first
+    try {
+        dbAdapter_->deleteRobotStatus(robotName);
+        std::cout << "Robot '" << robotName << "' deleted from database." << std::endl;
+    } catch (const std::exception& e) {
+        // If database delete fails, still remove the robot but log the error
+        std::cerr << "Exception while deleting robot '" << robotName << "' from database: " << e.what() << std::endl;
+    }
+    
+    // Remove robot from vector
+    robots_.erase(it);
 }
-*/
