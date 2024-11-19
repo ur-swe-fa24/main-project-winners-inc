@@ -1,0 +1,32 @@
+{
+    "rooms": [
+        {
+            "id": 101,
+            "name": "Living Room",
+            "floor_type": "carpet",
+            "clean": true,
+            "neighbors": [102]
+        },
+        {
+            "id": 102,
+            "name": "Kitchen",
+            "floor_type": "tile",
+            "clean": false,
+            "neighbors": [101, 103]
+        },
+        {
+            "id": 103,
+            "name": "Bedroom",
+            "floor_type": "carpet",
+            "clean": true,
+            "neighbors": [102, 104]
+        },
+        {
+            "id": 104,
+            "name": "Bathroom",
+            "floor_type": "tile",
+            "clean": false,
+            "neighbors": [103]
+        }
+    ]
+}
