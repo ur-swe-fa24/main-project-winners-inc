@@ -5,7 +5,9 @@
 Role::Role(const std::string &name) : name(name) {}
 
 // Add a permission to the role
-void Role::addPermission(const Permission &permission) { permissions.push_back(permission); }
+void Role::addPermission(const Permission &permission) {
+    permissions.push_back(permission);
+}
 
 // Check if the role has a specific permission
 bool Role::hasPermission(const std::string &permissionName) const {
@@ -18,7 +20,6 @@ bool Role::hasPermission(const std::string &permissionName) const {
 }
 
 // Getter for name
-std::string Role::getName() const { return name; }
-
-// Setter for name
-void Role::setName(const std::string &name) { this->name = name; }
+std::string Role::getName() const {
+    return name;
+}

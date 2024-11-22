@@ -20,6 +20,13 @@ using bsoncxx::builder::basic::make_document;
 // Constructor
 MongoDBAdapter::MongoDBAdapter(const std::string& uri, const std::string& dbName)
     : dbName_(dbName), client_(mongocxx::uri{uri}), db_(client_[dbName]), running_(true) {
+    
+    // Clear existing collections on startup
+    dropAlertCollection();
+    dropRobotStatusCollection();
+    
+    std::cout << "MongoDB adapter initialized. Database cleared." << std::endl;
+    
     // Start background threads
     robotStatusThread_ = std::thread(&MongoDBAdapter::processRobotStatusQueue, this);
     alertThread_ = std::thread(&MongoDBAdapter::processAlertQueue, this);
@@ -27,6 +34,9 @@ MongoDBAdapter::MongoDBAdapter(const std::string& uri, const std::string& dbName
 
 // Destructor
 MongoDBAdapter::~MongoDBAdapter() {
+    // Clear all data before shutting down
+    deleteAllAlerts();
+    deleteAllRobotStatuses();
     stop();
 }
 
@@ -45,14 +55,141 @@ void MongoDBAdapter::saveAlert(const Alert& alert) {
 
     try {
         alertCollection.insert_one(alert_doc.view());
-        std::cout << "Alert saved to MongoDB!" << std::endl;
+        std::cout << "Alert saved to MongoDB: " << alert.getTitle() << std::endl;
     } catch (const mongocxx::exception& e) {
         std::cerr << "Error inserting alert into MongoDB: " << e.what() << std::endl;
     }
 }
 
+// Save robot status synchronously
+void MongoDBAdapter::saveRobotStatus(std::shared_ptr<Robot> robot) {
+    if (!robot) {
+        std::cerr << "Attempted to save null robot status" << std::endl;
+        return;
+    }
+
+    auto robotCollection = db_["robot_status"];
+
+    try {
+        // First, delete any existing status for this robot
+        deleteRobotStatus(robot->getName());
+
+        // Create BSON document with robot status
+        auto status_doc = make_document(
+            kvp("name", robot->getName()),
+            kvp("battery_level", robot->getBatteryLevel()),
+            kvp("status", robot->getStatus()),
+            kvp("current_room", robot->getCurrentRoom() ? robot->getCurrentRoom()->getRoomName() : "Unknown"),
+            kvp("movement_progress", robot->getMovementProgress()),
+            kvp("is_cleaning", robot->isCleaning()),
+            kvp("is_charging", robot->isCharging()),
+            kvp("needs_maintenance", robot->needsMaintenance()),
+            kvp("low_battery_alert_sent", robot->isLowBatteryAlertSent())
+        );
+
+        robotCollection.insert_one(status_doc.view());
+        std::cout << "Robot status saved to MongoDB: " << robot->getName() << std::endl;
+    } catch (const mongocxx::exception& e) {
+        std::cerr << "Error saving robot status to MongoDB: " << e.what() << std::endl;
+    }
+}
+
+// Delete robot status by name
+void MongoDBAdapter::deleteRobotStatus(const std::string& robotName) {
+    auto robotCollection = db_["robot_status"];
+    try {
+        robotCollection.delete_one(make_document(kvp("name", robotName)));
+        std::cout << "Robot status deleted from MongoDB: " << robotName << std::endl;
+    } catch (const mongocxx::exception& e) {
+        std::cerr << "Error deleting robot status from MongoDB: " << e.what() << std::endl;
+    }
+}
+
+// Delete all robot statuses
+void MongoDBAdapter::deleteAllRobotStatuses() {
+    auto robotCollection = db_["robot_status"];
+    try {
+        robotCollection.delete_many({});
+        std::cout << "All robot statuses deleted from MongoDB" << std::endl;
+    } catch (const mongocxx::exception& e) {
+        std::cerr << "Error deleting all robot statuses from MongoDB: " << e.what() << std::endl;
+    }
+}
+
+// Drop robot status collection
+void MongoDBAdapter::dropRobotStatusCollection() {
+    try {
+        db_["robot_status"].drop();
+        std::cout << "Robot status collection dropped from MongoDB" << std::endl;
+    } catch (const mongocxx::exception& e) {
+        std::cerr << "Error dropping robot status collection from MongoDB: " << e.what() << std::endl;
+    }
+}
+
+// Drop alert collection
+void MongoDBAdapter::dropAlertCollection() {
+    try {
+        db_["alerts"].drop();
+        std::cout << "Alert collection dropped from MongoDB" << std::endl;
+    } catch (const mongocxx::exception& e) {
+        std::cerr << "Error dropping alert collection from MongoDB: " << e.what() << std::endl;
+    }
+}
+
+// Stop all background threads
+void MongoDBAdapter::stop() {
+    if (!running_) return;
+    
+    running_ = false;
+    cv_.notify_all();
+    
+    if (robotStatusThread_.joinable()) {
+        robotStatusThread_.join();
+    }
+    if (alertThread_.joinable()) {
+        alertThread_.join();
+    }
+    
+    std::cout << "MongoDB adapter stopped" << std::endl;
+}
+
+// Process robot status queue
+void MongoDBAdapter::processRobotStatusQueue() {
+    std::queue<std::shared_ptr<Robot>> localQueue;
+    
+    while (running_) {
+        std::unique_lock<std::mutex> lock(mutex_);
+        if (robotStatusQueue_.empty()) {
+            cv_.wait_for(lock, std::chrono::seconds(1));
+            continue;
+        }
+        
+        // Process all queued statuses
+        std::swap(localQueue, robotStatusQueue_);
+        lock.unlock();
+        
+        while (!localQueue.empty()) {
+            auto robot = localQueue.front();
+            localQueue.pop();
+            if (robot) {
+                saveRobotStatus(robot);
+            }
+        }
+    }
+}
+
+// Save robot status asynchronously
+void MongoDBAdapter::saveRobotStatusAsync(std::shared_ptr<Robot> robot) {
+    if (!robot) return;
+    
+    std::lock_guard<std::mutex> lock(mutex_);
+    robotStatusQueue_.push(robot);
+    cv_.notify_one();
+}
+
 // Save alert asynchronously
 void MongoDBAdapter::saveAlertAsync(const Alert& alert) {
+    if (!running_) return;
     std::lock_guard<std::mutex> lock(mutex_);
     alertQueue_.push(std::make_shared<Alert>(alert));
     cv_.notify_one();
@@ -60,17 +197,22 @@ void MongoDBAdapter::saveAlertAsync(const Alert& alert) {
 
 // Process alert queue
 void MongoDBAdapter::processAlertQueue() {
+    std::queue<std::shared_ptr<Alert>> localQueue;
     while (running_) {
-        std::shared_ptr<Alert> alert;
-        {
-            std::unique_lock<std::mutex> lock(mutex_);
-            cv_.wait(lock, [this] { return !alertQueue_.empty() || !running_; });
-            if (!running_) break;
-            alert = alertQueue_.front();
-            alertQueue_.pop();
+        std::unique_lock<std::mutex> lock(mutex_);
+        if (alertQueue_.empty()) {
+            cv_.wait_for(lock, std::chrono::seconds(1));
+            continue;
         }
-        if (alert) {
-            saveAlert(*alert);
+        std::swap(localQueue, alertQueue_);
+        lock.unlock();
+        
+        while (!localQueue.empty()) {
+            auto alert = localQueue.front();
+            localQueue.pop();
+            if (alert) {
+                saveAlert(*alert);
+            }
         }
     }
 }
@@ -123,59 +265,6 @@ void MongoDBAdapter::deleteAllAlerts() {
     }
 }
 
-// Drop alert collection
-void MongoDBAdapter::dropAlertCollection() {
-    // Create client instance locally
-    auto alertCollection = db_["alerts"];
-
-    try {
-        alertCollection.drop();
-        std::cout << "Alert collection dropped successfully." << std::endl;
-    } catch (const std::exception& e) {
-        std::cerr << "Error dropping alert collection: " << e.what() << std::endl;
-    }
-}
-
-// Save robot status synchronously
-void MongoDBAdapter::saveRobotStatus(std::shared_ptr<Robot> robot) {
-    auto robotCollection = db_["robot_status"];
-
-    auto robot_doc = make_document(
-        kvp("name", robot->getName()),
-        kvp("battery_level", robot->getBatteryLevel()),
-        kvp("status", robot->getStatus())
-    );
-
-    try {
-        robotCollection.insert_one(robot_doc.view());
-        std::cout << "Robot status saved to MongoDB!" << std::endl;
-    } catch (const mongocxx::exception& e) {
-        std::cerr << "Error inserting robot status into MongoDB: " << e.what() << std::endl;
-    }
-}
-
-// Save robot status asynchronously
-void MongoDBAdapter::saveRobotStatusAsync(std::shared_ptr<Robot> robot) {
-    std::lock_guard<std::mutex> lock(mutex_);
-    robotStatusQueue_.push(robot);
-    cv_.notify_one();
-}
-
-// Process robot status queue
-void MongoDBAdapter::processRobotStatusQueue() {
-    while (running_) {
-        std::shared_ptr<Robot> robot;
-        {
-            std::unique_lock<std::mutex> lock(mutex_);
-            cv_.wait(lock, [this] { return !robotStatusQueue_.empty() || !running_; });
-            if (!running_) break;
-            robot = robotStatusQueue_.front();
-            robotStatusQueue_.pop();
-        }
-        saveRobotStatus(robot);
-    }
-}
-
 // Retrieve robot statuses
 std::vector<std::shared_ptr<Robot>> MongoDBAdapter::retrieveRobotStatuses() {
     std::vector<std::shared_ptr<Robot>> robots;
@@ -198,66 +287,6 @@ std::vector<std::shared_ptr<Robot>> MongoDBAdapter::retrieveRobotStatuses() {
     }
 
     return robots;
-}
-
-// Delete all robot statuses
-void MongoDBAdapter::deleteAllRobotStatuses() {
-    // Create client instance locally
-    auto robotStatusCollection = db_["robot_status"];
-
-    bsoncxx::document::value empty_filter = make_document();
-    try {
-        auto result = robotStatusCollection.delete_many(empty_filter.view());
-        if (result) {
-            std::cout << "Deleted " << result->deleted_count() << " robot statuses from MongoDB." << std::endl;
-        } else {
-            std::cout << "No robot statuses were deleted from MongoDB." << std::endl;
-        }
-    } catch (const std::exception& e) {
-        std::cerr << "Error deleting robot statuses: " << e.what() << std::endl;
-    }
-}
-
-// Drop robot status collection
-void MongoDBAdapter::dropRobotStatusCollection() {
-    // Create client instance locally
-    auto robotStatusCollection = db_["robot_status"];
-
-    try {
-        robotStatusCollection.drop();
-        std::cout << "Robot status collection dropped successfully." << std::endl;
-    } catch (const std::exception& e) {
-        std::cerr << "Error dropping robot status collection: " << e.what() << std::endl;
-    }
-}
-
-// Delete robot status by name
-void MongoDBAdapter::deleteRobotStatus(const std::string& robotName) {
-    // Create client instance locally
-    auto collection = db_["robot_status"];
-
-    try {
-        auto filter = make_document(kvp("name", robotName));
-        collection.delete_one(filter.view());
-        std::cout << "Robot status for '" << robotName << "' deleted from MongoDB." << std::endl;
-    } catch (const std::exception& e) {
-        std::cerr << "Failed to delete robot status from MongoDB: " << e.what() << std::endl;
-        throw;
-    }
-}
-
-// Stop all background threads
-void MongoDBAdapter::stop() {
-    if (running_) {
-        running_ = false;
-        cv_.notify_all();
-        if (robotStatusThread_.joinable()) {
-            robotStatusThread_.join();
-        }
-        if (alertThread_.joinable()) {
-            alertThread_.join();
-        }
-    }
 }
 
 // Stop robot status monitoring thread

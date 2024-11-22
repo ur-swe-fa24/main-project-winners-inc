@@ -1,34 +1,22 @@
 #include "user/user.h"
-// #include "alert/Alert.h"
 #include <iostream>
 
-// Constructor implementation
-User::User(int id, const std::string &name, const Role &role) : id(id), name(name), role(role) {}
-
-// User login
-void User::login() { std::cout << name << " has logged in." << std::endl; }
-
-// User logout
-void User::logout() { std::cout << name << " has logged out." << std::endl; }
-
-// Receive notification (alert)
-void User::receiveNotification(const Alert &alert) {
-    std::cout << "Alert for " << name << ": " << alert.getMessage() << std::endl;
-}
-// Getter for id
-int User::getId() const { return id; }
-
-// Setter for id
-void User::setId(int id) { this->id = id; }
+// Constructor
+User::User(const std::string& name, std::shared_ptr<Role> role)
+    : name(name), role(role) {}
 
 // Getter for name
-std::string User::getName() const { return name; }
-
-// Setter for name
-void User::setName(const std::string &name) { this->name = name; }
+std::string User::getName() const {
+    return name;
+}
 
 // Getter for role
-Role User::getRole() const { return role; }
+std::shared_ptr<Role> User::getRole() const {
+    return role;
+}
 
-// Setter for role
-void User::setRole(const Role &role) { this->role = role; }
+// Method to receive notifications
+void User::receiveNotification(const Alert& alert) {
+    // Implement notification handling
+    std::cout << "User " << name << " received alert: " << alert.getMessage() << std::endl;
+}

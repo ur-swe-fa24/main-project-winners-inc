@@ -29,15 +29,16 @@ public:
 
 private:
     // Methods
+    void InitializeUsers();
     void CreateMenuBar();
     void BindEvents();
-    void InitializeUsers();
     bool ShowLogin();
     void LoadFromDatabase();
     void CreateDashboardPanel(wxNotebook* notebook);
     void CreateRobotControlPanel(wxNotebook* notebook);
     void CreateAlertsPanel(wxNotebook* notebook);
     void CreateUserManagementPanel(wxNotebook* notebook);
+    void CreateRobotAnalyticsPanel(wxNotebook* notebook);
     void UpdateRobotGrid();
     void CheckAndUpdateAlerts();
     void CreateMapPanel(wxNotebook* notebook);
@@ -63,28 +64,27 @@ private:
 
 
     // Member variables
+    std::shared_ptr<MongoDBAdapter> dbAdapter;
+    std::unique_ptr<RobotSimulator> simulator_;
+    std::unique_ptr<AlertSystem> alertSystem;
+    Scheduler scheduler_;
+    std::vector<std::shared_ptr<User>> users;
+    std::shared_ptr<User> currentUser;
+    std::map<std::string, std::string> userPasswords;
+    wxListBox* alertsList;
+    wxGrid* robotGrid;
+    wxTimer* alertCheckTimer;
+    wxTimer* statusUpdateTimer;
+    static const int ALERT_TIMER_ID = 100;
+    static const int STATUS_TIMER_ID = 101;
     wxChoice* strategyChoice;
     wxTextCtrl* roomIdInput;
-
     MapPanel* mapPanel_;
     wxChoice* robotChoice;
     wxChoice* schedulerRobotChoice; // Add this line
 
 
     // Other members
-    std::shared_ptr<MongoDBAdapter> dbAdapter;
-    std::unique_ptr<RobotSimulator> simulator_;
-    std::vector<std::shared_ptr<User>> users;
-    std::shared_ptr<User> currentUser;
-    std::unique_ptr<AlertSystem> alertSystem;
-    wxGrid* robotGrid;
-    wxListBox* alertsList;
-    wxTimer* alertTimer;
-    wxTimer* statusUpdateTimer;
-    std::map<std::string, std::string> userPasswords;
-    // Other members
-    Scheduler scheduler_;  // Scheduler instance
-
     wxDECLARE_EVENT_TABLE();
 
 

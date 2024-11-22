@@ -13,85 +13,115 @@ const std::string RobotManagementFrame::DB_NAME = "mydb9";
 
 // Constructor
 RobotManagementFrame::RobotManagementFrame(const wxString& title)
-    : wxFrame(nullptr, wxID_ANY, title, wxDefaultPosition, wxSize(800, 600)),
-      dbAdapter(std::make_shared<MongoDBAdapter>(DB_URI, DB_NAME)),
-      simulator_(std::make_unique<RobotSimulator>(dbAdapter, config::ResourceConfig::getMapPath())),
-      scheduler_(simulator_->getMap(), simulator_->getRobots())
+    : wxFrame(nullptr, wxID_ANY, title, wxDefaultPosition, wxSize(1024, 768))
 {
     try {
+        // Create UI components first
+        CreateMenuBar();
+        CreateStatusBar(2);  // Create status bar with 2 fields
+        SetStatusText("Initializing...");  // Now safe to set status
+
         // Initialize resource configuration
         config::ResourceConfig::initialize();
-        
-        // Start the simulator
-        simulator_->start();
 
+        // Get current working directory
         wxString cwd = wxGetCwd();
         std::cout << "Current working directory: " << cwd.mb_str() << std::endl;
+
+        // Initialize database connection
+        try {
+            dbAdapter = std::make_shared<MongoDBAdapter>(DB_URI, DB_NAME);
+            SetStatusText("Connected to database");
+        } catch (const std::exception& e) {
+            wxMessageBox(wxString::Format("Failed to connect to database: %s", e.what()),
+                "Database Error", wxOK | wxICON_ERROR);
+            Close(true);
+            return;
+        }
+
+        // Initialize simulator
+        try {
+            simulator_ = std::make_unique<RobotSimulator>(dbAdapter, config::ResourceConfig::getMapPath());
+            simulator_->start();  // Start the simulator
+            SetStatusText("Simulator started");
+        } catch (const std::exception& e) {
+            wxMessageBox(wxString::Format("Failed to initialize simulator: %s", e.what()),
+                "Simulator Error", wxOK | wxICON_ERROR);
+            Close(true);
+            return;
+        }
+
+        // Initialize scheduler with simulator data
+        scheduler_ = Scheduler(&simulator_->getMap(), &simulator_->getRobots());
 
         // Initialize alert system
         alertSystem = std::make_unique<AlertSystem>();
 
-        // Initialize users
+        // Initialize users and show login dialog
         InitializeUsers();
-
-        // Add initial robots
-        simulator_->addRobot("Cleaner1");
-        simulator_->addRobot("Cleaner2");
-        simulator_->addRobot("Cleaner3");
-        std::cout << "Added initial robots to the system" << std::endl;
-
-        // Show login dialog
         if (!ShowLogin()) {
-            Close();
+            Close(true);
             return;
         }
 
-        // Create UI components
-        CreateMenuBar();
+        // Create the notebook
+        wxNotebook* notebook = new wxNotebook(this, wxID_ANY);
+        SetSizer(new wxBoxSizer(wxVERTICAL));
+        GetSizer()->Add(notebook, 1, wxEXPAND);
 
-        wxPanel* mainPanel = new wxPanel(this);
-        wxBoxSizer* mainSizer = new wxBoxSizer(wxVERTICAL);
+        // Create panels according to user permissions
+        if (currentUser->getRole()->hasPermission("Dashboard")) {
+            CreateDashboardPanel(notebook);
+        }
 
-        // Create notebook for tabs
-        wxNotebook* notebook = new wxNotebook(mainPanel, wxID_ANY);
+        if (currentUser->getRole()->hasPermission("Scheduler")) {
+            CreateSchedulerPanel(notebook);
+        }
 
-        // Create panels
-        CreateDashboardPanel(notebook);
-        CreateRobotControlPanel(notebook);
-        CreateAlertsPanel(notebook);
-        CreateMapPanel(notebook); // Create the map panel
-        CreateSchedulerPanel(notebook); // Create the scheduler panel
+        if (currentUser->getRole()->hasPermission("Alert")) {
+            CreateAlertsPanel(notebook);
+        }
+
+        if (currentUser->getRole()->hasPermission("Map")) {
+            CreateMapPanel(notebook);
+        }
+
+        if (currentUser->getRole()->hasPermission("Robot Control")) {
+            CreateRobotControlPanel(notebook);
+        }
+
+        if (currentUser->getRole()->hasPermission("Robot Analytics")) {
+            CreateRobotAnalyticsPanel(notebook);
+        }
 
         // User Management Panel (only for admin)
-        if (currentUser && currentUser->getRole().hasPermission("ADMIN")) {
+        if (currentUser && currentUser->getRole()->hasPermission("ADMIN")) {
             CreateUserManagementPanel(notebook);
         }
 
-        mainSizer->Add(notebook, 1, wxEXPAND | wxALL, 5);
-        mainPanel->SetSizer(mainSizer);
+        // Initialize alert check timer
+        alertCheckTimer = new wxTimer(this, ALERT_TIMER_ID);
+        alertCheckTimer->Start(5000); // Check every 5 seconds
 
-        // Create status bar
-        CreateStatusBar(2);
-        SetStatusText("Ready");
-        SetStatusText(wxString::Format("Logged in as: %s", currentUser->getName()), 1);
+        // Initialize status update timer
+        statusUpdateTimer = new wxTimer(this, STATUS_TIMER_ID);
+        statusUpdateTimer->Start(1000); // Update every second
 
-        // Load data from database
-        LoadFromDatabase();
-
-        // Start alert checking timer (every 5 seconds)
-        alertTimer = new wxTimer(this, wxID_ANY);
-        alertTimer->Start(5000); // 5 seconds
-
-        // Initialize and start the status update timer
-        statusUpdateTimer = new wxTimer(this, wxID_ANY);
-        statusUpdateTimer->Start(1000); // Refresh every second
-
+        // Bind events
         BindEvents();
 
-        // Update robot choices after adding predefined robots
+        // Set final status
+        SetStatusText("Ready");
+        SetStatusText(wxString::Format("Logged in as: %s (%s)", 
+            currentUser->getName(), currentUser->getRole()->getName()), 1);
+
+        // Update robot choices
         UpdateRobotChoices();
         UpdateSchedulerRobotChoices();
         UpdateRobotGrid();
+
+        Center();
+
     } catch (const std::exception& e) {
         wxMessageBox(wxString::Format("Initialization failed: %s", e.what()), "Error",
                      wxOK | wxICON_ERROR);
@@ -102,10 +132,10 @@ RobotManagementFrame::RobotManagementFrame(const wxString& title)
 
 // Destructor
 RobotManagementFrame::~RobotManagementFrame() {
-    if (alertTimer) {
-        alertTimer->Stop();
-        delete alertTimer;
-        alertTimer = nullptr;
+    if (alertCheckTimer) {
+        alertCheckTimer->Stop();
+        delete alertCheckTimer;
+        alertCheckTimer = nullptr;
     }
 
     if (statusUpdateTimer) {
@@ -146,29 +176,37 @@ void RobotManagementFrame::OnCheckAlerts(wxTimerEvent& evt) {
 }
 
 void RobotManagementFrame::InitializeUsers() {
-    // Create roles
-    Role adminRole("Admin");
-    Role userRole("User");
-    Role engineerRole("Engineer");
+    // Create roles with specific permissions
+    auto buildingManagerRole = std::make_shared<Role>("Building Manager");
+    buildingManagerRole->addPermission(Permission("Dashboard"));
+    buildingManagerRole->addPermission(Permission("Scheduler"));
+    buildingManagerRole->addPermission(Permission("Alert"));
+    buildingManagerRole->addPermission(Permission("Map"));
 
-    // Add permissions
-    Permission adminPerm("ADMIN");
-    Permission userPerm("USER");
-    Permission engineerPerm("ENGINEER");
+    auto fieldEngineerRole = std::make_shared<Role>("Field Engineer");
+    fieldEngineerRole->addPermission(Permission("Dashboard"));
+    fieldEngineerRole->addPermission(Permission("Scheduler"));
+    fieldEngineerRole->addPermission(Permission("Alert"));
+    fieldEngineerRole->addPermission(Permission("Map"));
+    fieldEngineerRole->addPermission(Permission("Robot Control"));
 
-    adminRole.addPermission(adminPerm);
-    userRole.addPermission(userPerm);
-    engineerRole.addPermission(engineerPerm);
+    auto seniorManagerRole = std::make_shared<Role>("Senior Manager");
+    seniorManagerRole->addPermission(Permission("Dashboard"));
+    seniorManagerRole->addPermission(Permission("Scheduler"));
+    seniorManagerRole->addPermission(Permission("Alert"));
+    seniorManagerRole->addPermission(Permission("Map"));
+    seniorManagerRole->addPermission(Permission("Robot Control"));
+    seniorManagerRole->addPermission(Permission("Robot Analytics"));
 
-    // Create users with hardcoded passwords
-    users.push_back(std::make_shared<User>(1, "admin", adminRole));
-    users.push_back(std::make_shared<User>(2, "user", userRole));
-    users.push_back(std::make_shared<User>(3, "engineer", engineerRole));
+    // Create users
+    users.push_back(std::make_shared<User>("building_manager", buildingManagerRole));
+    users.push_back(std::make_shared<User>("field_engineer", fieldEngineerRole));
+    users.push_back(std::make_shared<User>("senior_manager", seniorManagerRole));
 
-    // Store passwords (in the real system, these would be hashed)
-    userPasswords["admin"] = "admin123";
-    userPasswords["user"] = "user123";
-    userPasswords["engineer"] = "engineer123";
+    // Store passwords (in a real system, these would be hashed)
+    userPasswords["building_manager"] = "bm123";
+    userPasswords["field_engineer"] = "fe123";
+    userPasswords["senior_manager"] = "sm123";
 }
 
 void RobotManagementFrame::LoadFromDatabase() {
@@ -426,7 +464,7 @@ void RobotManagementFrame::OnStatusUpdateTimer(wxTimerEvent& evt) {
 
 void RobotManagementFrame::BindEvents() {
     // Bind the timer event for checking alerts
-    Bind(wxEVT_TIMER, &RobotManagementFrame::OnCheckAlerts, this, alertTimer->GetId());
+    Bind(wxEVT_TIMER, &RobotManagementFrame::OnCheckAlerts, this, alertCheckTimer->GetId());
 
     // Bind the timer event for status updates
     Bind(wxEVT_TIMER, &RobotManagementFrame::OnStatusUpdateTimer, this, statusUpdateTimer->GetId());
@@ -441,21 +479,33 @@ void RobotManagementFrame::OnExit(wxCommandEvent& evt) {
 
 bool RobotManagementFrame::ShowLogin() {
     LoginDialog dlg(this);
-    if (dlg.ShowModal() == wxID_OK) {
-        std::string username = dlg.GetUsername();
-        std::string password = dlg.GetPassword();
+    bool loginSuccess = false;
 
-        // Check credentials
-        if (userPasswords.find(username) != userPasswords.end() && userPasswords[username] == password) {
+    while (!loginSuccess) {
+        if (dlg.ShowModal() == wxID_OK) {
+            std::string username = dlg.GetUsername();
+            std::string password = dlg.GetPassword();
+
             // Find user
-            for (const auto& user : users) {
-                if (user->getName() == username) {
-                    currentUser = user;
-                    return true;
-                }
+            auto userIt = std::find_if(users.begin(), users.end(),
+                [&username](const std::shared_ptr<User>& user) {
+                    return user->getName() == username;
+                });
+
+            if (userIt != users.end() && userPasswords[username] == password) {
+                currentUser = *userIt;
+                loginSuccess = true;
+                SetStatusText(wxString::Format("Logged in as: %s (%s)", 
+                    username, currentUser->getRole()->getName()), 1);
+                return true;
+            } else {
+                wxMessageBox("Invalid username or password", "Login Error",
+                    wxOK | wxICON_ERROR, this);
             }
+        } else {
+            // User clicked Cancel
+            return false;
         }
-        wxMessageBox("Invalid credentials!", "Error", wxOK | wxICON_ERROR);
     }
     return false;
 }
@@ -475,10 +525,11 @@ void RobotManagementFrame::CreateUserManagementPanel(wxNotebook* notebook) {
     // Fill user data
     for (size_t i = 0; i < users.size(); ++i) {
         userGrid->SetCellValue(i, 0, users[i]->getName());
-        userGrid->SetCellValue(i, 1, users[i]->getRole().getName());
+        userGrid->SetCellValue(i, 1, users[i]->getRole()->getName());
     }
 
     sizer->Add(userGrid, 1, wxEXPAND | wxALL, 5);
+
     panel->SetSizer(sizer);
     notebook->AddPage(panel, "User Management");
 }
@@ -545,63 +596,18 @@ void RobotManagementFrame::UpdateSchedulerRobotChoices() {
     }
 }
 
+void RobotManagementFrame::CreateRobotAnalyticsPanel(wxNotebook* notebook) {
+    wxPanel* panel = new wxPanel(notebook, wxID_ANY);
+    wxStaticText* label = new wxStaticText(panel, wxID_ANY,
+        "Robot Analytics Panel under construction", wxDefaultPosition, wxDefaultSize, wxALIGN_CENTER);
 
+    wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
+    sizer->Add(label, 1, wxALL | wxEXPAND, 10);
 
-// void RobotManagementFrame::OnAddRobot(wxCommandEvent& evt) {
-//     wxTextEntryDialog dlg(this, "Enter new robot name:", "Add Robot");
-//     if (dlg.ShowModal() == wxID_OK) {
-//         std::string robotName = dlg.GetValue().ToStdString();
-//         try {
-//             simulator_->addRobot(robotName);
+    panel->SetSizer(sizer);
 
-//             // Update UI
-//             UpdateRobotChoices();
-//             UpdateSchedulerRobotChoices(); // Add this line
-
-//             UpdateRobotGrid();
-
-//             // Optionally, create an alert for the new robot
-//             auto robot = simulator_->getRobotByName(robotName);
-//             auto room = std::make_shared<Room>("Starting Area", 1);
-//             auto alert = std::make_shared<Alert>("New Robot Added", "Robot " + robotName + " has been added",
-//                                                  robot, room, std::time(nullptr));
-//             alertSystem->sendAlert(currentUser.get(), alert);
-//             dbAdapter->saveAlert(*alert);
-//         } catch (const std::exception& e) {
-//             wxMessageBox(wxString::Format("Failed to add robot: %s", e.what()), "Error",
-//                          wxOK | wxICON_ERROR);
-//         }
-//     }
-// }
-
-// void RobotManagementFrame::OnDeleteRobot(wxCommandEvent& evt) {
-//     if (robotChoice && robotChoice->GetSelection() != wxNOT_FOUND) {
-//         std::string robotName = robotChoice->GetString(robotChoice->GetSelection()).ToStdString();
-//         int response = wxMessageBox(wxString::Format("Are you sure you want to delete robot '%s'?", robotName),
-//                                     "Confirm Deletion", wxYES_NO | wxICON_QUESTION);
-//         if (response == wxYES) {
-//             try {
-//                 simulator_->deleteRobot(robotName);
-
-//                 // Update UI
-//                 UpdateRobotChoices();
-//                 UpdateSchedulerRobotChoices(); // Add this line
-//                 UpdateRobotGrid();
-
-//                 // Optionally, create an alert for robot deletion
-//                 auto alert = std::make_shared<Alert>("Robot Deleted", "Robot " + robotName + " has been deleted",
-//                                                      nullptr, nullptr, std::time(nullptr));
-//                 alertSystem->sendAlert(currentUser.get(), alert);
-//                 dbAdapter->saveAlert(*alert);
-//             } catch (const std::exception& e) {
-//                 wxMessageBox(wxString::Format("Failed to delete robot: %s", e.what()), "Error",
-//                              wxOK | wxICON_ERROR);
-//             }
-//         }
-//     } else {
-//         wxMessageBox("Please select a robot to delete.", "Error", wxOK | wxICON_ERROR);
-//     }
-// }
+    notebook->AddPage(panel, "Robot Analytics");
+}
 
 void RobotManagementFrame::CreateSchedulerPanel(wxNotebook* notebook) {
     wxPanel* panel = new wxPanel(notebook);
