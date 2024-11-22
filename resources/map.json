@@ -4,67 +4,78 @@
         "name": "Charging Station",
         "id": 0,
         "flooringType": "Hardwood",
-        "isRoomClean": false
+        "isRoomClean": false,
+        "size": "small"
       },
       {
         "name": "Living Room",
         "id": 1,
         "flooringType": "Hardwood",
-        "isRoomClean": false
+        "isRoomClean": false,
+        "size": "large"
       },
       {
         "name": "Kitchen",
         "id": 2,
         "flooringType": "Tile",
-        "isRoomClean": false
+        "isRoomClean": false,
+        "size": "medium"
       },
       {
         "name": "Master Bedroom",
         "id": 3,
         "flooringType": "Carpet",
-        "isRoomClean": false
+        "isRoomClean": false,
+        "size": "large"
       },
       {
         "name": "Kids Room",
         "id": 4,
         "flooringType": "Carpet",
-        "isRoomClean": false
+        "isRoomClean": false,
+        "size": "medium"
       },
       {
         "name": "Bathroom",
         "id": 5,
         "flooringType": "Tile",
-        "isRoomClean": false
+        "isRoomClean": false,
+        "size": "small"
       },
       {
         "name": "Hallway",
         "id": 6,
         "flooringType": "Hardwood",
-        "isRoomClean": false
+        "isRoomClean": false,
+        "size": "medium"
       },
       {
         "name": "Dining Room",
         "id": 7,
         "flooringType": "Hardwood",
-        "isRoomClean": false
+        "isRoomClean": false,
+        "size": "medium"
       },
       {
         "name": "Office",
         "id": 8,
         "flooringType": "Carpet",
-        "isRoomClean": false
+        "isRoomClean": false,
+        "size": "small"
       },
       {
         "name": "Laundry Room",
         "id": 9,
         "flooringType": "Tile",
-        "isRoomClean": false
+        "isRoomClean": false,
+        "size": "small"
       },
       {
         "name": "Garage",
         "id": 10,
         "flooringType": "Concrete",
-        "isRoomClean": false
+        "isRoomClean": false,
+        "size": "large"
       }
     ],
     "connections": [
@@ -124,4 +135,3 @@
       }
     ]
   }
-  

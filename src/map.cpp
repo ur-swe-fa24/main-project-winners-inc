@@ -28,7 +28,7 @@ Map::~Map() {
 }
 
 void Map::addRoom(const std::string& roomName, int id, const std::string& flooringType, bool isRoomClean) {
-    Room* newRoom = new Room(roomName, id, flooringType, isRoomClean);
+    Room* newRoom = new Room(roomName, id, flooringType, "medium", isRoomClean);
     roomMap.push_back(newRoom);
 }
 
@@ -57,7 +57,10 @@ void Map::loadFromFile(const std::string& filename) {
 
     // Load rooms
     for (const auto& roomData : j["rooms"]) {
-        addRoom(roomData["name"], roomData["id"], roomData["flooringType"], roomData["isRoomClean"]);
+        std::string size = roomData.contains("size") ? roomData["size"] : "medium";
+        Room* room = new Room(roomData["name"], roomData["id"], roomData["flooringType"], 
+                            size, roomData["isRoomClean"]);
+        roomMap.push_back(room);
     }
 
     // Load connections
@@ -70,11 +73,13 @@ void Map::loadFromFile(const std::string& filename) {
     }
 
     // Load virtual walls
-    for (const auto& vw : j["virtualWalls"]) {
-        Room* room1 = getRoomById(vw["room1"]);
-        Room* room2 = getRoomById(vw["room2"]);
-        if (room1 && room2) {
-            addVirtualWall(room1, room2);
+    if (j.contains("virtualWalls")) {
+        for (const auto& vw : j["virtualWalls"]) {
+            Room* room1 = getRoomById(vw["room1"]);
+            Room* room2 = getRoomById(vw["room2"]);
+            if (room1 && room2) {
+                addVirtualWall(room1, room2);
+            }
         }
     }
 }
