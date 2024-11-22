@@ -1,53 +1,107 @@
-#define CATCH_CONFIG_MAIN
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <catch2/catch_approx.hpp>
-#include "AlertSystem/alert_system.h"
 #include "alert/Alert.h"
+#include "AlertSystem/alert_system.h"
 #include "user/user.h"
+#include "role/role.h"
+#include "permission/permission.h"
 #include "Robot/Robot.h"
 #include "Room/Room.h"
+#include "adapter/MongoDBAdapter.hpp"
+#include <mongocxx/instance.hpp>
 #include <memory>
+#include <thread>
+#include <chrono>
 #include <ctime>
+#include <vector>
 
-TEST_CASE("AlertSystem sends alerts and interacts with User, Robot, and Room", "[AlertSystem]") {
-    // Create an instance of AlertSystem
+// Create a global instance of mongocxx::instance
+mongocxx::instance instance{}; // Must be initialized before using the driver
+
+TEST_CASE("Alert System Integration Test") {
+    // Initialize MongoDB Adapter
+    std::string uri = "mongodb://localhost:27017";
+    std::string dbName = "mydb";
+    MongoDBAdapter dbAdapter(uri, dbName);
+
+    // Create Permissions
+    Permission adminPermission("ADMIN");
+    Permission userPermission("USER");
+
+    // Create Roles
+    Role adminRole("Admin");
+    adminRole.addPermission(adminPermission);
+
+    Role userRole("User");
+    userRole.addPermission(userPermission);
+
+    // Create Users
+    User adminUser(1, "AdminUser", adminRole);
+    User regularUser(2, "RegularUser", userRole);
+
+    // Declaration of neighbors vector
+    std::vector<Room*> neighbors;
+
+    // Create Robot and Room instances using shared_ptr
+    auto robot = std::make_shared<Robot>("CleaningRobot", 100);  // Example attributes
+    auto room = std::make_shared<Room>("MainRoom", 101, "wood", true, neighbors);  // Example attributes
+
+    // Create AlertSystem
     AlertSystem alertSystem;
 
-    // Create shared instances of Robot and Room
-    auto robot = std::make_shared<Robot>("TestRobot", 50);
-    auto room = std::make_shared<Room>("TestRoom", 101);
+    SECTION("Send and retrieve alerts") {
+        dbAdapter.deleteAllAlerts();
+        dbAdapter.deleteAllRobotStatuses();
 
-    // Create User instances
-    User user1(1, "Alice", Role("UserRole"));
-    User user2(2, "Bob", Role("AdminRole"));
+        for (int i = 0; i < 6; ++i) {
+            std::time_t currentTime = std::time(nullptr);
+            std::string alertType = "TEST_ALERT";
+            std::string alertMessage = "Test alert message " + std::to_string(i + 1);
 
-    // Create Alert instances with various severities
-    std::time_t timestamp = std::time(nullptr);
-    auto alert1 = std::make_shared<Alert>("AlertType1", "Critical system failure!", robot, room, timestamp, Alert::Severity::HIGH);
-    auto alert2 = std::make_shared<Alert>("AlertType2", "Battery running low", robot, room, timestamp, Alert::Severity::MEDIUM);
+            // Create the alert using std::make_shared
+            std::shared_ptr<Alert> alert = std::make_shared<Alert>(alertType, alertMessage, robot, room, currentTime);
 
-    // Send alerts to users
-    alertSystem.sendAlert(&user1, alert1);
-    alertSystem.sendAlert(&user2, alert2);
+            // Send alert to adminUser
+            alertSystem.sendAlert(&adminUser, alert);
 
-    // Stop the AlertSystem to process the queue
-    alertSystem.stop();
+            // Save alert to MongoDB
+            dbAdapter.saveAlert(*alert);
 
-    // Check alert processing with receiveNotification (no MongoDB)
-    REQUIRE_NOTHROW(user1.receiveNotification(*alert1));
-    REQUIRE_NOTHROW(user2.receiveNotification(*alert2));
+            // Update robot status and save asynchronously
+            robot->depleteBattery(10);
+            dbAdapter.saveRobotStatusAsync(robot);
 
-    // Verify robot and room interactions
-    REQUIRE(robot->getName() == "TestRobot");
-    REQUIRE(robot->getBatteryLevel() == 50);  // Ensure initial battery level is set correctly
-    robot->depleteBattery(40);
-    REQUIRE(robot->getBatteryLevel() == 10);  // Verify battery depletion works
+            // Sleep for a short duration to simulate time between alerts
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        }
 
-    REQUIRE(room->getRoomName() == "TestRoom");
-    REQUIRE(room->getRoomId() == 101);  // Ensure room properties are correct
+        std::this_thread::sleep_for(std::chrono::seconds(2));
 
-    // Verify user details
-    REQUIRE(user1.getName() == "Alice");
-    REQUIRE(user2.getName() == "Bob");
+        auto alerts = dbAdapter.retrieveAlerts();
+        REQUIRE(alerts.size() == 6);
+
+        for (const auto& alert : alerts) {
+            REQUIRE_FALSE(alert.getType().empty());
+            REQUIRE_FALSE(alert.getMessage().empty());
+            alert.displayAlertInfo();
+        }
+    }
+
+    SECTION("Delete and verify collections") {
+        dbAdapter.deleteAllAlerts();
+        dbAdapter.deleteAllRobotStatuses();
+
+        auto alertsAfterDeletion = dbAdapter.retrieveAlerts();
+        auto robotsAfterDeletion = dbAdapter.retrieveRobotStatuses();
+
+        REQUIRE(alertsAfterDeletion.empty());
+        REQUIRE(robotsAfterDeletion.empty());
+
+        dbAdapter.dropAlertCollection();
+        dbAdapter.dropRobotStatusCollection();
+    }
+
+    // Cleanup
+    dbAdapter.stop();
 }

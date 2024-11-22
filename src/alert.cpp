@@ -8,6 +8,11 @@ Alert::Alert(const std::string& type, const std::string& message, std::shared_pt
 // Destructor
 Alert::~Alert() {}
 
+// Getter for alert type
+std::string Alert::getType() const {
+    return type;
+}
+
 // Getter for alert type (title)
 std::string Alert::getTitle() const {
     return type;

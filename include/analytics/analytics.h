@@ -2,7 +2,7 @@
 #define ANALYTICS_H
 
 #include <map>
-#include "Robot.h"
+#include "Robot/Robot.h"
 #include "RobotMetrics/robot_metrics.h"
 
 class Analytics {

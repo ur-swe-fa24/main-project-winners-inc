@@ -1,6 +1,6 @@
 @startuml
 
-' User Management Classes
+' Core Classes
 class User {
     - id: int
     - name: string
@@ -23,6 +23,7 @@ class Role {
     + addPermission(permission: Permission)
     + hasPermission(permissionName: string): bool
     + getName(): string
+    + setName(name: string)
 }
 
 class Permission {
@@ -34,18 +35,18 @@ class Permission {
 
 ' Alert System Classes
 class Alert {
-    - type: string
-    - message: string
+    - title: string
+    - description: string
     - robot: shared_ptr<Robot>
     - room: shared_ptr<Room>
     - timestamp: time_t
-    - severity: Severity
     --
-    + Alert(type: string, message: string, robot: Robot, room: Room, timestamp: time_t)
+    + Alert(title: string, description: string, robot: Robot, room: Room, timestamp: time_t)
     + getTitle(): string
-    + getMessage(): string
+    + getDescription(): string
     + getRobot(): shared_ptr<Robot>
     + getRoom(): shared_ptr<Room>
+    + getTimestamp(): time_t
     + displayAlertInfo()
 }
 
@@ -67,6 +68,7 @@ class AlertSystem {
 class Robot {
     - name: string
     - batteryLevel: int
+    - currentMap: Map*
     --
     + Robot(name: string, batteryLevel: int)
     + sendStatusUpdate()
@@ -75,6 +77,8 @@ class Robot {
     + depleteBattery(amount: int)
     + getName(): string
     + getBatteryLevel(): int
+    + setMap(map: Map*)
+    + getMap(): Map*
 }
 
 class Room {
@@ -87,6 +91,7 @@ class Room {
     + isOccupied(): bool
     + getRoomName(): string
     + getRoomId(): int
+    + setRoomName(newRoomName: string)
 }
 
 ' Database Adapter
@@ -101,26 +106,192 @@ class MongoDBAdapter {
     - running_: atomic<bool>
     --
     + MongoDBAdapter(uri: string, dbName: string)
-    + ~MongoDBAdapter()
     + saveAlert(alert: Alert)
-    + retrieveAlerts(): vector<Alert>
+    + saveAlertAsync(alert: Alert)
+    + saveRobotStatus(robot: shared_ptr<Robot>)
     + saveRobotStatusAsync(robot: shared_ptr<Robot>)
+    + retrieveAlerts(): vector<Alert>
     + retrieveRobotStatuses(): vector<shared_ptr<Robot>>
     + deleteAllAlerts()
     + deleteAllRobotStatuses()
+    + dropAlertCollection()
+    + dropRobotStatusCollection()
     + stop()
+    + stopRobotStatusThread()
+    - processSaveQueue()
+    - processRobotStatusQueue()
+}
+
+' Analytics Classes
+class Analytics {
+    - metrics: vector<RobotMetrics>
+    --
+    + addMetrics(metrics: RobotMetrics)
+    + generateReport(): string
+}
+
+class AnalyticsService {
+    - analytics: Analytics
+    --
+    + processMetrics(metrics: RobotMetrics)
+    + getReport(): string
+}
+
+class RobotMetrics {
+    - utilization: float
+    - errorRate: float
+    - costEfficiency: float
+    - timeEfficiency: float
+    - batteryUsage: float
+    - waterUsage: float
+    --
+    + RobotMetrics(utilization: float, errorRate: float, costEfficiency: float,
+                  timeEfficiency: float, batteryUsage: float, waterUsage: float)
+    + getUtilization(): float
+    + getErrorRate(): float
+    + getCostEfficiency(): float
+    + getTimeEfficiency(): float
+    + getBatteryUsage(): float
+    + getWaterUsage(): float
+}
+
+' UI Classes
+class RobotManagementFrame {
+    - robotList: vector<Robot*>
+    - currentUser: User*
+    - mapPanel: MapPanel*
+    --
+    + RobotManagementFrame()
+    + addRobot(robot: Robot*)
+    + removeRobot(robot: Robot*)
+    + updateRobotStatus(robot: Robot*)
+    + showLoginDialog()
+    + showAlertDialog(alert: Alert*)
+}
+
+class MapPanel {
+    - map: Map*
+    - robots: vector<Robot*>
+    --
+    + MapPanel(parent: wxWindow*)
+    + updateRobotPosition(robot: Robot*, x: int, y: int)
+    + drawMap()
+    + drawRobots()
+}
+
+class LoginDialog {
+    - usernameCtrl: wxTextCtrl*
+    - passwordCtrl: wxTextCtrl*
+    --
+    + LoginDialog(parent: wxWindow*)
+    + getUsername(): string
+    + getPassword(): string
+}
+
+class AlertDialog {
+    - messageCtrl: wxTextCtrl*
+    --
+    + AlertDialog(parent: wxWindow*, alert: Alert*)
+    + showAlert()
+}
+
+' Map and Navigation Classes
+class Map {
+    - width: int
+    - height: int
+    - grid: vector<vector<bool>>
+    - virtualWalls: vector<VirtualWall*>
+    --
+    + Map(width: int, height: int)
+    + addVirtualWall(wall: VirtualWall*)
+    + removeVirtualWall(wall: VirtualWall*)
+    + isOccupied(x: int, y: int): bool
+    + getWidth(): int
+    + getHeight(): int
+}
+
+class VirtualWall {
+    - startX: int
+    - startY: int
+    - endX: int
+    - endY: int
+    --
+    + VirtualWall(startX: int, startY: int, endX: int, endY: int)
+    + isBlocking(x: int, y: int): bool
+    + getStart(): pair<int, int>
+    + getEnd(): pair<int, int>
+}
+
+' Task Management Classes
+class Scheduler {
+    - tasks: vector<CleaningTask*>
+    - robots: vector<Robot*>
+    --
+    + Scheduler()
+    + addTask(task: CleaningTask*)
+    + assignTask(robot: Robot*, task: CleaningTask*)
+    + optimizeSchedule()
+}
+
+class Schedule {
+    - robotId: string
+    - taskId: string
+    - startTime: time_t
+    - duration: int
+    --
+    + Schedule(robotId: string, taskId: string)
+    + getStartTime(): time_t
+    + getDuration(): int
+    + setStartTime(time: time_t)
+    + setDuration(duration: int)
+}
+
+class CleaningTask {
+    - taskId: string
+    - roomId: string
+    - priority: int
+    - status: TaskStatus
+    --
+    + CleaningTask(taskId: string, roomId: string)
+    + getPriority(): int
+    + getStatus(): TaskStatus
+    + setPriority(priority: int)
+    + setStatus(status: TaskStatus)
+}
+
+class RobotSimulator {
+    - robot: Robot*
+    - map: Map*
+    --
+    + RobotSimulator(robot: Robot*, map: Map*)
+    + simulateMovement()
+    + simulateCleaning()
+    + simulateBatteryDrain()
 }
 
 ' Relationships
-User o-> Role
-Role o-> "0..*" Permission
+User "1" *-- "1" Role
+Role "1" o-- "*" Permission
+Alert "1" --> "1" Robot
+Alert "1" --> "1" Room
+AlertSystem "1" --> "*" Alert
+MongoDBAdapter "1" --> "*" Alert
+MongoDBAdapter "1" --> "*" Robot
+Analytics "1" --> "*" RobotMetrics
+AnalyticsService "1" --> "1" Analytics
 
-AlertSystem ..> User : sends alerts to
-AlertSystem o-> Alert : manages
-Alert o-> Robot : references
-Alert o-> Room : references
+Robot "1" --> "1" Map
+Map "1" o-- "*" VirtualWall
+RobotManagementFrame "1" --> "1" MapPanel
+RobotManagementFrame "1" --> "*" Robot
+MapPanel "1" --> "1" Map
+MapPanel "1" --> "*" Robot
 
-MongoDBAdapter ..> Alert : stores
-MongoDBAdapter ..> Robot : stores status
+Scheduler "1" --> "*" CleaningTask
+Scheduler "1" --> "*" Robot
+Schedule "1" --> "1" Robot
+Schedule "1" --> "1" CleaningTask
+RobotSimulator "1" --> "1" Robot
+RobotSimulator "1" --> "1" Map
 
 @enduml

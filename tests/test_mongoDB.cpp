@@ -1,27 +1,26 @@
-#define CATCH_CONFIG_MAIN
-#include <catch2/catch_test_macros.hpp>
-#include <catch2/matchers/catch_matchers_floating_point.hpp>
-#include <catch2/catch_approx.hpp>
-#include "alert/Alert.h"
+#define CATCH_CONFIG_MAIN  // This tells Catch to provide a main() - only do this in one cpp file
 #include "AlertSystem/alert_system.h"
-#include "user/user.h"
-#include "role/role.h"
-#include "permission/permission.h"
 #include "Robot/Robot.h"
 #include "Room/Room.h"
 #include "adapter/MongoDBAdapter.hpp"
-#include <mongocxx/instance.hpp>
-#include <memory>
-#include <thread>
+#include "alert/Alert.h"
+#include "permission/permission.h"
+#include "role/role.h"
+#include "user/user.h"
+#include <catch2/catch_approx.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <chrono>
 #include <ctime>
+#include <memory>
+#include <mongocxx/instance.hpp>
+#include <thread>
+#include <vector>
 
-// Set up a MongoDB instance for the test environment
-mongocxx::instance instance{};
+// Create a global instance of mongocxx::instance
+mongocxx::instance instance{}; // Must be initialized before using the driver
 
-TEST_CASE("Alert System Integration Test") {
-    // The mongocxx::instance is initialized in main(), so we remove it here.
-
+TEST_CASE("MongoDB Integration Test") {
     // Initialize MongoDB Adapter
     std::string uri = "mongodb://localhost:27017";
     std::string dbName = "mydb";
@@ -42,67 +41,74 @@ TEST_CASE("Alert System Integration Test") {
     User adminUser(1, "AdminUser", adminRole);
     User regularUser(2, "RegularUser", userRole);
 
+    // Declaration of neighbors vector
+    std::vector<Room*> neighbors;
+
     // Create Robot and Room instances using shared_ptr
     auto robot = std::make_shared<Robot>("CleaningRobot", 100);  // Example attributes
-    auto room = std::make_shared<Room>("MainRoom", 101);         // Example attributes
+    auto room = std::make_shared<Room>("MainRoom", 101, "wood", true, neighbors);  // Example attributes
 
     // Create AlertSystem
     AlertSystem alertSystem;
 
-    SECTION("Send and retrieve alerts") {
+    SECTION("Basic MongoDB Operations") {
+        // Clear any existing data
         dbAdapter.deleteAllAlerts();
         dbAdapter.deleteAllRobotStatuses();
 
-        for (int i = 0; i < 6; ++i) {
-            std::time_t currentTime = std::time(nullptr);
-            std::string alertTitle = "Alert " + std::to_string(i + 1);
-            std::string alertMessage = "Message for alert " + std::to_string(i + 1);
+        // Test saving and retrieving a single alert
+        std::time_t currentTime = std::time(nullptr);
+        std::string alertTitle = "Test Alert";
+        std::string alertMessage = "Test Message";
 
-            // Create the alert using std::make_shared
-            std::shared_ptr<Alert> alert = std::make_shared<Alert>(alertTitle, alertMessage, robot, room, currentTime);
+        auto alert = std::make_shared<Alert>(alertTitle, alertMessage, robot, room, currentTime);
+        dbAdapter.saveAlert(*alert);
 
-            // Send alert to adminUser, updating the function call if necessary
-            alertSystem.sendAlert(&adminUser, alert);  // Ensure sendAlert can accept a shared_ptr
+        auto alerts = dbAdapter.retrieveAlerts();
+        REQUIRE(alerts.size() == 1);
+        REQUIRE(alerts[0].getTitle() == alertTitle);
+        REQUIRE(alerts[0].getMessage() == alertMessage);
+    }
 
-            // Save alert to MongoDB using the adapter (update parameter type if needed)
-            dbAdapter.saveAlert(*alert);  // If saveAlert takes an Alert by value or reference, use *alert
+    SECTION("Robot Status Operations") {
+        // Clear existing data
+        dbAdapter.deleteAllRobotStatuses();
 
-            // Update robot status and save asynchronously
-            robot->depleteBattery(10);
-            dbAdapter.saveRobotStatusAsync(robot);
+        // Save robot status
+        dbAdapter.saveRobotStatus(robot);
+        
+        // Wait for async operations to complete
+        std::this_thread::sleep_for(std::chrono::seconds(1));
 
-            // Sleep for a short duration to simulate time between alerts
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
-        }
+        auto robots = dbAdapter.retrieveRobotStatuses();
+        REQUIRE(robots.size() == 1);
+        REQUIRE(robots[0]->getName() == robot->getName());
+        REQUIRE(robots[0]->getBatteryLevel() == robot->getBatteryLevel());
+    }
 
+    SECTION("Async Operations") {
+        dbAdapter.deleteAllAlerts();
+        dbAdapter.deleteAllRobotStatuses();
 
+        // Test async alert saving
+        std::time_t currentTime = std::time(nullptr);
+        auto alert = std::make_shared<Alert>("Async Alert", "Test Async", robot, room, currentTime);
+        dbAdapter.saveAlertAsync(*alert);
 
+        // Test async robot status saving
+        dbAdapter.saveRobotStatusAsync(robot);
+
+        // Wait for async operations to complete
         std::this_thread::sleep_for(std::chrono::seconds(2));
 
         auto alerts = dbAdapter.retrieveAlerts();
-        REQUIRE(alerts.size() == 6);
+        auto robots = dbAdapter.retrieveRobotStatuses();
 
-        for (const auto& alert : alerts) {
-            REQUIRE_FALSE(alert.getTitle().empty());
-            REQUIRE_FALSE(alert.getMessage().empty());
-            alert.displayAlertInfo();
-        }
+        REQUIRE(alerts.size() == 1);
+        REQUIRE(robots.size() == 1);
     }
 
-    SECTION("Delete and verify collections") {
-        dbAdapter.deleteAllAlerts();
-        dbAdapter.deleteAllRobotStatuses();
-
-        auto alertsAfterDeletion = dbAdapter.retrieveAlerts();
-        auto robotsAfterDeletion = dbAdapter.retrieveRobotStatuses();
-
-        REQUIRE(alertsAfterDeletion.empty());
-        REQUIRE(robotsAfterDeletion.empty());
-
-        dbAdapter.dropAlertCollection();
-        dbAdapter.dropRobotStatusCollection();
-    }
-
+    // Stop all threads before exiting
     alertSystem.stop();
     dbAdapter.stop();
     dbAdapter.stopRobotStatusThread();

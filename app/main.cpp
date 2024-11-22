@@ -1,17 +1,22 @@
 #include "alert/Alert.h"
-#include "AlertSystem/alert_system.h"
+#include "alert_system/alert_system.h"
 #include "user/user.h"
 #include "role/role.h"
 #include "permission/permission.h"
 #include "Robot/Robot.h"
 #include "Room/Room.h"
-#include <iostream>
+#include "adapter/MongoDBAdapter.hpp" // Include the adapter
+#include "alert/Alert.h"
+#include "permission/permission.h"
+#include "role/role.h"
+#include "user/user.h"
+#include <chrono> // For std::chrono::seconds
 #include <ctime>
-#include "adapter/MongoDBAdapter.hpp"  // Include the adapter
-#include <mongocxx/instance.hpp>       // For mongocxx::instance
-#include <thread>                      // For std::this_thread::sleep_for
-#include <chrono>                      // For std::chrono::seconds
-#include <memory>                      // For std::shared_ptr
+#include <iostream>
+#include <memory>                // For std::shared_ptr
+#include <mongocxx/instance.hpp> // For mongocxx::instance
+#include <thread>                // For std::this_thread::sleep_for
+#include <vector>
 
 void testAlertSystem() {
     // The mongocxx::instance is initialized in main(), so we remove it here.
@@ -36,9 +41,12 @@ void testAlertSystem() {
     User adminUser(1, "AdminUser", adminRole);
     User regularUser(2, "RegularUser", userRole);
 
+    // Declaration of neighbors vector to pass into Room below
+    std::vector<Room *> neighbors;
+
     // Create Robot and Room instances using shared_ptr
-    auto robot = std::make_shared<Robot>("CleaningRobot", 100);  // Example attributes
-    auto room = std::make_shared<Room>("MainRoom", 101);         // Example attributes
+    auto robot = std::make_shared<Robot>("CleaningRobot", 100);                   // Example attributes
+    auto room = std::make_shared<Room>("MainRoom", 101, "wood", true, neighbors); // Example attributes
 
     // Create AlertSystem
     AlertSystem alertSystem;
@@ -65,7 +73,7 @@ void testAlertSystem() {
 
         // Update robot status and save asynchronously
         robot->depleteBattery(10);  // Decrease battery level by 10%
-        dbAdapter.saveRobotStatusAsync(robot);
+        dbAdapter.saveRobotStatus(robot);
 
         // Sleep for a short duration to simulate time between alerts
         std::this_thread::sleep_for(std::chrono::milliseconds(500));
@@ -78,7 +86,7 @@ void testAlertSystem() {
     auto alerts = dbAdapter.retrieveAlerts();
 
     // Display the retrieved alerts
-    for (const auto& alert : alerts) {
+    for (const auto &alert : alerts) {
         alert.displayAlertInfo();
     }
 
@@ -86,9 +94,8 @@ void testAlertSystem() {
     auto robots = dbAdapter.retrieveRobotStatuses();
 
     // Display the retrieved robot statuses
-    for (const auto& r : robots) {
-        std::cout << "Robot Name: " << r->getName()
-                  << ", Battery Level: " << r->getBatteryLevel() << "%" << std::endl;
+    for (const auto &r : robots) {
+        std::cout << "Robot Name: " << r->getName() << ", Battery Level: " << r->getBatteryLevel() << "%" << std::endl;
     }
 
     // Test delete methods
@@ -108,8 +115,8 @@ void testAlertSystem() {
 
     // Stop the alert system and database adapter threads before exiting
     alertSystem.stop();
-    dbAdapter.stop();
-    dbAdapter.stopRobotStatusThread();
+    // dbAdapter.stop();
+    // dbAdapter.stopRobotStatusThread();
 }
 
 int main() {
