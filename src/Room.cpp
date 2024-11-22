@@ -2,8 +2,10 @@
 #include <iostream>
 
 // Constructor implementation
-Room::Room(const std::string& roomName, int roomId, const std::string& flooringType, bool isRoomClean, const std::vector<Room*>& neighbors)
-    : roomName(roomName), roomId(roomId), flooringType(flooringType), isRoomClean(isRoomClean), neighbors(neighbors) {}
+Room::Room(const std::string& roomName, int roomId, const std::string& flooringType, 
+           const std::string& size, bool isRoomClean, const std::vector<Room*>& neighbors)
+    : roomName(roomName), roomId(roomId), flooringType(flooringType), 
+      size(size), isRoomClean(isRoomClean), neighbors(neighbors) {}
 
 // Getter for room name
 std::string Room::getRoomName() const {
@@ -15,11 +17,17 @@ int Room::getRoomId() const {
     return roomId;
 }
 
+// Getter for room size
+std::string Room::getSize() const {
+    return size;
+}
+
 // Method to get room information
 void Room::getRoomInfo() const {
     std::cout << "Room Name: " << roomName
               << ", Room ID: " << roomId
               << ", Flooring Type: " << flooringType
+              << ", Size: " << size
               << ", Room is clean?: " << (isRoomClean ? "Yes" : "No") << std::endl;
 }
 

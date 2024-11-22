@@ -11,14 +11,18 @@ public:
     int roomId;
     std::string flooringType;   // Hardwood, carpet, etc.
     bool isRoomClean;           // true when clean, false when dirty (default to true)
+    std::string size;           // small, medium, or large
     std::vector<Room*> neighbors;
 
     // Constructor
-    Room(const std::string& roomName, int roomId, const std::string& flooringType = "", bool isRoomClean = true, const std::vector<Room*>& neighbors = std::vector<Room*>());
+    Room(const std::string& roomName, int roomId, const std::string& flooringType = "", 
+         const std::string& size = "medium", bool isRoomClean = true, 
+         const std::vector<Room*>& neighbors = std::vector<Room*>());
 
     // Getter methods
     std::string getRoomName() const;
     int getRoomId() const;
+    std::string getSize() const;
 
     // Methods
     void getRoomInfo() const;
