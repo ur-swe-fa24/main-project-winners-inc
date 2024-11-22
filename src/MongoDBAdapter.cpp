@@ -78,13 +78,15 @@ void MongoDBAdapter::saveRobotStatus(std::shared_ptr<Robot> robot) {
         auto status_doc = make_document(
             kvp("name", robot->getName()),
             kvp("battery_level", robot->getBatteryLevel()),
+            kvp("water_level", robot->getWaterLevel()),
             kvp("status", robot->getStatus()),
             kvp("current_room", robot->getCurrentRoom() ? robot->getCurrentRoom()->getRoomName() : "Unknown"),
             kvp("movement_progress", robot->getMovementProgress()),
             kvp("is_cleaning", robot->isCleaning()),
             kvp("is_charging", robot->isCharging()),
             kvp("needs_maintenance", robot->needsMaintenance()),
-            kvp("low_battery_alert_sent", robot->isLowBatteryAlertSent())
+            kvp("low_battery_alert_sent", robot->isLowBatteryAlertSent()),
+            kvp("low_water_alert_sent", robot->isLowWaterAlertSent())
         );
 
         robotCollection.insert_one(status_doc.view());
@@ -277,10 +279,11 @@ std::vector<std::shared_ptr<Robot>> MongoDBAdapter::retrieveRobotStatuses() {
         // Extract fields from BSON document
         std::string name = doc["name"].get_string().value.to_string();
         int battery_level = doc["battery_level"].get_int32().value;
+        int water_level = doc["water_level"].get_int32().value; // Extract water level
         // Extract other attributes as needed
 
         // Create a Robot instance and add it to the vector
-        auto robot = std::make_shared<Robot>(name, battery_level);
+        auto robot = std::make_shared<Robot>(name, battery_level, water_level); // Pass water level to Robot constructor
         robots.push_back(robot);
 
         std::cout << "Retrieved Robot: " << bsoncxx::to_json(doc) << std::endl;

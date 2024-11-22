@@ -10,7 +10,7 @@
 class Robot {
 public:
     // Constructor
-    Robot(const std::string& name, int batteryLevel);
+    Robot(const std::string& name, int batteryLevel, int waterLevel = 100);
 
     // Status update method
     void sendStatusUpdate() const;
@@ -18,6 +18,12 @@ public:
     // Methods to manage battery
     void recharge(const Map& map);           // Updated declaration
     void depleteBattery(int amount);
+
+    // Methods to manage water
+    void refillWater();
+    void depleteWater(int amount);
+    int getWaterLevel() const;
+    bool needsWaterRefill() const;
 
     // Methods to perform actions
     void startCleaning();
@@ -28,6 +34,8 @@ public:
     bool needsMaintenance() const;
     void setLowBatteryAlertSent(bool sent);
     bool isLowBatteryAlertSent() const;
+    void setLowWaterAlertSent(bool sent);
+    bool isLowWaterAlertSent() const;
 
     // Getters
     std::string getName() const;
@@ -36,29 +44,26 @@ public:
     int getMovementProgress() const;
     Room* getNextRoom() const;
 
-
-
     void setCurrentRoom(Room* room);
     Room* getCurrentRoom() const;
     bool moveToRoom(Room* room);  // Move to an adjacent room
 
-    void setMovementPath(const std::vector<int>& roomIds, const Map& map); // Changed Map& to const Map&
-    // void update();  // Update robot status (move along path, deplete battery)
+    void setMovementPath(const std::vector<int>& roomIds, const Map& map); 
     void startCharging();
     void stopCharging();
     bool isCharging() const;
 
     void setTargetRoom(Room* room);
-    void update(const Map& map);  // Modify this line
-
-
+    void update(const Map& map);  
 
 private:
     // Attributes
     std::string name;
     int batteryLevel;
+    int waterLevel_;  // New water level property
     bool cleaning_;
     bool lowBatteryAlertSent_;
+    bool lowWaterAlertSent_;  // New low water alert flag
     Room* currentRoom_;
     std::queue<Room*> movementQueue_;
     Room* nextRoom_; // The room the robot is moving towards
