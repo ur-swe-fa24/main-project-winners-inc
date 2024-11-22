@@ -163,12 +163,12 @@ std::vector<RobotSimulator::RobotStatus> RobotSimulator::getRobotStatuses() {
     std::lock_guard<std::mutex> lock(robotsMutex_);
     std::vector<RobotStatus> statuses;
     for (const auto& robot : robots_) {
-        RobotStatus status;
-        status.name = robot->getName();
-        status.batteryLevel = robot->getBatteryLevel();
-        status.status = robot->getStatus();
-        status.currentRoomName = robot->getCurrentRoom() ? robot->getCurrentRoom()->getRoomName() : "Unknown";
-        statuses.push_back(status);
+        std::string currentRoomName = robot->getCurrentRoom() ? robot->getCurrentRoom()->getRoomName() : "Unknown";
+        statuses.emplace_back(robot->getName(), 
+                            robot->getBatteryLevel(),
+                            robot->getWaterLevel(),
+                            robot->getStatus(),
+                            currentRoomName);
     }
     return statuses;
 }

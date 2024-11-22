@@ -21,8 +21,12 @@ public:
     struct RobotStatus {
         std::string name;
         int batteryLevel;
+        int waterLevel;
         std::string status;
         std::string currentRoomName;
+        
+        RobotStatus(const std::string& n, int bl, int wl, const std::string& s, const std::string& crn)
+            : name(n), batteryLevel(bl), waterLevel(wl), status(s), currentRoomName(crn) {}
     };
 
     std::vector<RobotStatus> getRobotStatuses();

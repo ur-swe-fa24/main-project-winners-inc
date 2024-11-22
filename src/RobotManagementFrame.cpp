@@ -286,13 +286,21 @@ void RobotManagementFrame::CreateDashboardPanel(wxNotebook* notebook) {
     // Robot status grid
     robotGrid = new wxGrid(panel, wxID_ANY);
     auto robotStatuses = simulator_->getRobotStatuses();
-    robotGrid->CreateGrid(robotStatuses.size(), 4);  // Use 4 columns directly
+    robotGrid->CreateGrid(robotStatuses.size(), 5);  // Added column for water level
 
     // Set column headers
     robotGrid->SetColLabelValue(0, "Robot Name");
     robotGrid->SetColLabelValue(1, "Battery Level");
-    robotGrid->SetColLabelValue(2, "Status");
-    robotGrid->SetColLabelValue(3, "Current Room");
+    robotGrid->SetColLabelValue(2, "Water Level");  // New column
+    robotGrid->SetColLabelValue(3, "Status");
+    robotGrid->SetColLabelValue(4, "Current Room");
+
+    // Set column widths
+    robotGrid->SetColSize(0, 100);  // Robot Name
+    robotGrid->SetColSize(1, 100);  // Battery Level
+    robotGrid->SetColSize(2, 100);  // Water Level
+    robotGrid->SetColSize(3, 120);  // Status
+    robotGrid->SetColSize(4, 120);  // Current Room
 
     UpdateRobotGrid();
 
@@ -310,7 +318,7 @@ void RobotManagementFrame::CreateDashboardPanel(wxNotebook* notebook) {
 void RobotManagementFrame::UpdateRobotGrid() {
     auto robotStatuses = simulator_->getRobotStatuses();
     int requiredRows = robotStatuses.size();
-    int requiredCols = 4;  // Number of columns you have
+    int requiredCols = 5;  // Updated for water level column
 
     int currentRows = robotGrid->GetNumberRows();
     int currentCols = robotGrid->GetNumberCols();
@@ -325,11 +333,19 @@ void RobotManagementFrame::UpdateRobotGrid() {
         // Reset column labels after adjusting columns
         robotGrid->SetColLabelValue(0, "Robot Name");
         robotGrid->SetColLabelValue(1, "Battery Level");
-        robotGrid->SetColLabelValue(2, "Status");
-        robotGrid->SetColLabelValue(3, "Current Room");
+        robotGrid->SetColLabelValue(2, "Water Level");
+        robotGrid->SetColLabelValue(3, "Status");
+        robotGrid->SetColLabelValue(4, "Current Room");
+
+        // Set column widths
+        robotGrid->SetColSize(0, 100);  // Robot Name
+        robotGrid->SetColSize(1, 100);  // Battery Level
+        robotGrid->SetColSize(2, 100);  // Water Level
+        robotGrid->SetColSize(3, 120);  // Status
+        robotGrid->SetColSize(4, 120);  // Current Room
     }
 
-    // Adjust the number of rows
+    // Adjust the number of rows if necessary
     if (currentRows != requiredRows) {
         if (currentRows > requiredRows) {
             robotGrid->DeleteRows(0, currentRows - requiredRows);
@@ -338,25 +354,32 @@ void RobotManagementFrame::UpdateRobotGrid() {
         }
     }
 
-    // Now, set the cell values
-    for (size_t i = 0; i < robotStatuses.size(); ++i) {
-        robotGrid->SetCellValue(i, 0, robotStatuses[i].name);
-        robotGrid->SetCellValue(i, 1, wxString::Format("%d%%", robotStatuses[i].batteryLevel));
-        robotGrid->SetCellValue(i, 2, robotStatuses[i].status);
-        robotGrid->SetCellValue(i, 3, robotStatuses[i].currentRoomName);
+    // Update the grid with robot statuses
+    int row = 0;
+    for (const auto& robot : robotStatuses) {
+        robotGrid->SetCellValue(row, 0, robot.name);
+        robotGrid->SetCellValue(row, 1, wxString::Format("%d%%", robot.batteryLevel));
+        robotGrid->SetCellValue(row, 2, wxString::Format("%d%%", robot.waterLevel));  // New water level display
+        robotGrid->SetCellValue(row, 3, robot.status);
+        robotGrid->SetCellValue(row, 4, robot.currentRoomName);
 
-
-        // Color coding for battery levels
-        if (robotStatuses[i].batteryLevel < 20) {
-            robotGrid->SetCellBackgroundColour(i, 1, wxColour(255, 200, 200)); // Light red
-        } else if (robotStatuses[i].batteryLevel < 50) {
-            robotGrid->SetCellBackgroundColour(i, 1, wxColour(255, 255, 200)); // Light yellow
+        // Color coding for battery and water levels
+        if (robot.batteryLevel < 20) {
+            robotGrid->SetCellBackgroundColour(row, 1, wxColour(255, 200, 200));  // Light red for low battery
         } else {
-            robotGrid->SetCellBackgroundColour(i, 1, wxColour(200, 255, 200)); // Light green
+            robotGrid->SetCellBackgroundColour(row, 1, wxColour(200, 255, 200));  // Light green for good battery
         }
+
+        if (robot.waterLevel < 20) {
+            robotGrid->SetCellBackgroundColour(row, 2, wxColour(255, 200, 200));  // Light red for low water
+        } else {
+            robotGrid->SetCellBackgroundColour(row, 2, wxColour(200, 255, 200));  // Light green for good water level
+        }
+
+        row++;
     }
 
-    robotGrid->AutoSize();
+    robotGrid->ForceRefresh();
 }
 
 void RobotManagementFrame::CheckAndUpdateAlerts() {
