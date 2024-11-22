@@ -19,30 +19,53 @@ include(${wxWidgets_USE_FILE})
 # Enable testing
 enable_testing()
 
-# Define the main_proj library with all necessary source files
-add_library(main_proj
+# Define source files
+set(SOURCES
+    src/map.cpp
+    src/Room.cpp
+    src/Robot.cpp
+    src/RobotSimulator.cpp
+    src/MongoDBAdapter.cpp
+    src/map_panel.cpp
+    src/robot_control_panel.cpp
     src/role.cpp
     src/user.cpp
     src/permission.cpp
     src/alert.cpp
-    src/Robot.cpp
-    src/Room.cpp
     src/virtual_wall.cpp
-    src/map.cpp
     src/alert_system.cpp
-    src/MongoDBAdapter.cpp
-    src/RobotSimulator.cpp
     src/Schedular.cpp
     src/robot_metrics.cpp
     src/config/ResourceConfig.cpp
-    # Include other source files if needed
 )
+
+# Define header files
+set(HEADERS
+    include/map/map.h
+    include/Room/Room.h
+    include/Robot/Robot.h
+    include/RobotSimulator/RobotSimulator.hpp
+    include/MongoDBAdapter/MongoDBAdapter.hpp
+    include/map_panel/map_panel.hpp
+    include/robot_control/robot_control_panel.hpp
+    include/role/role.h
+    include/user/user.h
+    include/permission/permission.h
+    include/alert/Alert.h
+    include/virtual_wall/virtual_wall.h
+    include/AlertSystem/alert_system.h
+    include/Schedular/Schedular.hpp
+    include/robot_metrics/robot_metrics.h
+    include/config/ResourceConfig.hpp
+)
+
+# Add library target
+add_library(main_proj ${SOURCES})
 
 # Set include directories for main_proj
 target_include_directories(main_proj
     PUBLIC
-        $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
-        ${CMAKE_CURRENT_SOURCE_DIR}/src
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
 # Link libraries to main_proj

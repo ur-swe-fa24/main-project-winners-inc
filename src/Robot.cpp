@@ -245,10 +245,6 @@ void Robot::update(const Map& map) {
                         // If at charging station, start charging
                         startCharging();
                         std::cout << "Robot " << name << " started charging." << std::endl;
-                    } else {
-                        // Start cleaning
-                        startCleaning();
-                        std::cout << "Robot " << name << " started cleaning room " << currentRoom_->getRoomId() << " (" << currentRoom_->getRoomName() << ")." << std::endl;
                     }
                 }
             } else {
@@ -279,18 +275,6 @@ void Robot::update(const Map& map) {
             if (currentRoom_) {
                 currentRoom_->markClean();
                 std::cout << "Room " << currentRoom_->getRoomName() << " marked as clean." << std::endl;
-            }
-            // Set path back to charging station
-            Room* chargingStation = map.getRoomById(0);
-            if (chargingStation && currentRoom_ != chargingStation) {
-                std::vector<int> pathToCharger = map.getRoute(*currentRoom_, *chargingStation);
-                if (!pathToCharger.empty()) {
-                    setMovementPath(pathToCharger, map);
-                    setTargetRoom(chargingStation);
-                    std::cout << "Robot " << name << " is returning to charging station." << std::endl;
-                } else {
-                    std::cerr << "Robot " << name << ": Cannot find path back to charging station." << std::endl;
-                }
             }
         }
     }
