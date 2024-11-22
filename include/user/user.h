@@ -1,47 +1,26 @@
-// user.h
 #ifndef USER_H
 #define USER_H
 
-#include "alert/Alert.h"
-#include "role/role.h"
 #include <string>
+#include <memory>
+#include "role/role.h"
+#include "alert/Alert.h"
 
 class User {
-  private:
-    int id;
+private:
     std::string name;
-    Role role;
+    std::shared_ptr<Role> role;
 
-  public:
+public:
     // Constructor
-    User(int id, const std::string &name, const Role &role);
+    User(const std::string& name, std::shared_ptr<Role> role);
 
-    // User login
-    void login();
-
-    // User logout
-    void logout();
-
-    // Receive notification (alert)
-    void receiveNotification(const Alert &alert);
-
-    // Getter for id
-    int getId() const;
-
-    // Setter for id
-    void setId(int id);
-
-    // Getter for name
+    // Getters
     std::string getName() const;
+    std::shared_ptr<Role> getRole() const;
 
-    // Setter for name
-    void setName(const std::string &name);
-
-    // Getter for role
-    Role getRole() const;
-
-    // Setter for role
-    void setRole(const Role &role);
+    // Notification method
+    void receiveNotification(const Alert& alert);
 };
 
 #endif // USER_H

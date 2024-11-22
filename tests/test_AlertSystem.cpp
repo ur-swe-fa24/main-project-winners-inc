@@ -37,8 +37,8 @@ TEST_CASE("Alert System Integration Test") {
     userRole.addPermission(userPermission);
 
     // Create Users
-    User adminUser(1, "AdminUser", adminRole);
-    User regularUser(2, "RegularUser", userRole);
+    User adminUser("AdminUser", std::make_shared<Role>(adminRole));
+    User regularUser("RegularUser", std::make_shared<Role>(userRole));
 
     // Declaration of neighbors vector
     std::vector<Room*> neighbors;

@@ -5,13 +5,14 @@
 #include "permission/permission.h"
 #include <string>
 #include <vector>
+#include <memory>
 
 class Role {
-  private:
+private:
     std::string name;
     std::vector<Permission> permissions;
 
-  public:
+public:
     // Constructor
     Role(const std::string &name);
 
@@ -23,9 +24,6 @@ class Role {
 
     // Getter for name
     std::string getName() const;
-
-    // Setter for name
-    void setName(const std::string &name);
 };
 
 #endif // ROLE_H

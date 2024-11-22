@@ -2,28 +2,32 @@
 #include <iostream>
 #include <stdexcept>
 
-Scheduler::Scheduler(Map& map, std::vector<std::shared_ptr<Robot>>& robots)
+Scheduler::Scheduler(Map* map, std::vector<std::shared_ptr<Robot>>* robots)
     : map_(map), robots_(robots) {}
 
 void Scheduler::assignCleaningTask(const std::string& robotName, int targetRoomId, const std::string& cleaningStrategy) {
+    if (!map_ || !robots_) {
+        throw std::runtime_error("Scheduler not properly initialized");
+    }
+
     auto robot = findRobotByName(robotName);
     if (!robot) {
         throw std::runtime_error("Robot " + robotName + " not found.");
     }
 
-    Room* targetRoom = map_.getRoomById(targetRoomId);
+    Room* targetRoom = map_->getRoomById(targetRoomId);
     if (!targetRoom) {
         throw std::runtime_error("Target room " + std::to_string(targetRoomId) + " not found.");
     }
 
     // Get route to target room
-    std::vector<int> route = map_.getRoute(*robot->getCurrentRoom(), *targetRoom);
+    std::vector<int> route = map_->getRoute(*robot->getCurrentRoom(), *targetRoom);
     if (route.empty()) {
         throw std::runtime_error("No available route for robot " + robotName + " to room " + std::to_string(targetRoomId) + ".");
     }
 
     // Set the movement path for the robot
-    robot->setMovementPath(route, map_);
+    robot->setMovementPath(route, *map_);
 
     // Set the target room
     robot->setTargetRoom(targetRoom);
@@ -32,11 +36,15 @@ void Scheduler::assignCleaningTask(const std::string& robotName, int targetRoomI
 }
 
 void Scheduler::executeCleaning(std::shared_ptr<Robot> robot, Room* targetRoom, const std::string& strategy) {
+    if (!map_ || !robots_) {
+        throw std::runtime_error("Scheduler not properly initialized");
+    }
+
     // Get route to target room
-    std::vector<int> route = map_.getRoute(*robot->getCurrentRoom(), *targetRoom);
+    std::vector<int> route = map_->getRoute(*robot->getCurrentRoom(), *targetRoom);
 
     for (int roomId : route) {
-        Room* nextRoom = map_.getRoomById(roomId);
+        Room* nextRoom = map_->getRoomById(roomId);
         if (robot->moveToRoom(nextRoom)) {
             // Battery depletes from movement
             robot->depleteBattery(5); // Example energy cost per room transition
@@ -57,8 +65,14 @@ int Scheduler::getCleaningTime(const Room& room) const {
 }
 
 std::shared_ptr<Robot> Scheduler::findRobotByName(const std::string& name) {
-    for (auto& robot : robots_) {
-        if (robot->getName() == name) return robot;
+    if (!robots_) {
+        return nullptr;
+    }
+    
+    for (const auto& robot : *robots_) {
+        if (robot->getName() == name) {
+            return robot;
+        }
     }
     return nullptr;
 }

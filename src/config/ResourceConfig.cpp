@@ -2,6 +2,7 @@
 #include <filesystem>
 #include <wx/filename.h>
 #include <wx/stdpaths.h>
+#include <iostream>
 
 namespace config {
     std::string ResourceConfig::resourceDir_;
@@ -10,31 +11,41 @@ namespace config {
     void ResourceConfig::initialize(const std::string& resourceDir) {
         if (!resourceDir.empty()) {
             resourceDir_ = resourceDir;
-        } else {
-            // Try to find the resource directory relative to the executable
-            wxStandardPaths& paths = wxStandardPaths::Get();
-            wxString exeDir = wxFileName(paths.GetExecutablePath()).GetPath();
-            
-            // Check possible resource locations
-            std::vector<std::string> possiblePaths = {
-                (exeDir + "/resources").ToStdString(),  // resources in exe directory
-                (exeDir + "/map.json").ToStdString(),   // map.json in exe directory
-                (exeDir + "/../resources").ToStdString(), // resources one level up
-                (exeDir + "/..").ToStdString(),         // one level up
-                (exeDir).ToStdString()                  // exe directory itself
-            };
+            return;
+        }
 
-            for (const auto& path : possiblePaths) {
-                if (std::filesystem::exists(path + "/" + DEFAULT_MAP_NAME)) {
-                    resourceDir_ = std::filesystem::path(path).string();
-                    break;
-                }
-            }
+        // Get the executable directory
+        wxStandardPaths& paths = wxStandardPaths::Get();
+        wxString exeDir = wxFileName(paths.GetExecutablePath()).GetPath();
+        
+        // Get the project root directory (3 levels up from executable in build/app/)
+        wxString projectRoot = wxFileName(exeDir + "/../..").GetFullPath();
+        
+        // Check possible resource locations in priority order
+        std::vector<std::string> possiblePaths = {
+            (exeDir + "/resources").ToStdString(),          // build/app/resources
+            (projectRoot + "/resources").ToStdString(),     // project_root/resources
+            (exeDir + "/..").ToStdString(),                // build/app
+            (projectRoot).ToStdString(),                   // project_root
+            (exeDir).ToStdString()                        // build/app
+        };
 
-            // If still not found, use current directory
-            if (resourceDir_.empty()) {
-                resourceDir_ = ".";
+        std::cout << "Searching for resources in the following locations:" << std::endl;
+        for (const auto& path : possiblePaths) {
+            std::cout << "Checking: " << path << std::endl;
+            std::string mapPath = path + "/" + DEFAULT_MAP_NAME;
+            if (std::filesystem::exists(mapPath)) {
+                std::cout << "Found map.json at: " << mapPath << std::endl;
+                resourceDir_ = std::filesystem::path(path).string();
+                return;
             }
+        }
+
+        // If still not found, try current directory
+        if (resourceDir_.empty()) {
+            std::string currentDir = std::filesystem::current_path().string();
+            std::cout << "Falling back to current directory: " << currentDir << std::endl;
+            resourceDir_ = currentDir;
         }
     }
 

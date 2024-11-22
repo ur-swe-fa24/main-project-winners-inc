@@ -11,9 +11,26 @@ RobotSimulator::RobotSimulator(std::shared_ptr<MongoDBAdapter> dbAdapter, const 
     map_.loadFromFile(mapFile);
 
     // Initialize robots at starting room
-    Room* startingRoom = map_.getRoomById(1); // Use room 1 as starting room
+    Room* startingRoom = map_.getRoomById(0); // Use room 1 as starting room
     if (!startingRoom) {
         throw std::runtime_error("Starting room not found in the map.");
+    }
+
+    // Create pre-defined robots
+    std::vector<std::pair<std::string, int>> robotConfigs = {
+        {"Cleaning Bot 1", 100},
+        {"Cleaning Bot 2", 100},
+        {"Cleaning Bot 3", 100},
+    };
+
+    // Add pre-defined robots
+    for (const auto& config : robotConfigs) {
+        auto robot = std::make_shared<Robot>(config.first, config.second);
+        robot->setCurrentRoom(startingRoom);
+        robots_.push_back(robot);
+
+        // Log robot creation
+        std::cout << "Created robot: " << config.first << " with battery level: " << config.second << std::endl;
     }
 }
 
@@ -122,32 +139,15 @@ void RobotSimulator::simulationLoop() {
             // Perform database operations without holding the mutex
             try {
                 if (needsSave) {
-                    dbAdapter_->saveRobotStatus(robot);
+                    // Removed database save operation
                 }
 
                 if (generateLowBatteryAlert) {
-                    Alert alert(
-                        "Low Battery",
-                        "Robot " + robot->getName() + " battery level critical: " +
-                            std::to_string(robot->getBatteryLevel()) + "%",
-                        robot, 
-                        std::make_shared<Room>("Simulation Area", 1), 
-                        std::time(nullptr)
-                    );
-
-                    dbAdapter_->saveAlert(alert);
+                    // Removed database alert save operation
                 }
 
                 if (generateChargingAlert) {
-                    Alert alert(
-                        "Charging",
-                        "Robot " + robot->getName() + " has returned to charger",
-                        robot, 
-                        std::make_shared<Room>("Charging Station", 1), 
-                        std::time(nullptr)
-                    );
-
-                    dbAdapter_->saveAlert(alert);
+                    // Removed database alert save operation
                 }
             } catch (const std::exception& e) {
                 std::cerr << "RobotSimulator: Exception during database operation: " << e.what() << std::endl;
@@ -245,8 +245,7 @@ void RobotSimulator::simulateRobotMovement() {
             if (nextRoom && robot->moveToRoom(nextRoom)) {
                 // Mark the room as clean
                 nextRoom->markClean();
-                // Optionally, save robot status to the database
-                dbAdapter_->saveRobotStatus(robot);
+                // Removed database save operation
             }
         }
     }
@@ -301,14 +300,7 @@ void RobotSimulator::addRobot(const std::string& robotName) {
     newRobot->setCurrentRoom(startingRoom);
     robots_.push_back(newRobot);
     
-    // Save robot status to database
-    try {
-        dbAdapter_->saveRobotStatus(newRobot);
-        std::cout << "Robot '" << robotName << "' added and saved to database." << std::endl;
-    } catch (const std::exception& e) {
-        // If database save fails, still keep the robot but log the error
-        std::cerr << "Exception while saving robot '" << robotName << "' status: " << e.what() << std::endl;
-    }
+    // Removed database save operation
 }
 
 void RobotSimulator::deleteRobot(const std::string& robotName) {
@@ -324,14 +316,7 @@ void RobotSimulator::deleteRobot(const std::string& robotName) {
         throw std::runtime_error("Robot with name '" + robotName + "' not found");
     }
     
-    // Remove robot from database first
-    try {
-        dbAdapter_->deleteRobotStatus(robotName);
-        std::cout << "Robot '" << robotName << "' deleted from database." << std::endl;
-    } catch (const std::exception& e) {
-        // If database delete fails, still remove the robot but log the error
-        std::cerr << "Exception while deleting robot '" << robotName << "' from database: " << e.what() << std::endl;
-    }
+    // Removed database delete operation
     
     // Remove robot from vector
     robots_.erase(it);

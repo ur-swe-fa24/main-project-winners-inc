@@ -5,18 +5,15 @@
 #include <string>
 
 class Permission {
-  private:
+private:
     std::string name;
 
-  public:
+public:
     // Constructor
     Permission(const std::string &name);
 
     // Getter for name
     std::string getName() const;
-
-    // Setter for name
-    void setName(const std::string &name);
 };
 
 #endif // PERMISSION_H
