@@ -490,16 +490,13 @@ void RobotManagementFrame::UpdateRobotChoices() {
         return;
     }
 
-    if (!robotControlPanel) {
-        wxLogError("Robot control panel is not initialized");
-        return;
-    }
-
     try {
-        // Let RobotControlPanel handle its own robot choice updates
-        robotControlPanel->UpdateRobotList();
+        // Only update robot control panel if it exists (i.e., user has robot control access)
+        if (robotControlPanel) {
+            robotControlPanel->UpdateRobotList();
+        }
         
-        // Update the scheduler robot choices if needed
+        // Always update scheduler robot choices as it's available to all users
         UpdateSchedulerRobotChoices();
     } catch (const std::exception& e) {
         wxLogError("Error updating robot choices: %s", e.what());
@@ -509,27 +506,38 @@ void RobotManagementFrame::UpdateRobotChoices() {
 }
 
 void RobotManagementFrame::UpdateSchedulerRobotChoices() {
+    if (!simulator_) {
+        wxLogError("Simulator is not initialized");
+        return;
+    }
+
     if (schedulerRobotChoice) {
-        // Save the currently selected robot name
-        wxString currentSelection = schedulerRobotChoice->GetStringSelection();
+        try {
+            wxString currentSelection = schedulerRobotChoice->GetStringSelection();
 
-        schedulerRobotChoice->Clear();
-        auto robotStatuses = simulator_->getRobotStatuses();
-        std::cout << "Updating Scheduler Robot Choices:" << std::endl;
-        for (const auto& status : robotStatuses) {
-            schedulerRobotChoice->Append(status.name);
-            std::cout << " - " << status.name << std::endl;
+            schedulerRobotChoice->Clear();
+            auto robotStatuses = simulator_->getRobotStatuses();
+            
+            for (const auto& status : robotStatuses) {
+                if (!status.name.empty()) {  // Add check for empty name
+                    schedulerRobotChoice->Append(status.name);
+                }
+            }
+
+            // Restore the selection
+            int index = schedulerRobotChoice->FindString(currentSelection);
+            if (index != wxNOT_FOUND) {
+                schedulerRobotChoice->SetSelection(index);
+            } else if (schedulerRobotChoice->GetCount() > 0) {
+                schedulerRobotChoice->SetSelection(0);
+            }
+
+            schedulerRobotChoice->Refresh();
+        } catch (const std::exception& e) {
+            wxLogError("Error updating scheduler robot choices: %s", e.what());
+        } catch (...) {
+            wxLogError("Unknown error occurred while updating scheduler robot choices");
         }
-
-        // Restore the selection
-        int index = schedulerRobotChoice->FindString(currentSelection);
-        if (index != wxNOT_FOUND) {
-            schedulerRobotChoice->SetSelection(index);
-        } else if (schedulerRobotChoice->GetCount() > 0) {
-            schedulerRobotChoice->SetSelection(0); // Optionally select the first item
-        }
-
-        schedulerRobotChoice->Refresh(); // Ensure the UI reflects changes
     }
 }
 
