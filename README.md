@@ -107,3 +107,10 @@ Run individual test executables from the `build/tests` directory for more detail
 + Updated design documents, mainly making changes to our *class_diagram* files
 + Creating README.md and USER_GUIDE.md files
 + Implementation for SchedulingSystem
+
+## Updates Since Sprint 4
++ Adding limitations based on account type to allow different types of users to have different permissions
++ Implementing water level as a robot status
++ Adding room size to simulation
++ Imposing robot types-- only scrub robots can scrub, only vacuum robots may vacuum, etc.
++ Updated README.md and USER_GUIDE.md files
