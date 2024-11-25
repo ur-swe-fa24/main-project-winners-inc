@@ -12,6 +12,7 @@ public:
     Scheduler(Map* map = nullptr, std::vector<std::shared_ptr<Robot>>* robots = nullptr);
 
     void assignCleaningTask(const std::string& robotName, int targetRoomId, const std::string& cleaningStrategy);
+    bool isRobotOperational(const std::shared_ptr<Robot>& robot) const;
     void update(); // Regularly called to update tasks
     void executeCleaning(std::shared_ptr<Robot> robot, Room* targetRoom, const std::string& strategy);
     

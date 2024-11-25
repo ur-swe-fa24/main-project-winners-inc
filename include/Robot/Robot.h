@@ -23,6 +23,7 @@ public:
     void refillWater();
     void depleteWater(int amount);
     int getWaterLevel() const;
+    bool usesWater() const;
     bool needsWaterRefill() const;
 
     // Methods to perform actions
