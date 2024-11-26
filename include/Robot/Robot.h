@@ -10,19 +10,19 @@
 class Robot {
 public:
     // Constructor
-    Robot(const std::string& name, int batteryLevel, int waterLevel = 100);
+    Robot(const std::string& name, double batteryLevel, double waterLevel = 100.0);
 
     // Status update method
     void sendStatusUpdate() const;
 
     // Methods to manage battery
     void recharge(const Map& map);           // Updated declaration
-    void depleteBattery(int amount);
+    void depleteBattery(double amount);
 
     // Methods to manage water
     void refillWater();
-    void depleteWater(int amount);
-    int getWaterLevel() const;
+    void depleteWater(double amount);
+    double getWaterLevel() const;
     bool needsWaterRefill() const;
 
     // Methods to perform actions
@@ -39,9 +39,9 @@ public:
 
     // Getters
     std::string getName() const;
-    int getBatteryLevel() const;
+    double getBatteryLevel() const;
     std::string getStatus() const;
-    int getMovementProgress() const;
+    double getMovementProgress() const;
     Room* getNextRoom() const;
 
     void setCurrentRoom(Room* room);
@@ -59,8 +59,8 @@ public:
 private:
     // Attributes
     std::string name;
-    int batteryLevel;
-    int waterLevel_;  // New water level property
+    double batteryLevel;
+    double waterLevel_;  // New water level property
     bool cleaning_;
     bool lowBatteryAlertSent_;
     bool lowWaterAlertSent_;  // New low water alert flag
@@ -69,7 +69,7 @@ private:
     Room* nextRoom_; // The room the robot is moving towards
 
     bool isCharging_;
-    int chargingTimeRemaining_; // in seconds
+    double chargingTimeRemaining_; // in seconds
     double movementProgress_; // Time remaining to move to next room
 
     double cleaningTimeRemaining_; // Time remaining to clean the room

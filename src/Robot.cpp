@@ -3,15 +3,15 @@
 #include <iostream>
 
 // Constructor implementation
-Robot::Robot(const std::string& name, int batteryLevel, int waterLevel)
+Robot::Robot(const std::string& name, double batteryLevel, double waterLevel)
     : name(name), batteryLevel(batteryLevel), waterLevel_(waterLevel), cleaning_(false), 
     lowBatteryAlertSent_(false), lowWaterAlertSent_(false), currentRoom_(nullptr), 
     nextRoom_(nullptr), targetRoom_(nullptr), isCharging_(false),
-    chargingTimeRemaining_(0), movementProgress_(0.0), cleaningTimeRemaining_(0.0) {}
+    chargingTimeRemaining_(0.0), movementProgress_(0.0), cleaningTimeRemaining_(0.0) {}
 
 // Methods to start and stop cleaning
 void Robot::startCleaning() {
-    if (waterLevel_ < 10) {
+    if (waterLevel_ < 10.0) {
         std::cout << "Warning: Water level too low to start cleaning!" << std::endl;
         return;
     }
@@ -21,18 +21,18 @@ void Robot::startCleaning() {
         // Adjust cleaning time based on room type
         if (currentRoom_->flooringType == "Hardwood") {
             cleaningTimeRemaining_ = 15.0;
-            depleteWater(5); // Hardwood floors use less water
+            depleteWater(5.0); // Hardwood floors use less water
         } else if (currentRoom_->flooringType == "Carpet") {
             cleaningTimeRemaining_ = 20.0;
-            depleteWater(10); // Carpet cleaning uses more water
+            depleteWater(10.0); // Carpet cleaning uses more water
         } else {
             cleaningTimeRemaining_ = 10.0;
-            depleteWater(7); // Default water usage
+            depleteWater(7.0); // Default water usage
         }
     } else {
         std::cerr << "Error: currentRoom_ is null in startCleaning()" << std::endl;
         cleaningTimeRemaining_ = 10.0;
-        depleteWater(7);
+        depleteWater(7.0);
     }
 }
 
@@ -55,25 +55,25 @@ bool Robot::isLowBatteryAlertSent() const {
 
 // Water management methods
 void Robot::refillWater() {
-    waterLevel_ = 100;
+    waterLevel_ = 100.0;
     lowWaterAlertSent_ = false;
     std::cout << "Robot " << name << " water tank refilled to 100%" << std::endl;
 }
 
-void Robot::depleteWater(int amount) {
-    waterLevel_ = std::max(0, waterLevel_ - amount);
-    if (waterLevel_ < 20 && !lowWaterAlertSent_) {
+void Robot::depleteWater(double amount) {
+    waterLevel_ = std::max(0.0, waterLevel_ - amount);
+    if (waterLevel_ < 20.0 && !lowWaterAlertSent_) {
         std::cout << "Warning: " << name << " water level low (" << waterLevel_ << "%)" << std::endl;
         lowWaterAlertSent_ = true;
     }
 }
 
-int Robot::getWaterLevel() const {
+double Robot::getWaterLevel() const {
     return waterLevel_;
 }
 
 bool Robot::needsWaterRefill() const {
-    return waterLevel_ < 20;
+    return waterLevel_ < 20.0;
 }
 
 void Robot::setLowWaterAlertSent(bool sent) {
@@ -125,7 +125,7 @@ void Robot::recharge(const Map& map) {
 
 // Check if robot needs maintenance
 bool Robot::needsMaintenance() const {
-    if (batteryLevel < 20) {
+    if (batteryLevel < 20.0) {
         std::cout << "Robot " << name << " needs maintenance (battery level is low)." << std::endl;
         return true;
     }
@@ -137,15 +137,17 @@ std::string Robot::getName() const {
     return name;
 }
 
-int Robot::getBatteryLevel() const {
+double Robot::getBatteryLevel() const {
     return batteryLevel;
 }
 
 // Deplete battery
-void Robot::depleteBattery(int amount) {
-    batteryLevel -= amount;
-    if (batteryLevel < 0) batteryLevel = 0;
-    std::cout << "Robot " << name << "'s battery depleted to " << batteryLevel << "%." << std::endl;
+void Robot::depleteBattery(double amount) {
+    batteryLevel = std::max(0.0, batteryLevel - amount);
+    if (batteryLevel < 20.0 && !lowBatteryAlertSent_) {
+        std::cout << "Warning: " << name << " battery level low (" << batteryLevel << "%)" << std::endl;
+        lowBatteryAlertSent_ = true;
+    }
 }
 
 // Current room management
@@ -157,7 +159,7 @@ Room* Robot::getCurrentRoom() const {
     return currentRoom_;
 }
 
-int Robot::getMovementProgress() const {
+double Robot::getMovementProgress() const {
     return movementProgress_;
 }
 
@@ -218,10 +220,10 @@ void Robot::setMovementPath(const std::vector<int>& roomIds, const Map& map) {
 void Robot::update(const Map& map) {
     if (isCharging_) {
         // Recharge battery and refill water when at charging station
-        if (batteryLevel < 100) {
-            batteryLevel = std::min(100, batteryLevel + 10);
+        if (batteryLevel < 100.0) {
+            batteryLevel = std::min(100.0, batteryLevel + 10.0);
         }
-        if (waterLevel_ < 100) {
+        if (waterLevel_ < 100.0) {
             refillWater();
         }
         return;
@@ -237,7 +239,7 @@ void Robot::update(const Map& map) {
             if (nextRoom_) {
                 currentRoom_ = nextRoom_;
                 nextRoom_ = nullptr;
-                depleteBattery(5);
+                depleteBattery(5.0);
                 std::cout << "Robot " << name << " arrived at room " << currentRoom_->getRoomId() << " (" << currentRoom_->getRoomName() << ")." << std::endl;
 
                 if (currentRoom_ == targetRoom_) {
@@ -263,8 +265,8 @@ void Robot::update(const Map& map) {
 
     else if (isCleaning()) {
         // Continue cleaning
-        depleteBattery(1); // Deplete battery for cleaning
-        depleteWater(1); // Deplete water for cleaning
+        depleteBattery(1.0); // Deplete battery for cleaning
+        depleteWater(1.0); // Deplete water for cleaning
         cleaningTimeRemaining_ -= 1.0; // Assuming update is called every second
         std::cout << "Robot " << name << " is cleaning. Battery level: " << batteryLevel << "%" << std::endl;
         if (cleaningTimeRemaining_ <= 0.0) {
@@ -279,7 +281,7 @@ void Robot::update(const Map& map) {
         }
     }
 
-    else if (batteryLevel <= 20 && !isCharging_) {
+    else if (batteryLevel <= 20.0 && !isCharging_) {
         // Battery low, return to charger
         Room* chargingStation = map.getRoomById(0);
         if (chargingStation && currentRoom_ != chargingStation) {
@@ -300,12 +302,12 @@ void Robot::update(const Map& map) {
 
 void Robot::startCharging() {
     isCharging_ = true;
-    chargingTimeRemaining_ = 20; // Charging takes 20 seconds
+    chargingTimeRemaining_ = 20.0; // Charging takes 20 seconds
 }
 
 void Robot::stopCharging() {
     isCharging_ = false;
-    chargingTimeRemaining_ = 0;
+    chargingTimeRemaining_ = 0.0;
 }
 
 bool Robot::isCharging() const {
@@ -320,9 +322,9 @@ std::string Robot::getStatus() const {
         status = "Cleaning";
     } else if (needsMaintenance()) {
         status = "Needs Maintenance";
-    } else if (batteryLevel < 20) {
+    } else if (batteryLevel < 20.0) {
         status = "Low Battery";
-    } else if (waterLevel_ < 20) {
+    } else if (waterLevel_ < 20.0) {
         status = "Low Water";
     }
     return status;

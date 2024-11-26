@@ -20,12 +20,12 @@ public:
 
     struct RobotStatus {
         std::string name;
-        int batteryLevel;
-        int waterLevel;
+        double batteryLevel;
+        double waterLevel;
         std::string status;
         std::string currentRoomName;
         
-        RobotStatus(const std::string& n, int bl, int wl, const std::string& s, const std::string& crn)
+        RobotStatus(const std::string& n, double bl, double wl, const std::string& s, const std::string& crn)
             : name(n), batteryLevel(bl), waterLevel(wl), status(s), currentRoomName(crn) {}
     };
 

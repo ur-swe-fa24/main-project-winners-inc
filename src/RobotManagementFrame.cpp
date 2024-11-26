@@ -321,19 +321,19 @@ void RobotManagementFrame::UpdateRobotGrid() {
     int row = 0;
     for (const auto& robot : robotStatuses) {
         robotGrid->SetCellValue(row, 0, robot.name);
-        robotGrid->SetCellValue(row, 1, wxString::Format("%d%%", robot.batteryLevel));
-        robotGrid->SetCellValue(row, 2, wxString::Format("%d%%", robot.waterLevel));  // New water level display
+        robotGrid->SetCellValue(row, 1, wxString::Format("%.1f%%", robot.batteryLevel));
+        robotGrid->SetCellValue(row, 2, wxString::Format("%.1f%%", robot.waterLevel));
         robotGrid->SetCellValue(row, 3, robot.status);
         robotGrid->SetCellValue(row, 4, robot.currentRoomName);
 
         // Color coding for battery and water levels
-        if (robot.batteryLevel < 20) {
+        if (robot.batteryLevel < 20.0) {
             robotGrid->SetCellBackgroundColour(row, 1, wxColour(255, 200, 200));  // Light red for low battery
         } else {
             robotGrid->SetCellBackgroundColour(row, 1, wxColour(200, 255, 200));  // Light green for good battery
         }
 
-        if (robot.waterLevel < 20) {
+        if (robot.waterLevel < 20.0) {
             robotGrid->SetCellBackgroundColour(row, 2, wxColour(255, 200, 200));  // Light red for low water
         } else {
             robotGrid->SetCellBackgroundColour(row, 2, wxColour(200, 255, 200));  // Light green for good water level
@@ -563,34 +563,76 @@ void RobotManagementFrame::CreateSchedulerPanel(wxNotebook* notebook) {
 
     UpdateSchedulerRobotChoices();
 
-    // Populate schedulerRobotChoice with robot names
-    // if (robotChoice) {
-    //     for (unsigned int i = 0; i < robotChoice->GetCount(); ++i) {
-    //         schedulerRobotChoice->Append(robotChoice->GetString(i));
-    //     }
-    // }
-
-    wxStaticText* roomLabel = new wxStaticText(panel, wxID_ANY, "Enter Room ID:");
-    roomIdInput = new wxTextCtrl(panel, wxID_ANY);
+    wxStaticText* roomLabel = new wxStaticText(panel, wxID_ANY, "Select Room:");
+    roomChoice = new wxChoice(panel, wxID_ANY);
+    
+    // Populate room choices
+    const auto& rooms = simulator_->getMap().getRooms();
+    for (const auto& room : rooms) {
+        if (room) {
+            wxString roomName = wxString::FromUTF8(room->getRoomName());
+            roomChoice->Append(roomName, room);  // Store Room pointer as client data
+        }
+    }
 
     wxStaticText* strategyLabel = new wxStaticText(panel, wxID_ANY, "Cleaning Strategy:");
     strategyChoice = new wxChoice(panel, wxID_ANY);
-    strategyChoice->Append("Standard");
-    strategyChoice->Append("Deep Clean");
+    
+    // Initial cleaning strategies
+    strategyChoice->Append("Vacuum");
+    strategyChoice->Append("Scrub");
+    strategyChoice->Append("Shampoo");
 
     wxButton* assignTaskBtn = new wxButton(panel, wxID_ANY, "Assign Task");
+
+    // Bind events
     assignTaskBtn->Bind(wxEVT_BUTTON, &RobotManagementFrame::OnAssignTask, this);
+    roomChoice->Bind(wxEVT_CHOICE, &RobotManagementFrame::OnRoomSelected, this);
 
     sizer->Add(robotLabel, 0, wxALL, 5);
     sizer->Add(schedulerRobotChoice, 0, wxEXPAND | wxALL, 5);
     sizer->Add(roomLabel, 0, wxALL, 5);
-    sizer->Add(roomIdInput, 0, wxEXPAND | wxALL, 5);
+    sizer->Add(roomChoice, 0, wxEXPAND | wxALL, 5);
     sizer->Add(strategyLabel, 0, wxALL, 5);
     sizer->Add(strategyChoice, 0, wxEXPAND | wxALL, 5);
     sizer->Add(assignTaskBtn, 0, wxEXPAND | wxALL, 5);
 
     panel->SetSizer(sizer);
     notebook->AddPage(panel, "Scheduler");
+}
+
+void RobotManagementFrame::OnRoomSelected(wxCommandEvent& event) {
+    UpdateCleaningStrategies();
+}
+
+void RobotManagementFrame::UpdateCleaningStrategies() {
+    if (!roomChoice || !strategyChoice) return;
+
+    int selection = roomChoice->GetSelection();
+    if (selection == wxNOT_FOUND) return;
+
+    Room* selectedRoom = reinterpret_cast<Room*>(roomChoice->GetClientData(selection));
+    if (!selectedRoom) return;
+
+    // Clear existing strategies
+    strategyChoice->Clear();
+
+    // Always add Vacuum as it works on all floor types
+    strategyChoice->Append("Vacuum");
+
+    // Add other strategies based on floor type
+    std::string floorType = selectedRoom->flooringType;
+    if (floorType == "wood" || floorType == "tile") {
+        strategyChoice->Append("Scrub");
+    }
+    if (floorType == "carpet") {
+        strategyChoice->Append("Shampoo");
+    }
+
+    // Select the first strategy by default
+    if (strategyChoice->GetCount() > 0) {
+        strategyChoice->SetSelection(0);
+    }
 }
 
 void RobotManagementFrame::OnAssignTask(wxCommandEvent& event) {
@@ -600,17 +642,11 @@ void RobotManagementFrame::OnAssignTask(wxCommandEvent& event) {
     }
     std::string robotName = schedulerRobotChoice->GetStringSelection().ToStdString();
 
-    if (roomIdInput->GetValue().IsEmpty()) {
-        wxMessageBox("Please enter a room ID.", "Error", wxOK | wxICON_ERROR);
+    if (roomChoice->GetSelection() == wxNOT_FOUND) {
+        wxMessageBox("Please select a room from the Scheduler panel.", "Error", wxOK | wxICON_ERROR);
         return;
     }
-    int roomId;
-    try {
-        roomId = std::stoi(roomIdInput->GetValue().ToStdString());
-    } catch (const std::invalid_argument&) {
-        wxMessageBox("Invalid room ID. Please enter a numeric value.", "Error", wxOK | wxICON_ERROR);
-        return;
-    }
+    Room* selectedRoom = reinterpret_cast<Room*>(roomChoice->GetClientData(roomChoice->GetSelection()));
 
     if (strategyChoice->GetSelection() == wxNOT_FOUND) {
         wxMessageBox("Please select a cleaning strategy.", "Error", wxOK | wxICON_ERROR);
@@ -618,17 +654,10 @@ void RobotManagementFrame::OnAssignTask(wxCommandEvent& event) {
     }
     std::string strategy = strategyChoice->GetStringSelection().ToStdString();
 
-    scheduler_.assignCleaningTask(robotName, roomId, strategy);
+    scheduler_.assignCleaningTask(robotName, selectedRoom->getRoomId(), strategy);
 
     // Log the task assignment
-    std::cout << "Task assigned: Robot " << robotName << " to clean Room " << roomId << " with strategy " << strategy << "." << std::endl;
-
-    // Retrieve the target room from the map
-    Room* targetRoom = simulator_->getMap().getRoomById(roomId);
-    if (!targetRoom) {
-        wxMessageBox("Target room does not exist in the map.", "Error", wxOK | wxICON_ERROR);
-        return;
-    }
+    std::cout << "Task assigned: Robot " << robotName << " to clean Room " << selectedRoom->getRoomName() << " with strategy " << strategy << "." << std::endl;
 
     // Create and save "Assigned Cleaning Task" alert using existing Room instance
     auto robot = simulator_->getRobotByName(robotName);
@@ -639,9 +668,9 @@ void RobotManagementFrame::OnAssignTask(wxCommandEvent& event) {
 
     auto alert = std::make_shared<Alert>(
         "Assigned Cleaning Task",
-        "Robot " + robotName + " has been assigned to clean " + targetRoom->getRoomName(),
+        "Robot " + robotName + " has been assigned to clean " + selectedRoom->getRoomName(),
         robot,
-        std::make_shared<Room>(*targetRoom),
+        std::make_shared<Room>(*selectedRoom),
         std::time(nullptr)
     );
     alertSystem->sendAlert(currentUser.get(), alert);

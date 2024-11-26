@@ -52,6 +52,7 @@ private:
     void CreateSchedulerPanel(wxNotebook* notebook);
     void UpdateRobotChoices();
     void UpdateSchedulerRobotChoices();
+    void UpdateCleaningStrategies();  // New method to update strategies
 
     // Event Handlers
     void OnCheckAlerts(wxTimerEvent& evt);
@@ -64,6 +65,7 @@ private:
     void OnStatusUpdateTimer(wxTimerEvent& evt);
     void OnExit(wxCommandEvent& evt);
     void OnAssignTask(wxCommandEvent& event);
+    void OnRoomSelected(wxCommandEvent& event);  // New event handler
 
     // Member variables
     static const std::string DB_URI;
@@ -84,6 +86,7 @@ private:
     wxChoice* strategyChoice;
     wxTextCtrl* roomIdInput;
     wxChoice* schedulerRobotChoice;
+    wxChoice* roomChoice;  // New member variable for room selection
 
     DECLARE_EVENT_TABLE()
 };

@@ -83,12 +83,35 @@ void RobotControlPanel::UpdateRobotList()
         return;
     }
 
+    // Store currently selected robot name if any
+    wxString currentSelection;
+    if (robotChoice_->GetSelection() != wxNOT_FOUND) {
+        currentSelection = robotChoice_->GetString(robotChoice_->GetSelection());
+    }
+
     robotChoice_->Clear();
     const auto& robots = simulator_->getRobots();
-    for (const auto& robot : robots) {
-        if (robot) {  // Check if robot pointer is valid
-            robotChoice_->Append(robot->getName());
+    int newSelectionIndex = wxNOT_FOUND;
+    
+    for (size_t i = 0; i < robots.size(); ++i) {
+        if (robots[i]) {  // Check if robot pointer is valid
+            wxString robotName = robots[i]->getName();
+            robotChoice_->Append(robotName);
+            
+            // If this was the previously selected robot, note its new index
+            if (!currentSelection.empty() && robotName == currentSelection) {
+                newSelectionIndex = robotChoice_->GetCount() - 1;
+            }
         }
+    }
+
+    // Restore previous selection if possible
+    if (newSelectionIndex != wxNOT_FOUND) {
+        robotChoice_->SetSelection(newSelectionIndex);
+        // Trigger robot selected event to update UI state
+        wxCommandEvent evt(wxEVT_CHOICE);
+        evt.SetInt(newSelectionIndex);
+        OnRobotSelected(evt);
     }
 }
 
