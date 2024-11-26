@@ -32,7 +32,9 @@ enum {
 class RobotManagementFrame : public wxFrame {
 public:
     RobotManagementFrame(const wxString& title = "Robot Management System");
-    ~RobotManagementFrame();
+    virtual ~RobotManagementFrame();
+
+    void AddAlert(const Alert& alert);  // Method to add alerts
 
 private:
     // Methods
@@ -52,7 +54,7 @@ private:
     void CreateSchedulerPanel(wxNotebook* notebook);
     void UpdateRobotChoices();
     void UpdateSchedulerRobotChoices();
-    void UpdateCleaningStrategies();  // New method to update strategies
+    void UpdateCleaningStrategies();
 
     // Event Handlers
     void OnCheckAlerts(wxTimerEvent& evt);
@@ -65,7 +67,7 @@ private:
     void OnStatusUpdateTimer(wxTimerEvent& evt);
     void OnExit(wxCommandEvent& evt);
     void OnAssignTask(wxCommandEvent& event);
-    void OnRoomSelected(wxCommandEvent& event);  // New event handler
+    void OnRoomSelected(wxCommandEvent& event);
 
     // Member variables
     static const std::string DB_URI;
@@ -77,7 +79,7 @@ private:
     wxGrid* robotGrid;
     wxTimer* statusUpdateTimer;
     wxTimer* alertCheckTimer;
-    MapPanel* mapPanel_;  // Fixed mapPanel_ member variable
+    MapPanel* mapPanel_;  
     Scheduler scheduler_;
     RobotControlPanel* robotControlPanel;
     std::vector<std::shared_ptr<User>> users;
@@ -86,7 +88,7 @@ private:
     wxChoice* strategyChoice;
     wxTextCtrl* roomIdInput;
     wxChoice* schedulerRobotChoice;
-    wxChoice* roomChoice;  // New member variable for room selection
+    wxChoice* roomChoice_;  
 
     DECLARE_EVENT_TABLE()
 };

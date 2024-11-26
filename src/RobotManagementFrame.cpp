@@ -347,10 +347,30 @@ void RobotManagementFrame::UpdateRobotGrid() {
 
 void RobotManagementFrame::CheckAndUpdateAlerts() {
     // Refresh the alerts from database
-    alertsList->Clear();
     auto alerts = dbAdapter->retrieveAlerts();
     for (const auto& alert : alerts) {
-        alertsList->Append(alert.getMessage());
+        std::time_t timestamp = alert.getTimestamp();
+        std::string timeStr = std::ctime(&timestamp);
+        timeStr = timeStr.substr(0, timeStr.length() - 1);
+
+        wxString alertText = wxString::Format("[%s] %s: %s", 
+            timeStr,
+            alert.getType(),
+            alert.getMessage());
+        
+        // Check if this alert is already in the list
+        bool found = false;
+        for (unsigned int i = 0; i < alertsList->GetCount(); i++) {
+            if (alertsList->GetString(i) == alertText) {
+                found = true;
+                break;
+            }
+        }
+        
+        // Only add if not already present
+        if (!found) {
+            alertsList->Insert(alertText, 0);
+        }
     }
 }
 
@@ -361,10 +381,6 @@ void RobotManagementFrame::OnRefreshStatus(wxCommandEvent& evt) {
 void RobotManagementFrame::OnClearAlerts(wxCommandEvent& evt) {
     dbAdapter->deleteAllAlerts();
     alertsList->Clear();
-}
-
-void RobotManagementFrame::OnRefreshAlerts(wxCommandEvent& evt) {
-    CheckAndUpdateAlerts();
 }
 
 void RobotManagementFrame::OnStartCleaning(wxCommandEvent& evt) {
@@ -564,14 +580,14 @@ void RobotManagementFrame::CreateSchedulerPanel(wxNotebook* notebook) {
     UpdateSchedulerRobotChoices();
 
     wxStaticText* roomLabel = new wxStaticText(panel, wxID_ANY, "Select Room:");
-    roomChoice = new wxChoice(panel, wxID_ANY);
+    roomChoice_ = new wxChoice(panel, wxID_ANY);
     
     // Populate room choices
     const auto& rooms = simulator_->getMap().getRooms();
     for (const auto& room : rooms) {
         if (room) {
             wxString roomName = wxString::FromUTF8(room->getRoomName());
-            roomChoice->Append(roomName, room);  // Store Room pointer as client data
+            roomChoice_->Append(roomName, room);  // Store Room pointer as client data
         }
     }
 
@@ -587,12 +603,12 @@ void RobotManagementFrame::CreateSchedulerPanel(wxNotebook* notebook) {
 
     // Bind events
     assignTaskBtn->Bind(wxEVT_BUTTON, &RobotManagementFrame::OnAssignTask, this);
-    roomChoice->Bind(wxEVT_CHOICE, &RobotManagementFrame::OnRoomSelected, this);
+    roomChoice_->Bind(wxEVT_CHOICE, &RobotManagementFrame::OnRoomSelected, this);
 
     sizer->Add(robotLabel, 0, wxALL, 5);
     sizer->Add(schedulerRobotChoice, 0, wxEXPAND | wxALL, 5);
     sizer->Add(roomLabel, 0, wxALL, 5);
-    sizer->Add(roomChoice, 0, wxEXPAND | wxALL, 5);
+    sizer->Add(roomChoice_, 0, wxEXPAND | wxALL, 5);
     sizer->Add(strategyLabel, 0, wxALL, 5);
     sizer->Add(strategyChoice, 0, wxEXPAND | wxALL, 5);
     sizer->Add(assignTaskBtn, 0, wxEXPAND | wxALL, 5);
@@ -606,12 +622,12 @@ void RobotManagementFrame::OnRoomSelected(wxCommandEvent& event) {
 }
 
 void RobotManagementFrame::UpdateCleaningStrategies() {
-    if (!roomChoice || !strategyChoice) return;
+    if (!roomChoice_ || !strategyChoice) return;
 
-    int selection = roomChoice->GetSelection();
+    int selection = roomChoice_->GetSelection();
     if (selection == wxNOT_FOUND) return;
 
-    Room* selectedRoom = reinterpret_cast<Room*>(roomChoice->GetClientData(selection));
+    Room* selectedRoom = reinterpret_cast<Room*>(roomChoice_->GetClientData(selection));
     if (!selectedRoom) return;
 
     // Clear existing strategies
@@ -642,11 +658,11 @@ void RobotManagementFrame::OnAssignTask(wxCommandEvent& event) {
     }
     std::string robotName = schedulerRobotChoice->GetStringSelection().ToStdString();
 
-    if (roomChoice->GetSelection() == wxNOT_FOUND) {
+    if (roomChoice_->GetSelection() == wxNOT_FOUND) {
         wxMessageBox("Please select a room from the Scheduler panel.", "Error", wxOK | wxICON_ERROR);
         return;
     }
-    Room* selectedRoom = reinterpret_cast<Room*>(roomChoice->GetClientData(roomChoice->GetSelection()));
+    Room* selectedRoom = reinterpret_cast<Room*>(roomChoice_->GetClientData(roomChoice_->GetSelection()));
 
     if (strategyChoice->GetSelection() == wxNOT_FOUND) {
         wxMessageBox("Please select a cleaning strategy.", "Error", wxOK | wxICON_ERROR);
@@ -678,6 +694,55 @@ void RobotManagementFrame::OnAssignTask(wxCommandEvent& event) {
 
     mapPanel_->Refresh(); // Update UI
     UpdateRobotGrid();    // Update robot status grid
+}
+
+void RobotManagementFrame::AddAlert(const Alert& alert) {
+    // Save alert to database
+    if (dbAdapter) {
+        dbAdapter->saveAlertAsync(alert);
+    }
+
+    // Add to UI list with timestamp
+    std::time_t timestamp = alert.getTimestamp();
+    std::string timeStr = std::ctime(&timestamp);
+    timeStr = timeStr.substr(0, timeStr.length() - 1);  // Remove trailing newline
+
+    wxString alertText = wxString::Format("[%s] %s: %s", 
+        timeStr,
+        alert.getType(),
+        alert.getMessage());
+    
+    alertsList->Insert(alertText, 0);  // Add at the top of the list
+}
+
+void RobotManagementFrame::OnRefreshAlerts(wxCommandEvent& evt) {
+    if (!dbAdapter) return;
+
+    auto alerts = dbAdapter->retrieveAlerts();
+    for (const auto& alert : alerts) {
+        std::time_t timestamp = alert.getTimestamp();
+        std::string timeStr = std::ctime(&timestamp);
+        timeStr = timeStr.substr(0, timeStr.length() - 1);
+
+        wxString alertText = wxString::Format("[%s] %s: %s", 
+            timeStr,
+            alert.getType(),
+            alert.getMessage());
+        
+        // Check if this alert is already in the list
+        bool found = false;
+        for (unsigned int i = 0; i < alertsList->GetCount(); i++) {
+            if (alertsList->GetString(i) == alertText) {
+                found = true;
+                break;
+            }
+        }
+        
+        // Only add if not already present
+        if (!found) {
+            alertsList->Insert(alertText, 0);
+        }
+    }
 }
 
 wxBEGIN_EVENT_TABLE(RobotManagementFrame, wxFrame)

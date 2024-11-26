@@ -1,4 +1,5 @@
 #include "robot_control/robot_control_panel.hpp"
+#include "RobotManagementFrame/RobotManagementFrame.hpp"
 #include <wx/wx.h>
 #include <wx/stattext.h>
 #include <wx/choice.h>
@@ -14,7 +15,9 @@ RobotControlPanel::RobotControlPanel(wxWindow* parent, RobotSimulator* simulator
     : wxPanel(parent), simulator_(simulator), selectedRobot_(nullptr)
 {
     if (!simulator_) {
-        wxMessageBox("Invalid simulator pointer", "Error", wxOK | wxICON_ERROR);
+        Alert alert("Error", "Invalid simulator pointer", nullptr, nullptr,
+                   std::time(nullptr), Alert::HIGH);
+        static_cast<RobotManagementFrame*>(wxGetTopLevelParent(this))->AddAlert(alert);
         return;
     }
     CreateControls();
@@ -134,7 +137,9 @@ void RobotControlPanel::UpdateRoomList()
 void RobotControlPanel::OnRobotSelected(wxCommandEvent& event)
 {
     if (!simulator_) {
-        wxMessageBox("Invalid simulator pointer", "Error", wxOK | wxICON_ERROR);
+        Alert alert("Error", "Invalid simulator pointer", nullptr, nullptr,
+                   std::time(nullptr), Alert::HIGH);
+        static_cast<RobotManagementFrame*>(wxGetTopLevelParent(this))->AddAlert(alert);
         return;
     }
 
@@ -147,7 +152,9 @@ void RobotControlPanel::OnRobotSelected(wxCommandEvent& event)
             moveButton_->Enable();
             pickUpButton_->Enable();
         } else {
-            wxMessageBox("Failed to get robot: " + robotName, "Error", wxOK | wxICON_ERROR);
+            Alert alert("Error", std::string(robotName.mb_str()), nullptr, nullptr,
+                       std::time(nullptr), Alert::HIGH);
+            static_cast<RobotManagementFrame*>(wxGetTopLevelParent(this))->AddAlert(alert);
             roomChoice_->Enable(false);
             moveButton_->Enable(false);
             pickUpButton_->Enable(false);
@@ -163,95 +170,113 @@ void RobotControlPanel::OnRobotSelected(wxCommandEvent& event)
 void RobotControlPanel::OnStartCleaning(wxCommandEvent& evt)
 {
     if (!selectedRobot_) {
-        wxMessageBox("No robot selected", "Error", wxOK | wxICON_ERROR);
+        Alert alert("Error", "No robot selected", nullptr, nullptr,
+                   std::time(nullptr), Alert::HIGH);
+        static_cast<RobotManagementFrame*>(wxGetTopLevelParent(this))->AddAlert(alert);
         return;
     }
 
     simulator_->startCleaning(selectedRobot_->getName());
 
     // Create alert
-    auto alert = std::make_shared<Alert>("Robot started", 
-                                       "Robot " + selectedRobot_->getName() + " has started cleaning",
-                                       std::make_shared<Robot>(*selectedRobot_),
-                                       nullptr,  // No specific room
-                                       std::time(nullptr),
-                                       Alert::LOW);
-
-    wxMessageBox("Robot has started cleaning.", "Info", wxOK | wxICON_INFORMATION);
+    Alert alert("Robot started", 
+               "Robot " + selectedRobot_->getName() + " has started cleaning",
+               selectedRobot_,
+               selectedRobot_->getCurrentRoom() ? std::make_shared<Room>(*selectedRobot_->getCurrentRoom()) : nullptr,
+               std::time(nullptr),
+               Alert::LOW);
+    
+    static_cast<RobotManagementFrame*>(wxGetTopLevelParent(this))->AddAlert(alert);
 }
 
 void RobotControlPanel::OnStopCleaning(wxCommandEvent& evt)
 {
     if (!selectedRobot_) {
-        wxMessageBox("No robot selected", "Error", wxOK | wxICON_ERROR);
+        Alert alert("Error", "No robot selected", nullptr, nullptr,
+                   std::time(nullptr), Alert::HIGH);
+        static_cast<RobotManagementFrame*>(wxGetTopLevelParent(this))->AddAlert(alert);
         return;
     }
 
     simulator_->stopCleaning(selectedRobot_->getName());
     
     // Create alert
-    auto alert = std::make_shared<Alert>("Robot stopped", 
-                                       "Robot " + selectedRobot_->getName() + " has stopped cleaning",
-                                       std::make_shared<Robot>(*selectedRobot_),
-                                       nullptr,  // No specific room
-                                       std::time(nullptr),
-                                       Alert::LOW);
-
-    wxMessageBox("Robot has stopped cleaning.", "Info", wxOK | wxICON_INFORMATION);
+    Alert alert("Robot stopped", 
+               "Robot " + selectedRobot_->getName() + " has stopped cleaning",
+               selectedRobot_,
+               selectedRobot_->getCurrentRoom() ? std::make_shared<Room>(*selectedRobot_->getCurrentRoom()) : nullptr,
+               std::time(nullptr),
+               Alert::LOW);
+    
+    static_cast<RobotManagementFrame*>(wxGetTopLevelParent(this))->AddAlert(alert);
 }
 
 void RobotControlPanel::OnReturnToCharger(wxCommandEvent& evt)
 {
     if (!selectedRobot_) {
-        wxMessageBox("No robot selected", "Error", wxOK | wxICON_ERROR);
+        Alert alert("Error", "No robot selected", nullptr, nullptr,
+                   std::time(nullptr), Alert::HIGH);
+        static_cast<RobotManagementFrame*>(wxGetTopLevelParent(this))->AddAlert(alert);
         return;
     }
 
     if (selectedRobot_->isCharging()) {
-        wxMessageBox("Robot is already charging.", "Info", wxOK | wxICON_INFORMATION);
+        Alert alert("Warning", "Robot " + selectedRobot_->getName() + " is already charging", 
+                   selectedRobot_, nullptr, std::time(nullptr), Alert::LOW);
+        static_cast<RobotManagementFrame*>(wxGetTopLevelParent(this))->AddAlert(alert);
         return;
     }
 
     simulator_->returnToCharger(selectedRobot_->getName());
 
     // Create alert
-    auto alert = std::make_shared<Alert>("Robot charging", 
-                                       "Robot " + selectedRobot_->getName() + " is returning to charger",
-                                       std::make_shared<Robot>(*selectedRobot_),
-                                       nullptr,  // No specific room
-                                       std::time(nullptr),
-                                       Alert::LOW);
-
-    wxMessageBox("Robot is returning to charger.", "Info", wxOK | wxICON_INFORMATION);
+    Alert alert("Robot charging", 
+               "Robot " + selectedRobot_->getName() + " is returning to charger",
+               selectedRobot_,
+               selectedRobot_->getCurrentRoom() ? std::make_shared<Room>(*selectedRobot_->getCurrentRoom()) : nullptr,
+               std::time(nullptr),
+               Alert::LOW);
+    
+    static_cast<RobotManagementFrame*>(wxGetTopLevelParent(this))->AddAlert(alert);
 }
 
 void RobotControlPanel::OnMoveToRoom(wxCommandEvent& evt)
 {
     if (!simulator_) {
-        wxMessageBox("Invalid simulator pointer", "Error", wxOK | wxICON_ERROR);
+        Alert alert("Error", "Invalid simulator pointer", nullptr, nullptr,
+                   std::time(nullptr), Alert::HIGH);
+        static_cast<RobotManagementFrame*>(wxGetTopLevelParent(this))->AddAlert(alert);
         return;
     }
 
     if (!selectedRobot_) {
-        wxMessageBox("No robot selected", "Error", wxOK | wxICON_ERROR);
+        Alert alert("Error", "No robot selected", nullptr, nullptr,
+                   std::time(nullptr), Alert::HIGH);
+        static_cast<RobotManagementFrame*>(wxGetTopLevelParent(this))->AddAlert(alert);
         return;
     }
 
     int sel = roomChoice_->GetSelection();
     if (sel == wxNOT_FOUND) {
-        wxMessageBox("Please select a room", "Error", wxOK | wxICON_ERROR);
+        Alert alert("Error", "Please select a room", selectedRobot_, nullptr,
+                   std::time(nullptr), Alert::HIGH);
+        static_cast<RobotManagementFrame*>(wxGetTopLevelParent(this))->AddAlert(alert);
         return;
     }
 
     Room* targetRoom = reinterpret_cast<Room*>(roomChoice_->GetClientData(sel));
     if (!targetRoom) {
-        wxMessageBox("Invalid room selection", "Error", wxOK | wxICON_ERROR);
+        Alert alert("Error", "Invalid room selection", selectedRobot_, nullptr,
+                   std::time(nullptr), Alert::HIGH);
+        static_cast<RobotManagementFrame*>(wxGetTopLevelParent(this))->AddAlert(alert);
         return;
     }
 
     Room* currentRoom = selectedRobot_->getCurrentRoom();
     if (!currentRoom) {
-        wxMessageBox("Robot's current room is unknown", "Error", wxOK | wxICON_ERROR);
+        Alert alert("Error", "Robot's current room is unknown", selectedRobot_, nullptr,
+                   std::time(nullptr), Alert::HIGH);
+        static_cast<RobotManagementFrame*>(wxGetTopLevelParent(this))->AddAlert(alert);
         return;
     }
 
@@ -259,7 +284,9 @@ void RobotControlPanel::OnMoveToRoom(wxCommandEvent& evt)
     try {
         std::vector<int> path = simulator_->getMap().getRoute(*currentRoom, *targetRoom);
         if (path.empty()) {
-            wxMessageBox("No valid path to target room found", "Error", wxOK | wxICON_ERROR);
+            Alert alert("Error", "No valid path to target room found", selectedRobot_, nullptr,
+                       std::time(nullptr), Alert::HIGH);
+            static_cast<RobotManagementFrame*>(wxGetTopLevelParent(this))->AddAlert(alert);
             return;
         }
 
@@ -267,33 +294,36 @@ void RobotControlPanel::OnMoveToRoom(wxCommandEvent& evt)
         selectedRobot_->setMovementPath(path, simulator_->getMap());
         selectedRobot_->setTargetRoom(targetRoom);
 
-        // Create alert
-        auto alert = std::make_shared<Alert>("Robot moving", 
-                                           "Robot " + selectedRobot_->getName() + " is moving to " + targetRoom->getRoomName(),
-                                           std::make_shared<Robot>(*selectedRobot_),
-                                           std::make_shared<Room>(*targetRoom),
-                                           std::time(nullptr),
-                                           Alert::LOW);
-
-        wxMessageBox(wxString::Format("Robot %s is moving to %s", 
-                    selectedRobot_->getName(), 
-                    targetRoom->getRoomName()), 
-                    "Info", wxOK | wxICON_INFORMATION);
+        // Create success alert
+        Alert alert("Robot moving", 
+                   "Robot " + selectedRobot_->getName() + " is moving to " + targetRoom->getRoomName(),
+                   selectedRobot_,
+                   std::make_shared<Room>(*targetRoom),
+                   std::time(nullptr),
+                   Alert::LOW);
+        
+        static_cast<RobotManagementFrame*>(wxGetTopLevelParent(this))->AddAlert(alert);
+        
     } catch (const std::exception& e) {
-        wxMessageBox(wxString::Format("Error moving robot: %s", e.what()), 
-                    "Error", wxOK | wxICON_ERROR);
+        Alert alert("Error", std::string("Error moving robot: ") + e.what(), 
+                   selectedRobot_, nullptr, std::time(nullptr), Alert::HIGH);
+        static_cast<RobotManagementFrame*>(wxGetTopLevelParent(this))->AddAlert(alert);
     }
 }
 
 void RobotControlPanel::OnPickUpRobot(wxCommandEvent& evt)
 {
     if (!simulator_) {
-        wxMessageBox("Invalid simulator pointer", "Error", wxOK | wxICON_ERROR);
+        Alert alert("Error", "Invalid simulator pointer", nullptr, nullptr,
+                   std::time(nullptr), Alert::HIGH);
+        static_cast<RobotManagementFrame*>(wxGetTopLevelParent(this))->AddAlert(alert);
         return;
     }
 
     if (!selectedRobot_) {
-        wxMessageBox("No robot selected", "Error", wxOK | wxICON_ERROR);
+        Alert alert("Error", "No robot selected", nullptr, nullptr,
+                   std::time(nullptr), Alert::HIGH);
+        static_cast<RobotManagementFrame*>(wxGetTopLevelParent(this))->AddAlert(alert);
         return;
     }
 
@@ -301,29 +331,29 @@ void RobotControlPanel::OnPickUpRobot(wxCommandEvent& evt)
         // Get the charging station (assuming it's room 0)
         Room* chargingStation = simulator_->getMap().getRoomById(0);
         if (!chargingStation) {
-            wxMessageBox("Charging station not found", "Error", wxOK | wxICON_ERROR);
+            Alert alert("Error", "Charging station not found", selectedRobot_, nullptr,
+                       std::time(nullptr), Alert::HIGH);
+            static_cast<RobotManagementFrame*>(wxGetTopLevelParent(this))->AddAlert(alert);
             return;
         }
 
-        // Create a copy of the robot for the alert
-        auto robotCopy = std::make_shared<Robot>(*selectedRobot_);
-        
-        // Move robot to charging station and start charging
+        // Set robot's location to charging station
         selectedRobot_->setCurrentRoom(chargingStation);
-        selectedRobot_->startCharging();
+        selectedRobot_->setMovementPath(std::vector<int>(), simulator_->getMap()); // Clear path by setting empty vector
+        selectedRobot_->setTargetRoom(nullptr);
 
-        // Create alert for robot being picked up
-        auto alert = std::make_shared<Alert>("Robot picked up",
-                                           "Robot " + selectedRobot_->getName() + " has been picked up and moved to charging station",
-                                           robotCopy,
-                                           std::make_shared<Room>(*chargingStation),
-                                           std::time(nullptr),
-                                           Alert::LOW);
+        Alert alert("Robot picked up", 
+                   "Robot " + selectedRobot_->getName() + " has been picked up and returned to charging station",
+                   selectedRobot_,
+                   std::make_shared<Room>(*chargingStation),
+                   std::time(nullptr),
+                   Alert::LOW);
+        
+        static_cast<RobotManagementFrame*>(wxGetTopLevelParent(this))->AddAlert(alert);
 
-        wxMessageBox("Robot has been picked up and moved to charging station.", 
-                    "Info", wxOK | wxICON_INFORMATION);
     } catch (const std::exception& e) {
-        wxMessageBox(wxString::Format("Error picking up robot: %s", e.what()), 
-                    "Error", wxOK | wxICON_ERROR);
+        Alert alert("Error", std::string("Error picking up robot: ") + e.what(), 
+                   selectedRobot_, nullptr, std::time(nullptr), Alert::HIGH);
+        static_cast<RobotManagementFrame*>(wxGetTopLevelParent(this))->AddAlert(alert);
     }
 }
