@@ -37,6 +37,7 @@ set(SOURCES
     src/Schedular.cpp
     src/robot_metrics.cpp
     src/config/ResourceConfig.cpp
+    src/scheduler_panel.cpp
 )
 
 # Define header files
@@ -57,6 +58,7 @@ set(HEADERS
     include/Schedular/Schedular.hpp
     include/robot_metrics/robot_metrics.h
     include/config/ResourceConfig.hpp
+    include/scheduler_panel/scheduler_panel.hpp
 )
 
 # Add library target

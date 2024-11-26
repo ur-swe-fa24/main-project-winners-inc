@@ -415,6 +415,54 @@ void RobotManagementFrame::OnStatusUpdateTimer(wxTimerEvent& evt) {
     }
 }
 
+void RobotManagementFrame::AddAlert(const Alert& alert) {
+    // Save alert to database
+    if (dbAdapter) {
+        dbAdapter->saveAlertAsync(alert);
+    }
+
+    // Add to UI list with timestamp
+    std::time_t timestamp = alert.getTimestamp();
+    std::string timeStr = std::ctime(&timestamp);
+    timeStr = timeStr.substr(0, timeStr.length() - 1);  // Remove trailing newline
+
+    wxString alertText = wxString::Format("[%s] %s: %s", 
+        timeStr,
+        alert.getType(),
+        alert.getMessage());
+    
+    alertsList->Insert(alertText, 0);  // Add at the top of the list
+}
+
+void RobotManagementFrame::OnRefreshAlerts(wxCommandEvent& evt) {
+    if (!dbAdapter) return;
+
+    auto alerts = dbAdapter->retrieveAlerts();
+    for (const auto& alert : alerts) {
+        std::time_t timestamp = alert.getTimestamp();
+        std::string timeStr = std::ctime(&timestamp);
+        timeStr = timeStr.substr(0, timeStr.length() - 1);
+
+        wxString alertText = wxString::Format("[%s] %s: %s", 
+            timeStr,
+            alert.getType(),
+            alert.getMessage());
+        
+        // Check if this alert is already in the list
+        bool found = false;
+        for (unsigned int i = 0; i < alertsList->GetCount(); i++) {
+            if (alertsList->GetString(i) == alertText) {
+                found = true;
+                break;
+            }
+        }
+        
+        // Only add if not already present
+        if (!found) {
+            alertsList->Insert(alertText, 0);
+        }
+    }
+}
 
 void RobotManagementFrame::BindEvents() {
     // Bind the timer event for checking alerts
@@ -522,39 +570,24 @@ void RobotManagementFrame::UpdateRobotChoices() {
 }
 
 void RobotManagementFrame::UpdateSchedulerRobotChoices() {
-    if (!simulator_) {
-        wxLogError("Simulator is not initialized");
-        return;
+    if (schedulerPanel_) {
+        schedulerPanel_->UpdateRobotChoices();
     }
+}
 
-    if (schedulerRobotChoice) {
-        try {
-            wxString currentSelection = schedulerRobotChoice->GetStringSelection();
+void RobotManagementFrame::OnAssignTask(wxCommandEvent& event) {
+    // This method is now handled by SchedulerPanel
+    event.Skip();
+}
 
-            schedulerRobotChoice->Clear();
-            auto robotStatuses = simulator_->getRobotStatuses();
-            
-            for (const auto& status : robotStatuses) {
-                if (!status.name.empty()) {  // Add check for empty name
-                    schedulerRobotChoice->Append(status.name);
-                }
-            }
+void RobotManagementFrame::OnRoomSelected(wxCommandEvent& event) {
+    // This method is now handled by SchedulerPanel
+    event.Skip();
+}
 
-            // Restore the selection
-            int index = schedulerRobotChoice->FindString(currentSelection);
-            if (index != wxNOT_FOUND) {
-                schedulerRobotChoice->SetSelection(index);
-            } else if (schedulerRobotChoice->GetCount() > 0) {
-                schedulerRobotChoice->SetSelection(0);
-            }
-
-            schedulerRobotChoice->Refresh();
-        } catch (const std::exception& e) {
-            wxLogError("Error updating scheduler robot choices: %s", e.what());
-        } catch (...) {
-            wxLogError("Unknown error occurred while updating scheduler robot choices");
-        }
-    }
+void RobotManagementFrame::CreateSchedulerPanel(wxNotebook* notebook) {
+    schedulerPanel_ = new SchedulerPanel(notebook, simulator_.get(), &scheduler_);
+    notebook->AddPage(schedulerPanel_, "Scheduler");
 }
 
 void RobotManagementFrame::CreateRobotAnalyticsPanel(wxNotebook* notebook) {
@@ -568,181 +601,6 @@ void RobotManagementFrame::CreateRobotAnalyticsPanel(wxNotebook* notebook) {
     panel->SetSizer(sizer);
 
     notebook->AddPage(panel, "Robot Analytics");
-}
-
-void RobotManagementFrame::CreateSchedulerPanel(wxNotebook* notebook) {
-    wxPanel* panel = new wxPanel(notebook);
-    wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
-
-    wxStaticText* robotLabel = new wxStaticText(panel, wxID_ANY, "Select Robot:");
-    schedulerRobotChoice = new wxChoice(panel, wxID_ANY); // Assign to member variable
-
-    UpdateSchedulerRobotChoices();
-
-    wxStaticText* roomLabel = new wxStaticText(panel, wxID_ANY, "Select Room:");
-    roomChoice_ = new wxChoice(panel, wxID_ANY);
-    
-    // Populate room choices
-    const auto& rooms = simulator_->getMap().getRooms();
-    for (const auto& room : rooms) {
-        if (room) {
-            wxString roomName = wxString::FromUTF8(room->getRoomName());
-            roomChoice_->Append(roomName, room);  // Store Room pointer as client data
-        }
-    }
-
-    wxStaticText* strategyLabel = new wxStaticText(panel, wxID_ANY, "Cleaning Strategy:");
-    strategyChoice = new wxChoice(panel, wxID_ANY);
-    
-    // Initial cleaning strategies
-    strategyChoice->Append("Vacuum");
-    strategyChoice->Append("Scrub");
-    strategyChoice->Append("Shampoo");
-
-    wxButton* assignTaskBtn = new wxButton(panel, wxID_ANY, "Assign Task");
-
-    // Bind events
-    assignTaskBtn->Bind(wxEVT_BUTTON, &RobotManagementFrame::OnAssignTask, this);
-    roomChoice_->Bind(wxEVT_CHOICE, &RobotManagementFrame::OnRoomSelected, this);
-
-    sizer->Add(robotLabel, 0, wxALL, 5);
-    sizer->Add(schedulerRobotChoice, 0, wxEXPAND | wxALL, 5);
-    sizer->Add(roomLabel, 0, wxALL, 5);
-    sizer->Add(roomChoice_, 0, wxEXPAND | wxALL, 5);
-    sizer->Add(strategyLabel, 0, wxALL, 5);
-    sizer->Add(strategyChoice, 0, wxEXPAND | wxALL, 5);
-    sizer->Add(assignTaskBtn, 0, wxEXPAND | wxALL, 5);
-
-    panel->SetSizer(sizer);
-    notebook->AddPage(panel, "Scheduler");
-}
-
-void RobotManagementFrame::OnRoomSelected(wxCommandEvent& event) {
-    UpdateCleaningStrategies();
-}
-
-void RobotManagementFrame::UpdateCleaningStrategies() {
-    if (!roomChoice_ || !strategyChoice) return;
-
-    int selection = roomChoice_->GetSelection();
-    if (selection == wxNOT_FOUND) return;
-
-    Room* selectedRoom = reinterpret_cast<Room*>(roomChoice_->GetClientData(selection));
-    if (!selectedRoom) return;
-
-    // Clear existing strategies
-    strategyChoice->Clear();
-
-    // Always add Vacuum as it works on all floor types
-    strategyChoice->Append("Vacuum");
-
-    // Add other strategies based on floor type
-    std::string floorType = selectedRoom->flooringType;
-    if (floorType == "wood" || floorType == "tile") {
-        strategyChoice->Append("Scrub");
-    }
-    if (floorType == "carpet") {
-        strategyChoice->Append("Shampoo");
-    }
-
-    // Select the first strategy by default
-    if (strategyChoice->GetCount() > 0) {
-        strategyChoice->SetSelection(0);
-    }
-}
-
-void RobotManagementFrame::OnAssignTask(wxCommandEvent& event) {
-    if (!schedulerRobotChoice || schedulerRobotChoice->GetSelection() == wxNOT_FOUND) {
-        wxMessageBox("Please select a robot from the Scheduler panel.", "Error", wxOK | wxICON_ERROR);
-        return;
-    }
-    std::string robotName = schedulerRobotChoice->GetStringSelection().ToStdString();
-
-    if (roomChoice_->GetSelection() == wxNOT_FOUND) {
-        wxMessageBox("Please select a room from the Scheduler panel.", "Error", wxOK | wxICON_ERROR);
-        return;
-    }
-    Room* selectedRoom = reinterpret_cast<Room*>(roomChoice_->GetClientData(roomChoice_->GetSelection()));
-
-    if (strategyChoice->GetSelection() == wxNOT_FOUND) {
-        wxMessageBox("Please select a cleaning strategy.", "Error", wxOK | wxICON_ERROR);
-        return;
-    }
-    std::string strategy = strategyChoice->GetStringSelection().ToStdString();
-
-    scheduler_.assignCleaningTask(robotName, selectedRoom->getRoomId(), strategy);
-
-    // Log the task assignment
-    std::cout << "Task assigned: Robot " << robotName << " to clean Room " << selectedRoom->getRoomName() << " with strategy " << strategy << "." << std::endl;
-
-    // Create and save "Assigned Cleaning Task" alert using existing Room instance
-    auto robot = simulator_->getRobotByName(robotName);
-    if (!robot) {
-        wxMessageBox("Robot not found.", "Error", wxOK | wxICON_ERROR);
-        return;
-    }
-
-    auto alert = std::make_shared<Alert>(
-        "Assigned Cleaning Task",
-        "Robot " + robotName + " has been assigned to clean " + selectedRoom->getRoomName(),
-        robot,
-        std::make_shared<Room>(*selectedRoom),
-        std::time(nullptr)
-    );
-    alertSystem->sendAlert(currentUser.get(), alert);
-    dbAdapter->saveAlert(*alert);
-
-    mapPanel_->Refresh(); // Update UI
-    UpdateRobotGrid();    // Update robot status grid
-}
-
-void RobotManagementFrame::AddAlert(const Alert& alert) {
-    // Save alert to database
-    if (dbAdapter) {
-        dbAdapter->saveAlertAsync(alert);
-    }
-
-    // Add to UI list with timestamp
-    std::time_t timestamp = alert.getTimestamp();
-    std::string timeStr = std::ctime(&timestamp);
-    timeStr = timeStr.substr(0, timeStr.length() - 1);  // Remove trailing newline
-
-    wxString alertText = wxString::Format("[%s] %s: %s", 
-        timeStr,
-        alert.getType(),
-        alert.getMessage());
-    
-    alertsList->Insert(alertText, 0);  // Add at the top of the list
-}
-
-void RobotManagementFrame::OnRefreshAlerts(wxCommandEvent& evt) {
-    if (!dbAdapter) return;
-
-    auto alerts = dbAdapter->retrieveAlerts();
-    for (const auto& alert : alerts) {
-        std::time_t timestamp = alert.getTimestamp();
-        std::string timeStr = std::ctime(&timestamp);
-        timeStr = timeStr.substr(0, timeStr.length() - 1);
-
-        wxString alertText = wxString::Format("[%s] %s: %s", 
-            timeStr,
-            alert.getType(),
-            alert.getMessage());
-        
-        // Check if this alert is already in the list
-        bool found = false;
-        for (unsigned int i = 0; i < alertsList->GetCount(); i++) {
-            if (alertsList->GetString(i) == alertText) {
-                found = true;
-                break;
-            }
-        }
-        
-        // Only add if not already present
-        if (!found) {
-            alertsList->Insert(alertText, 0);
-        }
-    }
 }
 
 wxBEGIN_EVENT_TABLE(RobotManagementFrame, wxFrame)

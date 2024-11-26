@@ -18,6 +18,7 @@
 #include "map_panel/map_panel.hpp"
 #include "Schedular/Schedular.hpp"  // Include Scheduler header
 #include "robot_control/robot_control_panel.hpp"  // Include new control panel header
+#include "scheduler_panel/scheduler_panel.hpp"  // Add this include
 
 // Forward declarations
 class LoginDialog;
@@ -85,10 +86,8 @@ private:
     std::vector<std::shared_ptr<User>> users;
     std::map<std::string, std::string> userPasswords;
     wxListBox* alertsList;
-    wxChoice* strategyChoice;
     wxTextCtrl* roomIdInput;
-    wxChoice* schedulerRobotChoice;
-    wxChoice* roomChoice_;  
+    SchedulerPanel* schedulerPanel_;
 
     DECLARE_EVENT_TABLE()
 };
