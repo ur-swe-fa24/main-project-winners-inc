@@ -1,7 +1,7 @@
 #include "cleaningTask/cleaningTask.h"
-#include "schedule/schedule.h"
-#include "robot/Robot.h"
-#include "room/Room.h"
+#include "Schedule/schedule.h"
+#include "Robot/Robot.h"
+#include "Room/Room.h"
 #include <string>
 #include <iostream>
 #include <vector>

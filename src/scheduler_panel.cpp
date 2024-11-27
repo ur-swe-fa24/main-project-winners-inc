@@ -50,6 +50,16 @@ void SchedulerPanel::CreateControls() {
     sizer->Add(assignTaskBtn, 0, wxEXPAND | wxALL, 5);
 
     SetSizer(sizer);
+
+        // Task List Control
+    taskListCtrl_ = new wxListCtrl(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLC_REPORT);
+    taskListCtrl_->InsertColumn(0, "Task ID");
+    taskListCtrl_->InsertColumn(1, "Room");
+    taskListCtrl_->InsertColumn(2, "Strategy");
+
+    // Add the task list control to the sizer
+    sizer->Add(taskListCtrl_, 1, wxEXPAND | wxALL, 5);
+
 }
 
 void SchedulerPanel::BindEvents() {
@@ -62,7 +72,47 @@ void SchedulerPanel::BindEvents() {
             break;
         }
     }
-    roomChoice_->Bind(wxEVT_CHOICE, &SchedulerPanel::OnRoomSelected, this);
+    robotChoice_->Bind(wxEVT_CHOICE, &SchedulerPanel::OnRobotSelected, this);
+}
+
+void SchedulerPanel::OnRobotSelected(wxCommandEvent& event) {
+    UpdateTaskList();
+}
+
+void SchedulerPanel::UpdateTaskList() {
+    taskListCtrl_->DeleteAllItems();
+
+    if (robotChoice_->GetSelection() == wxNOT_FOUND) return;
+
+    std::string robotName = robotChoice_->GetStringSelection().ToStdString();
+    auto robot = simulator_->getRobotByName(robotName);
+    if (!robot) return;
+
+    // Assuming Robot has a method to get its task queue
+    auto taskQueue = robot->getTaskQueue(); // Implement getTaskQueue() in Robot
+
+    int index = 0;
+    std::queue<std::shared_ptr<CleaningTask>> tempQueue = taskQueue;
+    while (!tempQueue.empty()) {
+        auto task = tempQueue.front();
+        tempQueue.pop();
+
+        long itemIndex = taskListCtrl_->InsertItem(index, wxString::Format("%d", task->getID()));
+        taskListCtrl_->SetItem(itemIndex, 1, task->getRoom()->getRoomName());
+        taskListCtrl_->SetItem(itemIndex, 2, cleaningStrategyToString(task->getCleanType()));
+
+        index++;
+    }
+}
+
+// Helper function
+std::string SchedulerPanel::cleaningStrategyToString(CleaningTask::CleanType cleanType) {
+    switch (cleanType) {
+        case CleaningTask::VACUUM: return "Vacuum";
+        case CleaningTask::SCRUB: return "Scrub";
+        case CleaningTask::SHAMPOO: return "Shampoo";
+    }
+    return "Unknown";
 }
 
 void SchedulerPanel::UpdateRobotChoices() {
@@ -128,6 +178,23 @@ void SchedulerPanel::OnAssignTask(wxCommandEvent& event) {
 }
 
 void SchedulerPanel::OnRoomSelected(wxCommandEvent& event) {
-    // Handle room selection event if needed
-    event.Skip();
+    if (roomChoice_->GetSelection() == wxNOT_FOUND) return;
+
+    Room* selectedRoom = reinterpret_cast<Room*>(roomChoice_->GetClientData(roomChoice_->GetSelection()));
+    if (!selectedRoom) return;
+
+    std::string flooringType = selectedRoom->flooringType;
+
+    strategyChoice_->Clear();
+
+    if (flooringType == "Carpet") {
+        strategyChoice_->Append("Vacuum");
+        strategyChoice_->Append("Shampoo");
+    } else if (flooringType == "Wood" || flooringType == "Tile") {
+        strategyChoice_->Append("Vacuum");
+        strategyChoice_->Append("Scrub");
+    } else {
+        // Default strategies
+        strategyChoice_->Append("Vacuum");
+    }
 }

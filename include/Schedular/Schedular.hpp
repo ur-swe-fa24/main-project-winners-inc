@@ -4,8 +4,10 @@
 #include <vector>
 #include <memory>
 #include <string>
+#include <queue>
 #include "Robot/Robot.h"
 #include "map/map.h"
+#include "CleaningTask/cleaningTask.h"
 
 class Scheduler {
 public:
@@ -18,6 +20,17 @@ public:
     void setMap(Map* map) { map_ = map; }
     void setRobots(std::vector<std::shared_ptr<Robot>>* robots) { robots_ = robots; }
 
+    // Helper function to get available strategies for a room type
+    static std::vector<std::string> getAvailableStrategies(const std::string& floorType) {
+        std::vector<std::string> strategies;
+        if (floorType == "Carpet") {
+            strategies = {"Vacuum", "Shampoo"};
+        } else if (floorType == "Wood" || floorType == "Tile") {
+            strategies = {"Vacuum", "Scrub"};
+        }
+        return strategies;
+    }
+
 private:
     Map* map_;
     std::vector<std::shared_ptr<Robot>>* robots_;
@@ -25,6 +38,9 @@ private:
 
     // Helper to find robot by name
     std::shared_ptr<Robot> findRobotByName(const std::string& name);
+    
+    // Helper function to convert string to CleanType enum
+    static CleaningTask::CleanType cleaningStrategyFromString(const std::string& strategy);
 };
 
 #endif // SCHEDULER_HPP

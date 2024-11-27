@@ -1,23 +1,24 @@
 #ifndef CLEANINGTASK_H
 #define CLEANINGTASK_H
 
-#include "robot/Robot.h"
-#include "room/Room.h"
 #include <string>
+#include <memory>
 
+// Forward declarations
+class Robot;
+class Room;
 
 class CleaningTask {
-    public:
-    int id;
+public:
     // Enum for priority level
     enum Priority { LOW, MEDIUM, HIGH };
 
     // Enum for cleaning type
-    enum CleanType { Scrub, Mop, Vacuum , SpotTreat};
+    enum CleanType { VACUUM, SCRUB, SHAMPOO };
 
-    // Constructor and Destructor methods
-    ~CleaningTask();
-    CleaningTask(int id, Priority priority, CleanType cleaningType, std::shared_ptr<Room> room) {}
+    // Constructor
+    CleaningTask(int id, Priority priority, CleanType cleaningType, std::shared_ptr<Room> room);
+    ~CleaningTask() = default;
 
     // Getters
     int getID() const;
@@ -27,18 +28,24 @@ class CleaningTask {
     std::shared_ptr<Room> getRoom() const;
     std::shared_ptr<Robot> getRobot() const;
 
-
     // Methods for assigning a task and marking task statuses
-    void assignRobot(int robotID) {}
-    void markCompleted() {}
-    void markFailed() {}
+    void assignRobot(int robotID);
+    void markCompleted();
+    void markFailed();
 
+    // Helper function to convert string to CleanType
+    static CleanType stringToCleanType(const std::string& str) {
+        if (str == "Vacuum") return VACUUM;
+        if (str == "Scrub") return SCRUB;
+        if (str == "Shampoo") return SHAMPOO;
+        return VACUUM; // Default
+    }
 
-    private:
-    // Attributes
-    Priority priority;              // Enum above for different priority levels
-    std::string status;             // Potential statuses may be "Pending", "In Progress", "Completed", "Failed"
-    CleanType cleaningType;         // Enum above for different CleanTypes
+private:
+    int id;
+    Priority priority;              // Priority level
+    std::string status;            // "Pending", "In Progress", "Completed", "Failed"
+    CleanType cleaningType;        // Type of cleaning
     std::shared_ptr<Room> room;
     std::shared_ptr<Robot> robot;
 };

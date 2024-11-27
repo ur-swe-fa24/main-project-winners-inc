@@ -6,6 +6,7 @@
 #include <queue>     // For std::queue
 #include "Room/Room.h"
 #include "map/map.h" // For Map class
+#include "cleaningTask/cleaningTask.h"
 
 class Robot {
 public:
@@ -56,6 +57,21 @@ public:
     void setTargetRoom(Room* room);
     void update(const Map& map);  
 
+    void addTaskToQueue(const std::shared_ptr<CleaningTask>& task);
+    void startCleaning(CleaningTask::CleanType cleaningType);
+
+    std::queue<std::shared_ptr<CleaningTask>> getTaskQueue() const;
+
+    // Helper method to convert CleanType to string
+    static std::string cleaningStrategyToString(CleaningTask::CleanType cleanType) {
+        switch (cleanType) {
+            case CleaningTask::VACUUM: return "Vacuum";
+            case CleaningTask::SCRUB: return "Scrub";
+            case CleaningTask::SHAMPOO: return "Shampoo";
+            default: return "Unknown";
+        }
+    }
+
 private:
     // Attributes
     std::string name;
@@ -76,6 +92,18 @@ private:
 
 
     Room* targetRoom_; // The room the robot is assigned to clean
+
+    // Add this member variable
+    std::queue<std::shared_ptr<CleaningTask>> taskQueue_;
+
+    // Add a flag to check if the robot is returning to the charger
+    bool returningToCharger_ = false;
+
+    // Add a flag to indicate if the robot needs to resume tasks
+    bool hasPendingTasks_ = false;
+
+    std::shared_ptr<CleaningTask> currentCleaningTask_;
+
 
 
 };

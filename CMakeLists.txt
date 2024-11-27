@@ -38,6 +38,7 @@ set(SOURCES
     src/robot_metrics.cpp
     src/config/ResourceConfig.cpp
     src/scheduler_panel.cpp
+    src/cleaningTask.cpp
 )
 
 # Define header files
@@ -59,6 +60,7 @@ set(HEADERS
     include/robot_metrics/robot_metrics.h
     include/config/ResourceConfig.hpp
     include/scheduler_panel/scheduler_panel.hpp
+    include/CleaningTask/cleaningTask.h
 )
 
 # Add library target
