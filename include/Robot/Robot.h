@@ -60,7 +60,7 @@ public:
     void addTaskToQueue(const std::shared_ptr<CleaningTask>& task);
     void startCleaning(CleaningTask::CleanType cleaningType);
 
-    std::queue<std::shared_ptr<CleaningTask>> getTaskQueue() const;
+    const std::queue<std::shared_ptr<CleaningTask>>& getTaskQueue() const;
 
     // Helper method to convert CleanType to string
     static std::string cleaningStrategyToString(CleaningTask::CleanType cleanType) {

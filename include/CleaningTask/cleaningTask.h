@@ -17,7 +17,7 @@ public:
     enum CleanType { VACUUM, SCRUB, SHAMPOO };
 
     // Constructor
-    CleaningTask(int id, Priority priority, CleanType cleaningType, std::shared_ptr<Room> room);
+    CleaningTask(int id, Priority priority, CleanType cleaningType, Room* room);
     ~CleaningTask() = default;
 
     // Getters
@@ -25,11 +25,14 @@ public:
     Priority getPriority() const;
     std::string getStatus() const;
     CleanType getCleanType() const;
-    std::shared_ptr<Room> getRoom() const;
+    // std::shared_ptr<Room> getRoom() const;
+
+    Room* getRoom() const;
+
     std::shared_ptr<Robot> getRobot() const;
 
     // Methods for assigning a task and marking task statuses
-    void assignRobot(int robotID);
+    void assignRobot(const std::shared_ptr<Robot>& robot);
     void markCompleted();
     void markFailed();
 
@@ -46,7 +49,8 @@ private:
     Priority priority;              // Priority level
     std::string status;            // "Pending", "In Progress", "Completed", "Failed"
     CleanType cleaningType;        // Type of cleaning
-    std::shared_ptr<Room> room;
+    // std::shared_ptr<Room> room;
+    Room* room;
     std::shared_ptr<Robot> robot;
 };
 

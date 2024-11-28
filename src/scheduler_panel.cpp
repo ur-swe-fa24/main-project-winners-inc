@@ -56,6 +56,7 @@ void SchedulerPanel::CreateControls() {
     taskListCtrl_->InsertColumn(0, "Task ID");
     taskListCtrl_->InsertColumn(1, "Room");
     taskListCtrl_->InsertColumn(2, "Strategy");
+    taskListCtrl_->InsertColumn(3, "Robot"); // Add this line
 
     // Add the task list control to the sizer
     sizer->Add(taskListCtrl_, 1, wxEXPAND | wxALL, 5);
@@ -73,37 +74,58 @@ void SchedulerPanel::BindEvents() {
         }
     }
     robotChoice_->Bind(wxEVT_CHOICE, &SchedulerPanel::OnRobotSelected, this);
+    roomChoice_->Bind(wxEVT_CHOICE, &SchedulerPanel::OnRoomSelected, this); // Add this line
+
 }
 
 void SchedulerPanel::OnRobotSelected(wxCommandEvent& event) {
     UpdateTaskList();
 }
 
+// void SchedulerPanel::UpdateTaskList() {
+//     taskListCtrl_->DeleteAllItems();
+
+//     if (robotChoice_->GetSelection() == wxNOT_FOUND) return;
+
+//     std::string robotName = robotChoice_->GetStringSelection().ToStdString();
+//     auto robot = simulator_->getRobotByName(robotName);
+//     if (!robot) return;
+
+//     const std::queue<std::shared_ptr<CleaningTask>>& taskQueue = robot->getTaskQueue();
+
+//     // Copy the task queue into a vector for easy iteration
+//     std::queue<std::shared_ptr<CleaningTask>> tempQueue = taskQueue;
+//     std::vector<std::shared_ptr<CleaningTask>> taskVector;
+//     while (!tempQueue.empty()) {
+//         taskVector.push_back(tempQueue.front());
+//         tempQueue.pop();
+//     }
+
+//     // Iterate over the vector
+//     int index = 0;
+//     for (const auto& task : taskVector) {
+//         long itemIndex = taskListCtrl_->InsertItem(index, wxString::Format("%d", task->getID()));
+//         taskListCtrl_->SetItem(itemIndex, 1, wxString::FromUTF8(task->getRoom()->getRoomName()));
+//         taskListCtrl_->SetItem(itemIndex, 2, wxString::FromUTF8(cleaningStrategyToString(task->getCleanType())));
+//         index++;
+//     }
+// }
+
 void SchedulerPanel::UpdateTaskList() {
     taskListCtrl_->DeleteAllItems();
 
-    if (robotChoice_->GetSelection() == wxNOT_FOUND) return;
-
-    std::string robotName = robotChoice_->GetStringSelection().ToStdString();
-    auto robot = simulator_->getRobotByName(robotName);
-    if (!robot) return;
-
-    // Assuming Robot has a method to get its task queue
-    auto taskQueue = robot->getTaskQueue(); // Implement getTaskQueue() in Robot
+    const auto& tasks = scheduler_->getAllTasks();
 
     int index = 0;
-    std::queue<std::shared_ptr<CleaningTask>> tempQueue = taskQueue;
-    while (!tempQueue.empty()) {
-        auto task = tempQueue.front();
-        tempQueue.pop();
-
+    for (const auto& task : tasks) {
         long itemIndex = taskListCtrl_->InsertItem(index, wxString::Format("%d", task->getID()));
-        taskListCtrl_->SetItem(itemIndex, 1, task->getRoom()->getRoomName());
-        taskListCtrl_->SetItem(itemIndex, 2, cleaningStrategyToString(task->getCleanType()));
-
+        taskListCtrl_->SetItem(itemIndex, 1, wxString::FromUTF8(task->getRoom()->getRoomName()));
+        taskListCtrl_->SetItem(itemIndex, 2, wxString::FromUTF8(cleaningStrategyToString(task->getCleanType())));
+        taskListCtrl_->SetItem(itemIndex, 3, wxString::FromUTF8(task->getRobot()->getName())); // Add robot name
         index++;
     }
 }
+
 
 // Helper function
 std::string SchedulerPanel::cleaningStrategyToString(CleaningTask::CleanType cleanType) {
@@ -175,6 +197,7 @@ void SchedulerPanel::OnAssignTask(wxCommandEvent& event) {
     // Log the task assignment
     std::cout << "Task assigned: Robot " << robotName << " to clean Room " 
               << selectedRoom->getRoomName() << " with strategy " << strategy << "." << std::endl;
+    UpdateTaskList();
 }
 
 void SchedulerPanel::OnRoomSelected(wxCommandEvent& event) {
@@ -183,14 +206,14 @@ void SchedulerPanel::OnRoomSelected(wxCommandEvent& event) {
     Room* selectedRoom = reinterpret_cast<Room*>(roomChoice_->GetClientData(roomChoice_->GetSelection()));
     if (!selectedRoom) return;
 
-    std::string flooringType = selectedRoom->flooringType;
+    std::string flooringType = selectedRoom->getFlooringType(); // Use getter method
 
     strategyChoice_->Clear();
 
     if (flooringType == "Carpet") {
         strategyChoice_->Append("Vacuum");
         strategyChoice_->Append("Shampoo");
-    } else if (flooringType == "Wood" || flooringType == "Tile") {
+    } else if (flooringType == "Hardwood" || flooringType == "Tile") {
         strategyChoice_->Append("Vacuum");
         strategyChoice_->Append("Scrub");
     } else {

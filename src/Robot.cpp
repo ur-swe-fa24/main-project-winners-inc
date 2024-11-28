@@ -196,6 +196,12 @@ bool Robot::moveToRoom(Room* room) {
 
 // Set movement path
 void Robot::setMovementPath(const std::vector<int>& roomIds, const Map& map) {
+    if (movementProgress_ > 0.0 || !movementQueue_.empty() || cleaning_) {
+    // Robot is busy; do not interrupt current path
+    std::cout << "Robot " << name << " is busy and cannot accept a new movement path right now." << std::endl;
+    return;
+    }
+
     // Clear the existing movement queue
     while (!movementQueue_.empty()) {
         movementQueue_.pop();
@@ -293,6 +299,18 @@ void Robot::update(const Map& map) {
                     } else if (currentRoom_->getRoomId() == 0 && returningToCharger_) {
                         // Start charging
                         startCharging();
+                    } else {
+                        // Check if there's a task for the current room
+                        if (!taskQueue_.empty()) {
+                            auto nextTask = taskQueue_.front();
+                            if (nextTask->getRoom()->getRoomId() == currentRoom_->getRoomId()) {
+                                // Remove task from queue and start cleaning
+                                currentCleaningTask_ = nextTask;
+                                taskQueue_.pop();
+                                startCleaning(currentCleaningTask_->getCleanType());
+                                currentCleaningTask_.reset();
+                            }
+                        }
                     }
                 }
             } else {
@@ -322,12 +340,14 @@ void Robot::update(const Map& map) {
                 std::cout << "Room " << currentRoom_->getRoomName() << " marked as clean." << std::endl;
             }
         }
-    } else if (!taskQueue_.empty()) {
+    } else if (!taskQueue_.empty() && !cleaning_ && movementProgress_ <= 0.0 && movementQueue_.empty()) {
+        // Only start a new task if the robot is idle
         // Start next task
         auto task = taskQueue_.front();
         taskQueue_.pop();
+        currentCleaningTask_ = task;
 
-        Room* targetRoom = task->getRoom().get();
+        Room* targetRoom = task->getRoom();
         std::vector<int> path = map.getRoute(*currentRoom_, *targetRoom);
         if (!path.empty()) {
             setMovementPath(path, map);
@@ -411,6 +431,6 @@ void Robot::startCleaning(CleaningTask::CleanType cleaningType) {
     }
 }
 
-std::queue<std::shared_ptr<CleaningTask>> Robot::getTaskQueue() const {
+const std::queue<std::shared_ptr<CleaningTask>>& Robot::getTaskQueue() const {
     return taskQueue_;
 }

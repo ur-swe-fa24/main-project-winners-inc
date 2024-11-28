@@ -23,6 +23,8 @@ public:
     std::string getRoomName() const;
     int getRoomId() const;
     std::string getSize() const;
+    std::string getFlooringType() const;
+
 
     // Methods
     void getRoomInfo() const;

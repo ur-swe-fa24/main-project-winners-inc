@@ -23,10 +23,17 @@ void Scheduler::assignCleaningTask(const std::string& robotName, int targetRoomI
     // Create a new cleaning task
     static int taskIdCounter = 0;
     auto task = std::make_shared<CleaningTask>(++taskIdCounter, CleaningTask::MEDIUM, 
-        cleaningStrategyFromString(cleaningStrategy), std::make_shared<Room>(*targetRoom));
+        cleaningStrategyFromString(cleaningStrategy), targetRoom);
+
+    // Assign the robot to the task
+    task->assignRobot(robot);
 
     // Add the task to the robot's queue
     robot->addTaskToQueue(task);
+
+    // Add the task to the global task list
+    tasks_.push_back(task);
+
 
     std::cout << "Assigned task to robot " << robotName << " to clean room " << targetRoom->getRoomId() 
               << " using strategy " << cleaningStrategy << "." << std::endl;
@@ -95,3 +102,8 @@ CleaningTask::CleanType Scheduler::cleaningStrategyFromString(const std::string&
     if (strategy == "Shampoo") return CleaningTask::SHAMPOO;
     throw std::runtime_error("Unknown cleaning strategy: " + strategy);
 }
+
+const std::vector<std::shared_ptr<CleaningTask>>& Scheduler::getAllTasks() const {
+    return tasks_;
+}
+

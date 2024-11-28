@@ -7,7 +7,7 @@
 #include <queue>
 #include "Robot/Robot.h"
 #include "map/map.h"
-#include "CleaningTask/cleaningTask.h"
+#include "cleaningTask/cleaningTask.h"
 
 class Scheduler {
 public:
@@ -30,11 +30,15 @@ public:
         }
         return strategies;
     }
+    const std::vector<std::shared_ptr<CleaningTask>>& getAllTasks() const;
+
 
 private:
     Map* map_;
     std::vector<std::shared_ptr<Robot>>* robots_;
     int getCleaningTime(const Room& room) const;
+    std::vector<std::shared_ptr<CleaningTask>> tasks_; // Add this line
+
 
     // Helper to find robot by name
     std::shared_ptr<Robot> findRobotByName(const std::string& name);
