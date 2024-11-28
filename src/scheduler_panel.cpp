@@ -5,6 +5,12 @@ SchedulerPanel::SchedulerPanel(wxWindow* parent, RobotSimulator* simulator, Sche
 {
     CreateControls();
     BindEvents();
+    UpdateRobotChoices();
+    
+    // Create and start the update timer
+    updateTimer_ = new wxTimer(this);
+    this->Bind(wxEVT_TIMER, &SchedulerPanel::OnTimer, this);
+    updateTimer_->Start(1000); // Update every second
 }
 
 void SchedulerPanel::CreateControls() {
@@ -84,35 +90,6 @@ void SchedulerPanel::OnRobotSelected(wxCommandEvent& event) {
     UpdateTaskList();
 }
 
-// void SchedulerPanel::UpdateTaskList() {
-//     taskListCtrl_->DeleteAllItems();
-
-//     if (robotChoice_->GetSelection() == wxNOT_FOUND) return;
-
-//     std::string robotName = robotChoice_->GetStringSelection().ToStdString();
-//     auto robot = simulator_->getRobotByName(robotName);
-//     if (!robot) return;
-
-//     const std::queue<std::shared_ptr<CleaningTask>>& taskQueue = robot->getTaskQueue();
-
-//     // Copy the task queue into a vector for easy iteration
-//     std::queue<std::shared_ptr<CleaningTask>> tempQueue = taskQueue;
-//     std::vector<std::shared_ptr<CleaningTask>> taskVector;
-//     while (!tempQueue.empty()) {
-//         taskVector.push_back(tempQueue.front());
-//         tempQueue.pop();
-//     }
-
-//     // Iterate over the vector
-//     int index = 0;
-//     for (const auto& task : taskVector) {
-//         long itemIndex = taskListCtrl_->InsertItem(index, wxString::Format("%d", task->getID()));
-//         taskListCtrl_->SetItem(itemIndex, 1, wxString::FromUTF8(task->getRoom()->getRoomName()));
-//         taskListCtrl_->SetItem(itemIndex, 2, wxString::FromUTF8(cleaningStrategyToString(task->getCleanType())));
-//         index++;
-//     }
-// }
-
 void SchedulerPanel::UpdateTaskList() {
     taskListCtrl_->DeleteAllItems();
 
@@ -120,19 +97,39 @@ void SchedulerPanel::UpdateTaskList() {
 
     int index = 0;
     for (const auto& task : tasks) {
+        if (!task) continue;
+
         long itemIndex = taskListCtrl_->InsertItem(index, wxString::Format("%d", task->getID()));
-        taskListCtrl_->SetItem(itemIndex, 1, wxString::FromUTF8(task->getRoom()->getRoomName()));
+        
+        if (Room* room = task->getRoom()) {
+            taskListCtrl_->SetItem(itemIndex, 1, wxString::FromUTF8(room->getRoomName()));
+        } else {
+            taskListCtrl_->SetItem(itemIndex, 1, "Unknown Room");
+        }
+        
         taskListCtrl_->SetItem(itemIndex, 2, wxString::FromUTF8(cleaningStrategyToString(task->getCleanType())));
-        if (task->getRobot()) {
-            taskListCtrl_->SetItem(itemIndex, 3, wxString::FromUTF8(task->getRobot()->getName()));
+        
+        if (auto robot = task->getRobot()) {
+            taskListCtrl_->SetItem(itemIndex, 3, wxString::FromUTF8(robot->getName()));
         } else {
             taskListCtrl_->SetItem(itemIndex, 3, "Unassigned");
         }
+        
         taskListCtrl_->SetItem(itemIndex, 4, wxString::FromUTF8(task->getStatus()));
         index++;
     }
 }
 
+void SchedulerPanel::OnTimer(wxTimerEvent& event) {
+    UpdateTaskList();
+}
+
+SchedulerPanel::~SchedulerPanel() {
+    if (updateTimer_) {
+        updateTimer_->Stop();
+        delete updateTimer_;
+    }
+}
 
 // Helper function
 std::string SchedulerPanel::cleaningStrategyToString(CleaningTask::CleanType cleanType) {

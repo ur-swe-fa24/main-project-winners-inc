@@ -9,7 +9,7 @@
 
 // Constructor
 CleaningTask::CleaningTask(int id, Priority priority, CleanType cleaningType, Room* room)
-    : id(id), priority(priority), cleaningType(cleaningType), room(room) {}
+    : id(id), priority(priority), status("Pending"), cleaningType(cleaningType), room(room), robot(nullptr) {}
 
 // Assign a robot with a task
 void CleaningTask::assignRobot(const std::shared_ptr<Robot>& robot) {

@@ -317,7 +317,7 @@ void Robot::update(const Map& map) {
                     if (currentCleaningTask_) {
                         // Start cleaning with the specified strategy
                         startCleaning(currentCleaningTask_->getCleanType());
-                        currentCleaningTask_.reset();
+                        // Don't reset currentCleaningTask_ here, we need it to mark completion later
                     } else if (currentRoom_->getRoomId() == 0 && returningToCharger_) {
                         // Start charging
                         startCharging();
@@ -330,7 +330,7 @@ void Robot::update(const Map& map) {
                                 currentCleaningTask_ = nextTask;
                                 taskQueue_.pop();
                                 startCleaning(currentCleaningTask_->getCleanType());
-                                currentCleaningTask_.reset();
+                                // currentCleaningTask_.reset();
                             }
                         }
                     }

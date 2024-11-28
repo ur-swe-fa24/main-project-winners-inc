@@ -4,22 +4,24 @@
 #include <wx/wx.h>
 #include <wx/panel.h>
 #include <wx/choice.h>
+#include <wx/listctrl.h>
 #include "RobotSimulator/RobotSimulator.hpp"
 #include "Schedular/Schedular.hpp"
 #include "Room/Room.h"
+#include "cleaningTask/cleaningTask.h"
 #include <memory>
 #include <string>
 #include <iostream>
-#include <wx/listctrl.h>
 
 class SchedulerPanel : public wxPanel {
 public:
     SchedulerPanel(wxWindow* parent, RobotSimulator* simulator, Scheduler* scheduler);
-    virtual ~SchedulerPanel() = default;
+    virtual ~SchedulerPanel();
 
     void UpdateRobotChoices();
     void UpdateRoomChoices();
     void UpdateStrategyChoices();
+    void UpdateTaskList();
 
 private:
     void CreateControls();
@@ -27,7 +29,7 @@ private:
     void OnAssignTask(wxCommandEvent& event);
     void OnRobotSelected(wxCommandEvent& event);
     void OnRoomSelected(wxCommandEvent& event);
-    void UpdateTaskList();
+    void OnTimer(wxTimerEvent& event);
     std::string cleaningStrategyToString(CleaningTask::CleanType cleanType);
 
     RobotSimulator* simulator_;
@@ -37,6 +39,7 @@ private:
     wxChoice* roomChoice_;
     wxChoice* strategyChoice_;
     wxListCtrl* taskListCtrl_;
+    wxTimer* updateTimer_;
 
     enum {
         ID_ROBOT_CHOICE = wxID_HIGHEST + 1,
