@@ -250,22 +250,40 @@ void Robot::update(const Map& map) {
             std::cout << "Robot " << name << " finished charging and refilling water." << std::endl;
             if (hasPendingTasks_) {
                 // Resume tasks
+                hasPendingTasks_ = false;
+                if (savedTask_) {
+                    taskQueue_.push(savedTask_);
+                    savedTask_.reset();
+                }
                 std::cout << "Robot " << name << " is resuming tasks." << std::endl;
             }
         }
         return;
     }
 
-    if (batteryLevel <= 20.0 || waterLevel_ <= 0.0) {
+    // Check battery and water levels before any action
+    if (batteryLevel <= 30.0 || waterLevel_ <= 20.0) {
         // Battery or water low, return to charger
         if (!returningToCharger_) {
             returningToCharger_ = true;
             hasPendingTasks_ = !taskQueue_.empty() || cleaning_ || movementProgress_ > 0.0;
-            // Save current task (if any) to resume later
+
+            // Save current task if cleaning
             if (cleaning_) {
+                if (currentCleaningTask_) {
+                    savedTask_ = currentCleaningTask_;
+                }
                 cleaning_ = false;
                 cleaningTimeRemaining_ = 0.0;
             }
+
+            // Clear movement queue and current movement
+            while (!movementQueue_.empty()) {
+                movementQueue_.pop();
+            }
+            movementProgress_ = 0.0;
+            nextRoom_ = nullptr;
+
             // Navigate to charger
             Room* chargingStation = map.getRoomById(0);
             if (chargingStation) {
@@ -274,7 +292,9 @@ void Robot::update(const Map& map) {
                     setMovementPath(pathToCharger, map);
                     setTargetRoom(chargingStation);
                     std::cout << "Robot " << name << " is returning to charging station due to low "
-                              << (batteryLevel <= 20.0 ? "battery" : "water") << "." << std::endl;
+                              << (batteryLevel <= 30.0 ? "battery (" + std::to_string(batteryLevel) + "%)" 
+                                                     : "water (" + std::to_string(waterLevel_) + "%)") << std::endl;
+                    return;
                 }
             }
         }
@@ -334,10 +354,13 @@ void Robot::update(const Map& map) {
             // Cleaning completed
             stopCleaning();
             std::cout << "Robot " << name << " completed cleaning room " << currentRoom_->getRoomName() << "." << std::endl;
-            // Mark the room as clean
             if (currentRoom_) {
                 currentRoom_->markClean();
                 std::cout << "Room " << currentRoom_->getRoomName() << " marked as clean." << std::endl;
+            }
+            if (currentCleaningTask_) {
+                currentCleaningTask_->markCompleted();
+                currentCleaningTask_.reset();
             }
         }
     } else if (!taskQueue_.empty() && !cleaning_ && movementProgress_ <= 0.0 && movementQueue_.empty()) {

@@ -50,6 +50,15 @@ void Scheduler::update() {
             robot->update(*map_);
         }
     }
+
+    // Remove completed tasks from the task list
+    tasks_.erase(
+        std::remove_if(tasks_.begin(), tasks_.end(),
+            [](const std::shared_ptr<CleaningTask>& task) {
+                return task->getStatus() == "Completed";
+            }),
+        tasks_.end()
+    );
 }
 
 void Scheduler::executeCleaning(std::shared_ptr<Robot> robot, Room* targetRoom, const std::string& strategy) {
@@ -97,9 +106,11 @@ std::shared_ptr<Robot> Scheduler::findRobotByName(const std::string& name) {
 
 // Helper function to convert string to CleanType enum
 CleaningTask::CleanType Scheduler::cleaningStrategyFromString(const std::string& strategy) {
-    if (strategy == "Vacuum") return CleaningTask::VACUUM;
-    if (strategy == "Scrub") return CleaningTask::SCRUB;
-    if (strategy == "Shampoo") return CleaningTask::SHAMPOO;
+    std::string lowerStrategy = strategy;
+    std::transform(lowerStrategy.begin(), lowerStrategy.end(), lowerStrategy.begin(), ::tolower);
+    if (lowerStrategy == "vacuum") return CleaningTask::VACUUM;
+    if (lowerStrategy == "scrub") return CleaningTask::SCRUB;
+    if (lowerStrategy == "shampoo") return CleaningTask::SHAMPOO;
     throw std::runtime_error("Unknown cleaning strategy: " + strategy);
 }
 

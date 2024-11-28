@@ -206,14 +206,17 @@ void SchedulerPanel::OnRoomSelected(wxCommandEvent& event) {
     Room* selectedRoom = reinterpret_cast<Room*>(roomChoice_->GetClientData(roomChoice_->GetSelection()));
     if (!selectedRoom) return;
 
-    std::string flooringType = selectedRoom->getFlooringType(); // Use getter method
+    std::string flooringType = selectedRoom->getFlooringType();
+
+    // Convert flooringType to lowercase for case-insensitive comparison
+    std::transform(flooringType.begin(), flooringType.end(), flooringType.begin(), ::tolower);
 
     strategyChoice_->Clear();
 
-    if (flooringType == "Carpet") {
+    if (flooringType == "carpet") {
         strategyChoice_->Append("Vacuum");
         strategyChoice_->Append("Shampoo");
-    } else if (flooringType == "Hardwood" || flooringType == "Tile") {
+    } else if (flooringType == "wood" || flooringType == "tile" || flooringType == "hardwood") {
         strategyChoice_->Append("Vacuum");
         strategyChoice_->Append("Scrub");
     } else {

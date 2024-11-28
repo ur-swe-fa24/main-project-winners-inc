@@ -103,8 +103,7 @@ private:
     bool hasPendingTasks_ = false;
 
     std::shared_ptr<CleaningTask> currentCleaningTask_;
-
-
+    std::shared_ptr<CleaningTask> savedTask_;  // For saving interrupted tasks
 
 };
 
