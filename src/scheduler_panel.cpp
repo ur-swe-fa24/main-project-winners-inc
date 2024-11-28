@@ -57,6 +57,8 @@ void SchedulerPanel::CreateControls() {
     taskListCtrl_->InsertColumn(1, "Room");
     taskListCtrl_->InsertColumn(2, "Strategy");
     taskListCtrl_->InsertColumn(3, "Robot"); // Add this line
+    taskListCtrl_->InsertColumn(4, "Status"); // Add this line
+
 
     // Add the task list control to the sizer
     sizer->Add(taskListCtrl_, 1, wxEXPAND | wxALL, 5);
@@ -121,7 +123,12 @@ void SchedulerPanel::UpdateTaskList() {
         long itemIndex = taskListCtrl_->InsertItem(index, wxString::Format("%d", task->getID()));
         taskListCtrl_->SetItem(itemIndex, 1, wxString::FromUTF8(task->getRoom()->getRoomName()));
         taskListCtrl_->SetItem(itemIndex, 2, wxString::FromUTF8(cleaningStrategyToString(task->getCleanType())));
-        taskListCtrl_->SetItem(itemIndex, 3, wxString::FromUTF8(task->getRobot()->getName())); // Add robot name
+        if (task->getRobot()) {
+            taskListCtrl_->SetItem(itemIndex, 3, wxString::FromUTF8(task->getRobot()->getName()));
+        } else {
+            taskListCtrl_->SetItem(itemIndex, 3, "Unassigned");
+        }
+        taskListCtrl_->SetItem(itemIndex, 4, wxString::FromUTF8(task->getStatus()));
         index++;
     }
 }

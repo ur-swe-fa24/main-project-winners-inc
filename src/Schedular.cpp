@@ -50,17 +50,7 @@ void Scheduler::update() {
             robot->update(*map_);
         }
     }
-
-    // Remove completed tasks from the task list
-    tasks_.erase(
-        std::remove_if(tasks_.begin(), tasks_.end(),
-            [](const std::shared_ptr<CleaningTask>& task) {
-                return task->getStatus() == "Completed";
-            }),
-        tasks_.end()
-    );
 }
-
 void Scheduler::executeCleaning(std::shared_ptr<Robot> robot, Room* targetRoom, const std::string& strategy) {
     if (!map_ || !robots_) {
         throw std::runtime_error("Scheduler not properly initialized");

@@ -250,10 +250,12 @@ void Robot::update(const Map& map) {
             std::cout << "Robot " << name << " finished charging and refilling water." << std::endl;
             if (hasPendingTasks_) {
                 // Resume tasks
-                hasPendingTasks_ = false;
                 if (savedTask_) {
                     taskQueue_.push(savedTask_);
                     savedTask_.reset();
+                    hasPendingTasks_ = true; // Set to true to indicate pending tasks
+                } else {
+                    hasPendingTasks_ = false;
                 }
                 std::cout << "Robot " << name << " is resuming tasks." << std::endl;
             }
@@ -262,7 +264,7 @@ void Robot::update(const Map& map) {
     }
 
     // Check battery and water levels before any action
-    if (batteryLevel <= 30.0 || waterLevel_ <= 20.0) {
+    if (batteryLevel <= 20.0 || waterLevel_ <= 0.0) {
         // Battery or water low, return to charger
         if (!returningToCharger_) {
             returningToCharger_ = true;
@@ -378,10 +380,11 @@ void Robot::update(const Map& map) {
             // Save cleaning task for use after reaching the room
             currentCleaningTask_ = task;
             std::cout << "Robot " << name << " is assigned to clean room " << targetRoom->getRoomName()
-                      << " with strategy " << cleaningStrategyToString(task->getCleanType()) << "." << std::endl;
+                    << " with strategy " << cleaningStrategyToString(task->getCleanType()) << "." << std::endl;
         } else {
             std::cerr << "Robot " << name << ": No path to room " << targetRoom->getRoomId() << std::endl;
         }
+    
     } else if (hasPendingTasks_) {
         // No more tasks, return to charger
         Room* chargingStation = map.getRoomById(0);
