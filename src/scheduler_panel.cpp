@@ -1,8 +1,13 @@
 #include "scheduler_panel/scheduler_panel.hpp"
+#include <algorithm>
+#include <iostream>
+
+BEGIN_EVENT_TABLE(SchedulerPanel, wxPanel)
+    // Event table entries can be added here if needed
+END_EVENT_TABLE()
 
 SchedulerPanel::SchedulerPanel(wxWindow* parent, RobotSimulator* simulator, Scheduler* scheduler)
-    : wxPanel(parent), simulator_(simulator), scheduler_(scheduler)
-{
+    : wxPanel(parent), simulator_(simulator), scheduler_(scheduler) {
     CreateControls();
     BindEvents();
     UpdateRobotChoices();
@@ -11,6 +16,13 @@ SchedulerPanel::SchedulerPanel(wxWindow* parent, RobotSimulator* simulator, Sche
     updateTimer_ = new wxTimer(this);
     this->Bind(wxEVT_TIMER, &SchedulerPanel::OnTimer, this);
     updateTimer_->Start(1000); // Update every second
+}
+
+SchedulerPanel::~SchedulerPanel() {
+    if (updateTimer_) {
+        updateTimer_->Stop();
+        delete updateTimer_;
+    }
 }
 
 void SchedulerPanel::CreateControls() {
@@ -22,15 +34,15 @@ void SchedulerPanel::CreateControls() {
     UpdateRobotChoices();
 
     // Room selection
-    wxStaticText* roomLabel = new wxStaticText(this, wxID_ANY, "Select Room:");
+    wxStaticText* roomLabelStaticText = new wxStaticText(this, wxID_ANY, "Select Room:");
     roomChoice_ = new wxChoice(this, wxID_ANY);
-    
-    // Populate room choices
+
+    // Populate room choices with only dirty rooms
     const auto& rooms = simulator_->getMap().getRooms();
     for (const auto& room : rooms) {
-        if (room) {
-            wxString roomName = wxString::FromUTF8(room->getRoomName());
-            roomChoice_->Append(roomName, room);  // Store Room pointer as client data
+        if (room && !room->isRoomClean) {
+            wxString roomChoiceLabel = wxString::Format("%s (%s)", room->getRoomName(), room->getSize());
+            roomChoice_->Append(roomChoiceLabel, reinterpret_cast<void*>(room));
         }
     }
 
@@ -49,45 +61,112 @@ void SchedulerPanel::CreateControls() {
     // Add controls to sizer
     sizer->Add(robotLabel, 0, wxALL, 5);
     sizer->Add(robotChoice_, 0, wxEXPAND | wxALL, 5);
-    sizer->Add(roomLabel, 0, wxALL, 5);
+    sizer->Add(roomLabelStaticText, 0, wxALL, 5);
     sizer->Add(roomChoice_, 0, wxEXPAND | wxALL, 5);
     sizer->Add(strategyLabel, 0, wxALL, 5);
     sizer->Add(strategyChoice_, 0, wxEXPAND | wxALL, 5);
     sizer->Add(assignTaskBtn, 0, wxEXPAND | wxALL, 5);
 
-    SetSizer(sizer);
+    // Bind assign task button
+    assignTaskBtn->Bind(wxEVT_BUTTON, &SchedulerPanel::OnAssignTask, this);
 
-        // Task List Control
+    // Task List Control
     taskListCtrl_ = new wxListCtrl(this, wxID_ANY, wxDefaultPosition, wxDefaultSize, wxLC_REPORT);
     taskListCtrl_->InsertColumn(0, "Task ID");
     taskListCtrl_->InsertColumn(1, "Room");
     taskListCtrl_->InsertColumn(2, "Strategy");
-    taskListCtrl_->InsertColumn(3, "Robot"); // Add this line
-    taskListCtrl_->InsertColumn(4, "Status"); // Add this line
+    taskListCtrl_->InsertColumn(3, "Robot");
+    taskListCtrl_->InsertColumn(4, "Status");
 
+    // Set column widths
+    taskListCtrl_->SetColumnWidth(0, 60);  // Task ID
+    taskListCtrl_->SetColumnWidth(1, 150); // Room
+    taskListCtrl_->SetColumnWidth(2, 100); // Strategy
+    taskListCtrl_->SetColumnWidth(3, 150); // Robot
+    taskListCtrl_->SetColumnWidth(4, 100); // Status
 
     // Add the task list control to the sizer
     sizer->Add(taskListCtrl_, 1, wxEXPAND | wxALL, 5);
 
+    SetSizer(sizer);
 }
 
 void SchedulerPanel::BindEvents() {
-    // Find the button by iterating through children
-    wxWindowList& children = GetChildren();
-    for (wxWindowList::iterator it = children.begin(); it != children.end(); ++it) {
-        wxButton* btn = wxDynamicCast(*it, wxButton);
-        if (btn && btn->GetLabel() == "Assign Task") {
-            btn->Bind(wxEVT_BUTTON, &SchedulerPanel::OnAssignTask, this);
-            break;
-        }
-    }
-    robotChoice_->Bind(wxEVT_CHOICE, &SchedulerPanel::OnRobotSelected, this);
-    roomChoice_->Bind(wxEVT_CHOICE, &SchedulerPanel::OnRoomSelected, this); // Add this line
+    // Bind the room choice selection to update strategies based on room type
+    roomChoice_->Bind(wxEVT_CHOICE, &SchedulerPanel::OnRoomSelected, this);
+}
 
+void SchedulerPanel::OnAssignTask(wxCommandEvent& event) {
+    if (!robotChoice_ || robotChoice_->GetSelection() == wxNOT_FOUND) {
+        wxMessageBox("Please select a robot.", "Error", wxOK | wxICON_ERROR);
+        return;
+    }
+    std::string robotName = robotChoice_->GetStringSelection().ToStdString();
+
+    if (roomChoice_->GetSelection() == wxNOT_FOUND) {
+        wxMessageBox("Please select a room.", "Error", wxOK | wxICON_ERROR);
+        return;
+    }
+    Room* selectedRoom = reinterpret_cast<Room*>(roomChoice_->GetClientData(roomChoice_->GetSelection()));
+
+    if (strategyChoice_->GetSelection() == wxNOT_FOUND) {
+        wxMessageBox("Please select a cleaning strategy.", "Error", wxOK | wxICON_ERROR);
+        return;
+    }
+    std::string strategy = strategyChoice_->GetStringSelection().ToStdString();
+
+    // Assign the cleaning task
+    try {
+        scheduler_->assignCleaningTask(robotName, selectedRoom->getRoomId(), strategy);
+    } catch (const std::exception& e) {
+        wxMessageBox(e.what(), "Assignment Error", wxOK | wxICON_ERROR);
+        return;
+    }
+
+    // Log the task assignment
+    std::cout << "Task assigned: Robot " << robotName << " to clean Room "
+              << selectedRoom->getRoomName() << " with strategy " << strategy << "." << std::endl;
+
+    UpdateTaskList();
 }
 
 void SchedulerPanel::OnRobotSelected(wxCommandEvent& event) {
+    // Currently not used, but can be implemented if needed
+}
+
+void SchedulerPanel::OnRoomSelected(wxCommandEvent& event) {
+    if (roomChoice_->GetSelection() == wxNOT_FOUND) return;
+
+    Room* selectedRoom = reinterpret_cast<Room*>(roomChoice_->GetClientData(roomChoice_->GetSelection()));
+    if (!selectedRoom) return;
+
+    std::string flooringType = selectedRoom->getFlooringType();
+
+    // Convert flooringType to lowercase for case-insensitive comparison
+    std::transform(flooringType.begin(), flooringType.end(), flooringType.begin(), ::tolower);
+
+    strategyChoice_->Clear();
+
+    if (flooringType == "carpet") {
+        strategyChoice_->Append("Vacuum");
+        strategyChoice_->Append("Shampoo");
+    } else if (flooringType == "wood" || flooringType == "tile" || flooringType == "hardwood") {
+        strategyChoice_->Append("Vacuum");
+        strategyChoice_->Append("Scrub");
+    } else {
+        // Default strategies
+        strategyChoice_->Append("Vacuum");
+    }
+
+    // Optionally, select the first strategy
+    if (strategyChoice_->GetCount() > 0) {
+        strategyChoice_->SetSelection(0);
+    }
+}
+
+void SchedulerPanel::OnTimer(wxTimerEvent& event) {
     UpdateTaskList();
+    UpdateRoomList(); // Refresh the room list to exclude clean rooms
 }
 
 void SchedulerPanel::UpdateTaskList() {
@@ -120,25 +199,13 @@ void SchedulerPanel::UpdateTaskList() {
     }
 }
 
-void SchedulerPanel::OnTimer(wxTimerEvent& event) {
-    UpdateTaskList();
-}
-
-SchedulerPanel::~SchedulerPanel() {
-    if (updateTimer_) {
-        updateTimer_->Stop();
-        delete updateTimer_;
-    }
-}
-
-// Helper function
 std::string SchedulerPanel::cleaningStrategyToString(CleaningTask::CleanType cleanType) {
     switch (cleanType) {
         case CleaningTask::VACUUM: return "Vacuum";
         case CleaningTask::SCRUB: return "Scrub";
         case CleaningTask::SHAMPOO: return "Shampoo";
+        default: return "Unknown";
     }
-    return "Unknown";
 }
 
 void SchedulerPanel::UpdateRobotChoices() {
@@ -177,54 +244,51 @@ void SchedulerPanel::UpdateRobotChoices() {
     }
 }
 
-void SchedulerPanel::OnAssignTask(wxCommandEvent& event) {
-    if (!robotChoice_ || robotChoice_->GetSelection() == wxNOT_FOUND) {
-        wxMessageBox("Please select a robot.", "Error", wxOK | wxICON_ERROR);
-        return;
+void SchedulerPanel::UpdateRoomList() {
+    if (!simulator_) return;
+
+    // Get current selection
+    int currentSelection = roomChoice_->GetSelection();
+    wxString currentSelectionString;
+    if (currentSelection != wxNOT_FOUND) {
+        currentSelectionString = roomChoice_->GetString(currentSelection);
     }
-    std::string robotName = robotChoice_->GetStringSelection().ToStdString();
 
-    if (roomChoice_->GetSelection() == wxNOT_FOUND) {
-        wxMessageBox("Please select a room.", "Error", wxOK | wxICON_ERROR);
-        return;
+    // Build new room list
+    std::vector<std::pair<wxString, void*>> newRoomList;
+    const auto& rooms = simulator_->getMap().getRooms();
+    for (const auto& room : rooms) {
+        if (room && !room->isRoomClean) {
+            wxString roomChoiceLabel = wxString::Format("%s (%s)", room->getRoomName(), room->getSize());
+            newRoomList.emplace_back(roomChoiceLabel, reinterpret_cast<void*>(room));
+        }
     }
-    Room* selectedRoom = reinterpret_cast<Room*>(roomChoice_->GetClientData(roomChoice_->GetSelection()));
 
-    if (strategyChoice_->GetSelection() == wxNOT_FOUND) {
-        wxMessageBox("Please select a cleaning strategy.", "Error", wxOK | wxICON_ERROR);
-        return;
-    }
-    std::string strategy = strategyChoice_->GetStringSelection().ToStdString();
-
-    scheduler_->assignCleaningTask(robotName, selectedRoom->getRoomId(), strategy);
-
-    // Log the task assignment
-    std::cout << "Task assigned: Robot " << robotName << " to clean Room " 
-              << selectedRoom->getRoomName() << " with strategy " << strategy << "." << std::endl;
-    UpdateTaskList();
-}
-
-void SchedulerPanel::OnRoomSelected(wxCommandEvent& event) {
-    if (roomChoice_->GetSelection() == wxNOT_FOUND) return;
-
-    Room* selectedRoom = reinterpret_cast<Room*>(roomChoice_->GetClientData(roomChoice_->GetSelection()));
-    if (!selectedRoom) return;
-
-    std::string flooringType = selectedRoom->getFlooringType();
-
-    // Convert flooringType to lowercase for case-insensitive comparison
-    std::transform(flooringType.begin(), flooringType.end(), flooringType.begin(), ::tolower);
-
-    strategyChoice_->Clear();
-
-    if (flooringType == "carpet") {
-        strategyChoice_->Append("Vacuum");
-        strategyChoice_->Append("Shampoo");
-    } else if (flooringType == "wood" || flooringType == "tile" || flooringType == "hardwood") {
-        strategyChoice_->Append("Vacuum");
-        strategyChoice_->Append("Scrub");
+    // Compare new room list with existing one
+    bool needUpdate = false;
+    if (newRoomList.size() != roomChoice_->GetCount()) {
+        needUpdate = true;
     } else {
-        // Default strategies
-        strategyChoice_->Append("Vacuum");
+        for (size_t i = 0; i < newRoomList.size(); ++i) {
+            if (newRoomList[i].first != roomChoice_->GetString(i)) {
+                needUpdate = true;
+                break;
+            }
+        }
+    }
+
+    if (needUpdate) {
+        roomChoice_->Clear();
+        for (const auto& roomEntry : newRoomList) {
+            roomChoice_->Append(roomEntry.first, roomEntry.second);
+        }
+
+        // Restore previous selection if possible
+        int newSelectionIndex = roomChoice_->FindString(currentSelectionString);
+        if (newSelectionIndex != wxNOT_FOUND) {
+            roomChoice_->SetSelection(newSelectionIndex);
+        } else if (roomChoice_->GetCount() > 0) {
+            roomChoice_->SetSelection(0);
+        }
     }
 }
