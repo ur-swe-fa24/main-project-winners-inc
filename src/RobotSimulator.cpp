@@ -162,21 +162,32 @@ void RobotSimulator::simulationLoop() {
             bool generateLowBatteryAlert = false;
             bool generateChargingAlert = false;
 
-            // Update the robot within a mutex lock
+            // Update robot state within a mutex lock
             {
                 std::lock_guard<std::mutex> lock(robotsMutex_);
+
+                // Update the robot
                 robot->update(map_);
 
-                // Check if the robot has cleaned a room
-                Room* currentRoom = robot->getCurrentRoom();
-                if (currentRoom && currentRoom->isRoomClean) {
-                    // Save the room status asynchronously
-                    dbAdapter_->saveRoomStatusAsync(*currentRoom);
+                if (robot->isCleaning()) {
+                    needsSave = true;
                 }
-            } // Mutex lock released
 
-            // Perform other tasks such as sending alerts (if needed)
-            // ...
+                // Existing logic for low battery alerts and charging...
+
+                // No additional code needed here for returning to charger
+            }  // Mutex lock is released here
+
+            // Perform database operations without holding the mutex
+            try {
+                if (needsSave) {
+                    // Database operations if needed
+                }
+
+                // Handle alerts if needed
+            } catch (const std::exception& e) {
+                std::cerr << "RobotSimulator: Exception during database operation: " << e.what() << std::endl;
+            }
         }
 
         // Sleep before the next simulation step

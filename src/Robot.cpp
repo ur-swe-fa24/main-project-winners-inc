@@ -248,15 +248,14 @@ void Robot::update(const Map& map) {
             stopCharging();
             returningToCharger_ = false;
             std::cout << "Robot " << name << " finished charging and refilling water." << std::endl;
+
             if (hasPendingTasks_) {
-                // Resume tasks
+                // Resume tasks if any
                 if (savedTask_) {
                     taskQueue_.push(savedTask_);
                     savedTask_.reset();
-                    hasPendingTasks_ = true; // Set to true to indicate pending tasks
-                } else {
-                    hasPendingTasks_ = false;
                 }
+                hasPendingTasks_ = false;
                 std::cout << "Robot " << name << " is resuming tasks." << std::endl;
             }
         }
@@ -289,14 +288,24 @@ void Robot::update(const Map& map) {
             // Navigate to charger
             Room* chargingStation = map.getRoomById(0);
             if (chargingStation) {
+                // **Add this check**
+                if (currentRoom_ == chargingStation) {
+                    // Already at charger, start charging
+                    startCharging();
+                    std::cout << "Robot " << name << " is already at the charging station and started charging." << std::endl;
+                    return;
+                }
+
                 std::vector<int> pathToCharger = map.getRoute(*currentRoom_, *chargingStation);
                 if (!pathToCharger.empty()) {
                     setMovementPath(pathToCharger, map);
                     setTargetRoom(chargingStation);
                     std::cout << "Robot " << name << " is returning to charging station due to low "
-                              << (batteryLevel <= 30.0 ? "battery (" + std::to_string(batteryLevel) + "%)" 
-                                                     : "water (" + std::to_string(waterLevel_) + "%)") << std::endl;
+                              << (batteryLevel <= 30.0 ? "battery (" + std::to_string(batteryLevel) + "%)"
+                                                       : "water (" + std::to_string(waterLevel_) + "%)") << std::endl;
                     return;
+                } else {
+                    std::cerr << "Robot " << name << ": Cannot find path to charging station." << std::endl;
                 }
             }
         }
@@ -347,8 +356,8 @@ void Robot::update(const Map& map) {
         std::cout << "Robot " << name << " started moving to room " << nextRoom_->getRoomName() << "." << std::endl;
     } else if (cleaning_) {
         // Continue cleaning
-        depleteBattery(1.0); // Deplete battery for cleaning
-        depleteWater(1.0);   // Deplete water for cleaning
+        depleteBattery(10.0); // Deplete battery for cleaning
+        // depleteWater(1.0);   // Deplete water for cleaning
         cleaningTimeRemaining_ -= 1.0; // Assuming update is called every second
         std::cout << "Robot " << name << " is cleaning room " << currentRoom_->getRoomName()
                   << ". Time remaining: " << cleaningTimeRemaining_ << " seconds." << std::endl;
@@ -365,37 +374,38 @@ void Robot::update(const Map& map) {
                 currentCleaningTask_.reset();
             }
         }
-    } else if (!taskQueue_.empty() && !cleaning_ && movementProgress_ <= 0.0 && movementQueue_.empty()) {
-        // Only start a new task if the robot is idle
-        // Start next task
-        auto task = taskQueue_.front();
-        taskQueue_.pop();
-        currentCleaningTask_ = task;
-
-        Room* targetRoom = task->getRoom();
-        std::vector<int> path = map.getRoute(*currentRoom_, *targetRoom);
-        if (!path.empty()) {
-            setMovementPath(path, map);
-            setTargetRoom(targetRoom);
-            // Save cleaning task for use after reaching the room
-            currentCleaningTask_ = task;
-            std::cout << "Robot " << name << " is assigned to clean room " << targetRoom->getRoomName()
-                    << " with strategy " << cleaningStrategyToString(task->getCleanType()) << "." << std::endl;
-        } else {
-            std::cerr << "Robot " << name << ": No path to room " << targetRoom->getRoomId() << std::endl;
-        }
-    
-    } else if (hasPendingTasks_) {
-        // No more tasks, return to charger
-        Room* chargingStation = map.getRoomById(0);
+    } else if (taskQueue_.empty() && !cleaning_ && movementProgress_ <= 0.0 && movementQueue_.empty()
+               && !isCharging_ && !returningToCharger_) {
+        // **Modified Part**: No tasks and idle, return to charging station
+        Room* chargingStation = map.getRoomById(0); // Assuming room ID 0 is the charging station
         if (chargingStation && currentRoom_ != chargingStation) {
             std::vector<int> pathToCharger = map.getRoute(*currentRoom_, *chargingStation);
             if (!pathToCharger.empty()) {
                 setMovementPath(pathToCharger, map);
                 setTargetRoom(chargingStation);
-                hasPendingTasks_ = false;
-                std::cout << "Robot " << name << " has completed all tasks and is returning to charger." << std::endl;
+                returningToCharger_ = true;
+                std::cout << "Robot " << name << " has no tasks and is returning to charging station." << std::endl;
+            } else {
+                std::cerr << "Robot " << name << ": Cannot find path to charging station." << std::endl;
             }
+        }
+    } else if (!taskQueue_.empty() && !cleaning_ && movementProgress_ <= 0.0 && movementQueue_.empty()) {
+    // Start next task
+    auto task = taskQueue_.front();
+    taskQueue_.pop();
+    currentCleaningTask_ = task;
+
+    Room* targetRoom = task->getRoom();
+    std::vector<int> path = map.getRoute(*currentRoom_, *targetRoom);
+    if (!path.empty()) {
+        setMovementPath(path, map);
+        setTargetRoom(targetRoom);
+        // Save cleaning task for use after reaching the room
+        currentCleaningTask_ = task;
+        std::cout << "Robot " << name << " is assigned to clean room " << targetRoom->getRoomName()
+                << " with strategy " << cleaningStrategyToString(task->getCleanType()) << "." << std::endl;
+        } else {
+            std::cerr << "Robot " << name << ": No path to room " << targetRoom->getRoomId() << std::endl;
         }
     } else {
         // Idle state
@@ -444,15 +454,13 @@ void Robot::startCleaning(CleaningTask::CleanType cleaningType) {
     switch (cleaningType) {
         case CleaningTask::VACUUM:
             cleaningTimeRemaining_ = 10.0;
-            depleteWater(5.0);
             break;
         case CleaningTask::SCRUB:
             cleaningTimeRemaining_ = 15.0;
-            depleteWater(10.0);
             break;
         case CleaningTask::SHAMPOO:
             cleaningTimeRemaining_ = 20.0;
-            depleteWater(15.0);
+            depleteWater(20.0);
             break;
     }
 }
