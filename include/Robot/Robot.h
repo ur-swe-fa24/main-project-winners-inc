@@ -6,23 +6,24 @@
 #include <queue>     // For std::queue
 #include "Room/Room.h"
 #include "map/map.h" // For Map class
+#include "cleaningTask/cleaningTask.h"
 
 class Robot {
 public:
     // Constructor
-    Robot(const std::string& name, int batteryLevel, int waterLevel = 100);
+    Robot(const std::string& name, double batteryLevel, double waterLevel = 100.0);
 
     // Status update method
     void sendStatusUpdate() const;
 
     // Methods to manage battery
     void recharge(const Map& map);           // Updated declaration
-    void depleteBattery(int amount);
+    void depleteBattery(double amount);
 
     // Methods to manage water
     void refillWater();
-    void depleteWater(int amount);
-    int getWaterLevel() const;
+    void depleteWater(double amount);
+    double getWaterLevel() const;
     bool usesWater() const;
     bool needsWaterRefill() const;
 
@@ -40,9 +41,9 @@ public:
 
     // Getters
     std::string getName() const;
-    int getBatteryLevel() const;
+    double getBatteryLevel() const;
     std::string getStatus() const;
-    int getMovementProgress() const;
+    double getMovementProgress() const;
     Room* getNextRoom() const;
 
     void setCurrentRoom(Room* room);
@@ -57,11 +58,26 @@ public:
     void setTargetRoom(Room* room);
     void update(const Map& map);  
 
+    void addTaskToQueue(const std::shared_ptr<CleaningTask>& task);
+    void startCleaning(CleaningTask::CleanType cleaningType);
+
+    const std::queue<std::shared_ptr<CleaningTask>>& getTaskQueue() const;
+
+    // Helper method to convert CleanType to string
+    static std::string cleaningStrategyToString(CleaningTask::CleanType cleanType) {
+        switch (cleanType) {
+            case CleaningTask::VACUUM: return "Vacuum";
+            case CleaningTask::SCRUB: return "Scrub";
+            case CleaningTask::SHAMPOO: return "Shampoo";
+            default: return "Unknown";
+        }
+    }
+
 private:
     // Attributes
     std::string name;
-    int batteryLevel;
-    int waterLevel_;  // New water level property
+    double batteryLevel;
+    double waterLevel_;  // New water level property
     bool cleaning_;
     bool lowBatteryAlertSent_;
     bool lowWaterAlertSent_;  // New low water alert flag
@@ -70,7 +86,7 @@ private:
     Room* nextRoom_; // The room the robot is moving towards
 
     bool isCharging_;
-    int chargingTimeRemaining_; // in seconds
+    double chargingTimeRemaining_; // in seconds
     double movementProgress_; // Time remaining to move to next room
 
     double cleaningTimeRemaining_; // Time remaining to clean the room
@@ -78,6 +94,17 @@ private:
 
     Room* targetRoom_; // The room the robot is assigned to clean
 
+    // Add this member variable
+    std::queue<std::shared_ptr<CleaningTask>> taskQueue_;
+
+    // Add a flag to check if the robot is returning to the charger
+    bool returningToCharger_ = false;
+
+    // Add a flag to indicate if the robot needs to resume tasks
+    bool hasPendingTasks_ = false;
+
+    std::shared_ptr<CleaningTask> currentCleaningTask_;
+    std::shared_ptr<CleaningTask> savedTask_;  // For saving interrupted tasks
 
 };
 
