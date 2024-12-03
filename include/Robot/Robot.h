@@ -24,6 +24,7 @@ public:
     void refillWater();
     void depleteWater(double amount);
     double getWaterLevel() const;
+    bool usesWater() const;
     bool needsWaterRefill() const;
 
     // Methods to perform actions

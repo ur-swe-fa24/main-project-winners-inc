@@ -20,6 +20,16 @@ void Scheduler::assignCleaningTask(const std::string& robotName, int targetRoomI
         throw std::runtime_error("Target room " + std::to_string(targetRoomId) + " not found.");
     }
 
+    // Check whether or not robot is operational
+    if (!isRobotOperational(robot)) {
+        throw std::runtime_error("Robot " + robotName + " is not currently operational.");
+    }
+
+    // Check whether or not robot is operational
+    if (!isRobotOperational(robot)) {
+        throw std::runtime_error("Robot " + robotName + " is not currently operational.");
+    }
+
     // Create a new cleaning task
     static int taskIdCounter = 0;
     auto task = std::make_shared<CleaningTask>(++taskIdCounter, CleaningTask::MEDIUM, 
@@ -38,6 +48,51 @@ void Scheduler::assignCleaningTask(const std::string& robotName, int targetRoomI
     std::cout << "Assigned task to robot " << robotName << " to clean room " << targetRoom->getRoomId() 
               << " using strategy " << cleaningStrategy << "." << std::endl;
 }
+
+bool Scheduler::isRobotOperational(const std::shared_ptr<Robot>& robot) const {
+    // If parameter robot does not exist
+    if (!robot) {
+        return false;
+    }
+
+    // Set the movement path for the robot
+    robot->setMovementPath(route, *map_);
+
+    // Add the task to the global task list
+    tasks_.push_back(task);
+
+
+    std::cout << "Assigned task to robot " << robotName << " to clean room " << targetRoom->getRoomId() 
+              << " using strategy " << cleaningStrategy << "." << std::endl;
+}
+
+bool Scheduler::isRobotOperational(const std::shared_ptr<Robot>& robot) const {
+    // If parameter robot does not exist
+    if (!robot) {
+        return false;
+    }
+
+    // Check that battery level is 20% or more
+    if (robot->getBatteryLevel() <= 20) { 
+        std::cout << "Robot " << robot->getName() << " has insufficient battery. Return to charger before assigning tasks to this robot.\n";
+        return false;
+    }
+
+    // Check that water level is 20% or more *if that type of robot requires water*
+    if (robot->usesWater() && robot->getWaterLevel() <= 20) {
+        std::cout << "Robot " << robot->getName() << " has insufficient water. Refill water tank before assigning tasks to this robot.\n";
+        return false;
+    }
+
+    // Check overall functionality (e.g., sensors, hardware status)
+    if (robot->needsMaintenance()) {
+        std::cout << "Robot " << robot->getName() << "  requires maintenance. Consult Field Engineer before assigning tasks to this robot.\n";
+        return false;
+    }
+
+    return true;
+}
+
 
 void Scheduler::update() {
     if (!map_ || !robots_) {

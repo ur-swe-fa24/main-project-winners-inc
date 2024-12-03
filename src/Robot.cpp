@@ -84,6 +84,12 @@ double Robot::getWaterLevel() const {
     return waterLevel_;
 }
 
+bool Robot::usesWater() const{
+    if (waterLevel_ == NULL){
+        return true;
+    }
+}
+
 bool Robot::needsWaterRefill() const {
     return waterLevel_ < 20.0;
 }
