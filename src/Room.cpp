@@ -45,3 +45,7 @@ void Room::markDirty(){
 void Room::addNeighbor(Room* neighbor){
     neighbors.push_back(neighbor);
 }
+
+std::string Room::getFlooringType() const {
+    return flooringType;
+}

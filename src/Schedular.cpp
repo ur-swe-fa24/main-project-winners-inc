@@ -20,21 +20,37 @@ void Scheduler::assignCleaningTask(const std::string& robotName, int targetRoomI
         throw std::runtime_error("Target room " + std::to_string(targetRoomId) + " not found.");
     }
 
-    // Get route to target room
-    std::vector<int> route = map_->getRoute(*robot->getCurrentRoom(), *targetRoom);
-    if (route.empty()) {
-        throw std::runtime_error("No available route for robot " + robotName + " to room " + std::to_string(targetRoomId) + ".");
-    }
+    // Create a new cleaning task
+    static int taskIdCounter = 0;
+    auto task = std::make_shared<CleaningTask>(++taskIdCounter, CleaningTask::MEDIUM, 
+        cleaningStrategyFromString(cleaningStrategy), targetRoom);
 
-    // Set the movement path for the robot
-    robot->setMovementPath(route, *map_);
+    // Assign the robot to the task
+    task->assignRobot(robot);
 
-    // Set the target room
-    robot->setTargetRoom(targetRoom);
+    // Add the task to the robot's queue
+    robot->addTaskToQueue(task);
 
-    std::cout << "Assigned task to robot " << robotName << " to clean room " << targetRoom->getRoomId() << " using strategy " << cleaningStrategy << "." << std::endl;
+    // Add the task to the global task list
+    tasks_.push_back(task);
+
+
+    std::cout << "Assigned task to robot " << robotName << " to clean room " << targetRoom->getRoomId() 
+              << " using strategy " << cleaningStrategy << "." << std::endl;
 }
 
+void Scheduler::update() {
+    if (!map_ || !robots_) {
+        return;
+    }
+
+    // Update each robot
+    for (auto& robot : *robots_) {
+        if (robot) {
+            robot->update(*map_);
+        }
+    }
+}
 void Scheduler::executeCleaning(std::shared_ptr<Robot> robot, Room* targetRoom, const std::string& strategy) {
     if (!map_ || !robots_) {
         throw std::runtime_error("Scheduler not properly initialized");
@@ -55,7 +71,8 @@ void Scheduler::executeCleaning(std::shared_ptr<Robot> robot, Room* targetRoom, 
     int cleaningTime = getCleaningTime(*targetRoom);
     robot->depleteBattery(cleaningTime); // Battery depletes based on cleaning time
     targetRoom->markClean();
-    std::cout << "Robot " << robot->getName() << " cleaned room " << targetRoom->getRoomName() << " with strategy " << strategy << std::endl;
+    std::cout << "Robot " << robot->getName() << " cleaned room " << targetRoom->getRoomName() 
+              << " with strategy " << strategy << std::endl;
 }
 
 int Scheduler::getCleaningTime(const Room& room) const {
@@ -76,3 +93,18 @@ std::shared_ptr<Robot> Scheduler::findRobotByName(const std::string& name) {
     }
     return nullptr;
 }
+
+// Helper function to convert string to CleanType enum
+CleaningTask::CleanType Scheduler::cleaningStrategyFromString(const std::string& strategy) {
+    std::string lowerStrategy = strategy;
+    std::transform(lowerStrategy.begin(), lowerStrategy.end(), lowerStrategy.begin(), ::tolower);
+    if (lowerStrategy == "vacuum") return CleaningTask::VACUUM;
+    if (lowerStrategy == "scrub") return CleaningTask::SCRUB;
+    if (lowerStrategy == "shampoo") return CleaningTask::SHAMPOO;
+    throw std::runtime_error("Unknown cleaning strategy: " + strategy);
+}
+
+const std::vector<std::shared_ptr<CleaningTask>>& Scheduler::getAllTasks() const {
+    return tasks_;
+}
+

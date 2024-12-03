@@ -1,21 +1,21 @@
 #include "cleaningTask/cleaningTask.h"
-#include "schedule/schedule.h"
-#include "robot/Robot.h"
-#include "room/Room.h"
+#include "Schedule/schedule.h"
+#include "Robot/Robot.h"
+#include "Room/Room.h"
 #include <string>
 #include <iostream>
 #include <vector>
 #include <memory>
 
 // Constructor
-CleaningTask::CleaningTask(int id, Priority priority, CleanType cleaningType, std::shared_ptr<Room> room)
-    : id(id), priority(priority), cleaningType(cleaningType), room(room) {}
+CleaningTask::CleaningTask(int id, Priority priority, CleanType cleaningType, Room* room)
+    : id(id), priority(priority), status("Pending"), cleaningType(cleaningType), room(room), robot(nullptr) {}
 
 // Assign a robot with a task
-void CleaningTask::assignRobot(int robotID) {
-    
-    std::cout << "Robot " << robotID << " assigned to task " << id << "." << std::endl;
+void CleaningTask::assignRobot(const std::shared_ptr<Robot>& robot) {
+    this->robot = robot;
     status = "In Progress";
+    std::cout << "Robot " << robot->getName() << " assigned to task " << id << "." << std::endl;
 }
 
 // Methods to mark clean as either completed or failed
@@ -46,10 +46,9 @@ CleaningTask::CleanType CleaningTask::getCleanType() const {
     return cleaningType;
 }
 
-std::shared_ptr<Room> CleaningTask::getRoom() const {
+Room* CleaningTask::getRoom() const {
     return room;
 }
-
 
 std::shared_ptr<Robot> CleaningTask::getRobot() const {
     return robot;

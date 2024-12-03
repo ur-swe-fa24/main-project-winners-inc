@@ -43,6 +43,7 @@ void Map::addVirtualWall(Room* room1, Room* room2) {
 }
 
 void Map::loadFromFile(const std::string& filename) {
+    std::cout << "Opening map file: " << filename << std::endl;
     std::ifstream file(filename);
     if (!file.is_open()) {
         throw std::runtime_error("Failed to open map file: " + filename);
@@ -51,34 +52,57 @@ void Map::loadFromFile(const std::string& filename) {
     json j;
     try {
         file >> j;
+        std::cout << "JSON content loaded successfully" << std::endl;
+        
+        // Debug print JSON structure
+        std::cout << "JSON structure:" << std::endl;
+        std::cout << j.dump(2) << std::endl;
     } catch (const json::parse_error& e) {
         throw std::runtime_error("JSON parsing error in map file: " + std::string(e.what()));
     }
 
     // Load rooms
+    std::cout << "Loading rooms..." << std::endl;
     for (const auto& roomData : j["rooms"]) {
         std::string size = roomData.contains("size") ? roomData["size"] : "medium";
+        std::cout << "Creating room: " << roomData["name"].get<std::string>() 
+                 << ", id: " << roomData["id"].get<int>() 
+                 << ", floor: " << roomData["flooringType"].get<std::string>() << std::endl;
         Room* room = new Room(roomData["name"], roomData["id"], roomData["flooringType"], 
                             size, roomData["isRoomClean"]);
         roomMap.push_back(room);
     }
 
     // Load connections
+    std::cout << "Loading connections..." << std::endl;
     for (const auto& conn : j["connections"]) {
-        Room* room1 = getRoomById(conn["room1"]);
-        Room* room2 = getRoomById(conn["room2"]);
+        int fromId = conn["from"].get<int>();
+        int toId = conn["to"].get<int>();
+        std::cout << "Connecting rooms: " << fromId << " -> " << toId << std::endl;
+        Room* room1 = getRoomById(fromId);
+        Room* room2 = getRoomById(toId);
         if (room1 && room2) {
             connectRooms(room1, room2);
         }
     }
 
     // Load virtual walls
+    std::cout << "Loading virtual walls..." << std::endl;
     if (j.contains("virtualWalls")) {
         for (const auto& vw : j["virtualWalls"]) {
-            Room* room1 = getRoomById(vw["room1"]);
-            Room* room2 = getRoomById(vw["room2"]);
-            if (room1 && room2) {
-                addVirtualWall(room1, room2);
+            try {
+                int room1Id = vw["room1"].get<int>();
+                int room2Id = vw["room2"].get<int>();
+                std::cout << "Adding virtual wall between rooms: " << room1Id << " -> " << room2Id << std::endl;
+                Room* room1 = getRoomById(room1Id);
+                Room* room2 = getRoomById(room2Id);
+                if (room1 && room2) {
+                    addVirtualWall(room1, room2);
+                }
+            } catch (const json::exception& e) {
+                std::cerr << "Error processing virtual wall: " << e.what() << std::endl;
+                std::cerr << "Virtual wall data: " << vw.dump() << std::endl;
+                throw;
             }
         }
     }

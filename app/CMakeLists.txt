@@ -7,6 +7,7 @@ add_executable(wx_robot_test
     ${PROJECT_SOURCE_DIR}/src/LoginDialog.cpp
     ${PROJECT_SOURCE_DIR}/src/AlertDialog.cpp
     ${PROJECT_SOURCE_DIR}/src/map_panel.cpp
+    ${PROJECT_SOURCE_DIR}/src/scheduler_panel.cpp
     # Include other source files if needed
 )
 
