@@ -110,7 +110,11 @@ Run individual test executables from the `build/tests` directory for more detail
 
 ## Updates Since Sprint 4
 + Adding limitations based on account type to allow different types of users to have different permissions
-+ Implementing water level as a robot status
-+ Adding room size to simulation
++ Implementing water level as a robot status and sending alerts when water level is low
++ Adding room an robot sizes to simulation
 + Imposing robot types-- only scrub robots can scrub, only vacuum robots may vacuum, etc.
++ Checking robot statuses before assigning tasks
++ Allow for scheduling of repeating tasks
++ Sending location of robot when it experiences an error
 + Updated README.md and USER_GUIDE.md files
++ Updated documentation where necessary
