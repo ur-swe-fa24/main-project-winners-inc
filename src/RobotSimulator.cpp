@@ -118,3 +118,16 @@ void RobotSimulator::checkRobotStatesAndSendAlerts() {
         }
     }
 }
+
+
+void RobotSimulator::addRobot(const std::string& robotName) {
+    // Create a new robot at starting room (e.g. room ID 0)
+    Room* charger = map_->getRoomById(0);
+    auto newRobot = std::make_shared<Robot>(robotName, 100.0, 100.0);
+    if (charger) newRobot->setCurrentRoom(charger);
+    robots_.push_back(newRobot);
+}
+
+const std::vector<std::shared_ptr<Robot>>& RobotSimulator::getRobots() const {
+    return robots_;
+}

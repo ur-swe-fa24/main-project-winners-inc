@@ -3,7 +3,7 @@
 
 #include <wx/wx.h>
 #include <wx/panel.h>
-#include <vector>
+#include <memory>
 #include "RobotSimulator/RobotSimulator.hpp"
 
 class MapPanel : public wxPanel {
@@ -11,6 +11,7 @@ public:
     MapPanel(wxWindow* parent, std::shared_ptr<RobotSimulator> simulator);
 
     void OnPaint(wxPaintEvent& event);
+    void OnMouseClick(wxMouseEvent& event);
 
 private:
     std::shared_ptr<RobotSimulator> simulator_;

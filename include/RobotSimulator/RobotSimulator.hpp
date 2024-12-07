@@ -25,6 +25,9 @@ public:
     void stopRobotCleaning(const std::string& robotName);
     void manuallyPickUpRobot(const std::string& robotName);
     void requestReturnToCharger(const std::string& robotName);
+    void addRobot(const std::string& robotName);
+    const std::vector<std::shared_ptr<Robot>>& getRobots() const;
+
 
     struct RobotStatus {
         std::string name;

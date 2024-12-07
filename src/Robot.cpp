@@ -9,7 +9,9 @@ Robot::Robot(const std::string& name, double batteryLevel, double waterLevel)
     : name_(name), batteryLevel_(batteryLevel), waterLevel_(waterLevel),
       cleaning_(false), isCharging_(false), cleaningProgress_(0.0), movementProgress_(0.0),
       currentRoom_(nullptr), nextRoom_(nullptr), cleaningTimeRemaining_(0.0),
-      targetRoom_(nullptr), lowBatteryAlertSent_(false), lowWaterAlertSent_(false) {}
+      targetRoom_(nullptr), lowBatteryAlertSent_(false), lowWaterAlertSent_(false),
+      currentTask_(nullptr) // Initialize to null
+{}
 
 void Robot::updateState(double deltaTime) {
     // Battery/water logic (simplified)
@@ -36,8 +38,8 @@ void Robot::updateState(double deltaTime) {
         cleaningTimeRemaining_ -= deltaTime;
         if (cleaningTimeRemaining_ <= 0) {
             cleaning_ = false;
-            currentTask_->markCompleted();
-            currentTask_.reset();
+            currentTask_->markCompleted(); // Now works because currentTask_ is CleaningTask
+            currentTask_.reset();          // Reset the shared_ptr
             cleaningProgress_ = 0.0;
             if (currentRoom_) {
                 currentRoom_->markClean();
@@ -95,7 +97,9 @@ void Robot::moveToRoom(Room* room) {
     nextRoom_ = nullptr;
     while(!movementQueue_.empty()) movementQueue_.pop();
 }
-
+Room* Robot::getNextRoom() const {
+    return nextRoom_;
+}
 double Robot::getBatteryLevel() const { return batteryLevel_; }
 double Robot::getWaterLevel() const { return waterLevel_; }
 bool Robot::needsCharging() const { return batteryLevel_ < 20.0; }

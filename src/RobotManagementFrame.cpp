@@ -61,6 +61,9 @@ RobotManagementFrame::RobotManagementFrame(const wxString& title)
 
         // Create RobotSimulator with shared_ptr
         simulator_ = std::make_shared<RobotSimulator>(map, scheduler_, alertSystem);
+        simulator_->addRobot("RobotA");
+        simulator_->addRobot("RobotB");
+        simulator_->addRobot("RobotC");
 
         SetStatusText("Simulator initialized");
 

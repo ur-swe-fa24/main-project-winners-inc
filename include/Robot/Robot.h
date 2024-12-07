@@ -4,37 +4,37 @@
 #include <string>
 #include <memory>
 #include <queue>
-#include "CleaningTask/cleaningTask.h"
+#include "CleaningTask/cleaningTask.h" // Ensure this is correct
+#include "Room/Room.h"
 
-class Room;
 class Map;
+class CleaningTask;
 
 class Robot {
 public:
     Robot(const std::string& name, double batteryLevel, double waterLevel = 100.0);
 
     void updateState(double deltaTime);
-    void startCleaning(CleaningTask::CleanType cleaningType); 
+    void startCleaning(CleaningTask::CleanType cleaningType);
     void stopCleaning();
     void setMovementPath(const std::vector<int>& roomIds, const Map& map);
     void moveToRoom(Room* room);
-    
+
     double getBatteryLevel() const;
     double getWaterLevel() const;
     bool needsCharging() const;
     bool needsWaterRefill() const;
     bool isCleaning() const;
     bool isMoving() const;
-
     Room* getCurrentRoom() const;
+    Room* getNextRoom() const;
     std::string getName() const;
     void setCurrentRoom(Room* room);
     void setCharging(bool charging);
     void refillWater();
     void fullyRecharge();
 
-    // Existing methods for alerts and status
-    bool isCharging() const; 
+    bool isCharging() const;
     double getMovementProgress() const;
     bool needsMaintenance() const;
     bool isLowBatteryAlertSent() const;
@@ -43,7 +43,7 @@ public:
 
     void setLowBatteryAlertSent(bool val);
     void setLowWaterAlertSent(bool val);
-    
+
 private:
     std::string name_;
     double batteryLevel_;
@@ -53,18 +53,14 @@ private:
     double cleaningProgress_;
     double movementProgress_;
     Room* currentRoom_;
-    
-    // Add these missing members
     Room* nextRoom_;
     double cleaningTimeRemaining_;
-    
-    std::shared_ptr<CleaningTask> currentTask_;
-    Room* targetRoom_; 
+    Room* targetRoom_;
     bool lowBatteryAlertSent_;
     bool lowWaterAlertSent_;
 
-    // Helper fields for movement queue
     std::queue<Room*> movementQueue_;
+    std::shared_ptr<CleaningTask> currentTask_; // ADD THIS LINE
 };
 
 #endif // ROBOT_H
