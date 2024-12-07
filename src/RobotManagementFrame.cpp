@@ -240,6 +240,14 @@ void RobotManagementFrame::CreateAlertsPanel(wxNotebook* notebook) {
 void RobotManagementFrame::CreateRobotControlPanel(wxNotebook* notebook) {
     robotControlPanel = new RobotControlPanel(notebook, simulator_.get());
     notebook->AddPage(robotControlPanel, "Robot Control");
+    
+    // Add default robot if none exist
+    if (simulator_->getRobots().empty()) {
+        simulator_->addRobot("Robot1");
+    }
+    
+    // Update robot choices
+    robotControlPanel->UpdateRobotList();
 }
 
 void RobotManagementFrame::CreateDashboardPanel(wxNotebook* notebook) {
