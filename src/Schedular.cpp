@@ -25,11 +25,6 @@ void Scheduler::assignCleaningTask(const std::string& robotName, int targetRoomI
         throw std::runtime_error("Robot " + robotName + " is not currently operational.");
     }
 
-    // Check whether or not robot is operational
-    if (!isRobotOperational(robot)) {
-        throw std::runtime_error("Robot " + robotName + " is not currently operational.");
-    }
-
     // Create a new cleaning task
     static int taskIdCounter = 0;
     auto task = std::make_shared<CleaningTask>(++taskIdCounter, CleaningTask::MEDIUM, 
@@ -49,21 +44,36 @@ void Scheduler::assignCleaningTask(const std::string& robotName, int targetRoomI
               << " using strategy " << cleaningStrategy << "." << std::endl;
 }
 
-bool Scheduler::isRobotOperational(const std::shared_ptr<Robot>& robot) const {
-    // If parameter robot does not exist
-    if (!robot) {
-        return false;
+void Scheduler::assignTask(std::shared_ptr<Robot> robot, Room* targetRoom, CleaningTask::CleanType cleanType) {
+    if (!robot || !targetRoom || !map_) {
+        std::cerr << "Invalid parameters for task assignment" << std::endl;
+        return;
     }
 
-    // Set the movement path for the robot
-    robot->setMovementPath(route, *map_);
+    if (!isRobotOperational(robot)) {
+        std::cout << "Robot " << robot->getName() << " is not operational for new tasks." << std::endl;
+        return;
+    }
 
-    // Add the task to the global task list
+    // Create a new cleaning task with default medium priority
+    static int taskIdCounter = 0;
+    auto task = std::make_shared<CleaningTask>(++taskIdCounter, CleaningTask::MEDIUM, cleanType, targetRoom);
+    task->assignRobot(robot);
+    
+    // Get the route to the target room
+    std::vector<int> route = map_->getRoute(*robot->getCurrentRoom(), *targetRoom);
+    if (route.empty()) {
+        std::cerr << "No valid route found to target room" << std::endl;
+        return;
+    }
+
+    robot->setMovementPath(route, *map_);
+    robot->setTargetRoom(targetRoom);
+    robot->addTaskToQueue(task);
     tasks_.push_back(task);
 
-
-    std::cout << "Assigned task to robot " << robotName << " to clean room " << targetRoom->getRoomId() 
-              << " using strategy " << cleaningStrategy << "." << std::endl;
+    std::cout << "Assigned task to robot " << robot->getName() << " to clean room " << targetRoom->getRoomId() 
+              << " using strategy " << Robot::cleaningStrategyToString(cleanType) << "." << std::endl;
 }
 
 bool Scheduler::isRobotOperational(const std::shared_ptr<Robot>& robot) const {
@@ -162,4 +172,3 @@ CleaningTask::CleanType Scheduler::cleaningStrategyFromString(const std::string&
 const std::vector<std::shared_ptr<CleaningTask>>& Scheduler::getAllTasks() const {
     return tasks_;
 }
-

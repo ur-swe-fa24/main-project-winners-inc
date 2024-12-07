@@ -17,8 +17,8 @@ TEST_CASE("Test Mapping System", "[mapping]") {
     
     SECTION("Room Class") {
         // Create test rooms
-        Room room1("Living Room", 1, "Carpet", false);
-        Room room2("Kitchen", 2, "Tile", false);
+        Room room1("Living Room", 1, "Carpet", "medium", false);
+        Room room2("Kitchen", 2, "Tile", "medium", false);
 
         // Test room attributes
         REQUIRE(room1.getRoomName() == "Living Room");
@@ -34,8 +34,8 @@ TEST_CASE("Test Mapping System", "[mapping]") {
         Map map;  // Create a fresh map for testing basic operations
         
         // Test adding rooms
-        REQUIRE_NOTHROW(map.addRoom("Living Room", 1, "Carpet", false));
-        REQUIRE_NOTHROW(map.addRoom("Kitchen", 2, "Tile", false));
+        REQUIRE_NOTHROW(map.addRoom("Living Room", 1, "Carpet", "medium", false));
+        REQUIRE_NOTHROW(map.addRoom("Kitchen", 2, "Tile", "medium", false));
 
         // Test getting rooms
         auto rooms = map.getRooms();
@@ -61,13 +61,13 @@ TEST_CASE("Test Mapping System", "[mapping]") {
         auto chargingStation = map.getRoomById(0);
         REQUIRE(chargingStation != nullptr);
         REQUIRE(chargingStation->getRoomName() == "Charging Station");
-        REQUIRE(chargingStation->flooringType == "Hardwood");
+        REQUIRE(chargingStation->flooringType == "tile");
     }
 
     SECTION("Room Connections") {
-        Room room1("Living Room", 1, "Carpet", false);
-        Room room2("Kitchen", 2, "Tile", false);
-        Room room3("Bedroom", 3, "Carpet", false);
+        Room room1("Living Room", 1, "Carpet", "medium", false);
+        Room room2("Kitchen", 2, "Tile", "medium", false);
+        Room room3("Bedroom", 3, "Carpet", "medium", false);
 
         // Connect rooms
         room1.addNeighbor(&room2);
@@ -87,8 +87,8 @@ TEST_CASE("Test Mapping System", "[mapping]") {
     }
 
     SECTION("Virtual Wall") {
-        Room room1("Living Room", 1, "Carpet", false);
-        Room room2("Kitchen", 2, "Tile", false);
+        Room room1("Living Room", 1, "Carpet", "medium", false);
+        Room room2("Kitchen", 2, "Tile", "medium", false);
 
         // Connect rooms
         room1.addNeighbor(&room2);

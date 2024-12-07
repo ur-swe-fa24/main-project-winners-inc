@@ -50,6 +50,20 @@ void MongoDBAdapter::stop() {
     std::cout << "MongoDB adapter stopped" << std::endl;
 }
 
+// Stop robot status monitoring thread
+void MongoDBAdapter::stopRobotStatusThread() {
+    if (!running_) return;
+    
+    running_ = false;
+    cv_.notify_all();
+    
+    if (robotStatusThread_.joinable()) {
+        robotStatusThread_.join();
+    }
+    
+    std::cout << "Robot status monitoring thread stopped" << std::endl;
+}
+
 // Alert methods implementation
 void MongoDBAdapter::saveAlert(const Alert& alert) {
     std::lock_guard<std::mutex> lock(mutex_);
