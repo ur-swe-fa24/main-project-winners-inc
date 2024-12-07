@@ -8,10 +8,10 @@ namespace config {
     std::string ResourceConfig::resourceDir_;
     const std::string ResourceConfig::DEFAULT_MAP_NAME = "map.json";
 
-    void ResourceConfig::initialize(const std::string& resourceDir) {
+    bool ResourceConfig::initialize(const std::string& resourceDir) {
         if (!resourceDir.empty()) {
             resourceDir_ = resourceDir;
-            return;
+            return std::filesystem::exists(resourceDir_);
         }
 
         // Get the executable directory
@@ -30,23 +30,20 @@ namespace config {
             (exeDir).ToStdString()                        // build/app
         };
 
-        std::cout << "Searching for resources in the following locations:" << std::endl;
+        // Try each path until we find one that exists and contains map.json
         for (const auto& path : possiblePaths) {
-            std::cout << "Checking: " << path << std::endl;
-            std::string mapPath = path + "/" + DEFAULT_MAP_NAME;
-            if (std::filesystem::exists(mapPath)) {
-                std::cout << "Found map.json at: " << mapPath << std::endl;
-                resourceDir_ = std::filesystem::path(path).string();
-                return;
+            if (std::filesystem::exists(path)) {
+                std::string mapPath = path + "/" + DEFAULT_MAP_NAME;
+                if (std::filesystem::exists(mapPath)) {
+                    resourceDir_ = path;
+                    std::cout << "Found resource directory at: " << resourceDir_ << std::endl;
+                    return true;
+                }
             }
         }
 
-        // If still not found, try current directory
-        if (resourceDir_.empty()) {
-            std::string currentDir = std::filesystem::current_path().string();
-            std::cout << "Falling back to current directory: " << currentDir << std::endl;
-            resourceDir_ = currentDir;
-        }
+        std::cerr << "Failed to find valid resource directory containing " << DEFAULT_MAP_NAME << std::endl;
+        return false;
     }
 
     std::string ResourceConfig::getResourcePath(const std::string& resourceName) {
