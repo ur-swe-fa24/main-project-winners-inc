@@ -87,19 +87,51 @@ void SchedulerPanel::BindEvents() {
 }
 
 void SchedulerPanel::UpdateRoomList() {
-    roomChoice_->Clear();
-    // We must have included map.h so that getMap() and getRooms() are fully known
+    if (!simulator_) return;
+
+    // Get current selection
+    int currentSelection = roomChoice_->GetSelection();
+    wxString currentSelectionString;
+    if (currentSelection != wxNOT_FOUND) {
+        currentSelectionString = roomChoice_->GetString(currentSelection);
+    }
+
+    // Build new room list
+    std::vector<std::pair<wxString, void*>> newRoomList;
     const auto& rooms = simulator_->getMap().getRooms();
-    for (auto& room : rooms) {
-        if (!room->isRoomClean) {
-            wxString label = wxString::Format("%s (%s)", room->getRoomName(), room->getFlooringType());
-            roomChoice_->Append(label, room);
+    for (const auto& room : rooms) {
+        if (room && !room->isRoomClean) {
+            wxString roomChoiceLabel = wxString::Format("%s (%s)", room->getRoomName(), room->getSize());
+            newRoomList.emplace_back(roomChoiceLabel, reinterpret_cast<void*>(room));
         }
     }
 
-    if (roomChoice_->GetCount() > 0) {
-        roomChoice_->SetSelection(0);
-        UpdateRoomSelection(); 
+    bool needUpdate = false;
+    if (newRoomList.size() != roomChoice_->GetCount()) {
+        needUpdate = true;
+    } else {
+        for (size_t i = 0; i < newRoomList.size(); ++i) {
+            if (newRoomList[i].first != roomChoice_->GetString(i)) {
+                needUpdate = true;
+                break;
+            }
+        }
+    }
+
+    if (needUpdate) {
+        roomChoice_->Clear();
+        for (const auto& roomEntry : newRoomList) {
+            roomChoice_->Append(roomEntry.first, roomEntry.second);
+        }
+
+        // Restore previous selection if possible
+        int newSelectionIndex = roomChoice_->FindString(currentSelectionString);
+        if (newSelectionIndex != wxNOT_FOUND) {
+            roomChoice_->SetSelection(newSelectionIndex);
+        } else if (roomChoice_->GetCount() > 0) {
+            roomChoice_->SetSelection(0);
+        }
+        roomChoice_->Refresh();
     }
 }
 
@@ -112,10 +144,12 @@ void SchedulerPanel::UpdateRoomSelection() {
 
     strategyChoice_->Clear();
     std::string floorType = selectedRoom->getFlooringType();
-    if (floorType == "Carpet") {
+    std::transform(floorType.begin(), floorType.end(), floorType.begin(), ::tolower);
+
+    if (floorType == "carpet") {
         strategyChoice_->Append("Vacuum");
         strategyChoice_->Append("Shampoo");
-    } else if (floorType == "Wood" || floorType == "Tile") {
+    } else if (floorType == "wood" || floorType == "tile" || floorType == "hardwood") {
         strategyChoice_->Append("Vacuum");
         strategyChoice_->Append("Scrub");
     } else {
@@ -125,60 +159,110 @@ void SchedulerPanel::UpdateRoomSelection() {
     if (strategyChoice_->GetCount() > 0) {
         strategyChoice_->SetSelection(0);
     }
+    strategyChoice_->Refresh();
 
-    UpdateRobotChoices(); 
+    UpdateRobotChoices();
 }
+
+
 
 void SchedulerPanel::OnRoomSelected(wxCommandEvent& event) {
     UpdateRoomSelection();
+    // After updating, force refresh to ensure UI reflects changes
+    roomChoice_->Refresh();
+    strategyChoice_->Refresh();
 }
 
 void SchedulerPanel::UpdateRobotChoices() {
-    robotChoice_->Clear();
-    auto statuses = simulator_->getRobotStatuses();
-    for (auto& st : statuses) {
-        robotChoice_->Append(st.name);
+    if (!simulator_) {
+        // Log error to alert system
+        auto alertSystem = simulator_->getAlertSystem();
+        if (alertSystem) {
+            alertSystem->sendAlert("Simulator is not initialized", "Error");
+        }
+        return;
     }
-    if (robotChoice_->GetCount() > 0) {
-        robotChoice_->SetSelection(0);
+
+    if (robotChoice_) {
+        wxString currentSelection;
+        if (robotChoice_->GetSelection() != wxNOT_FOUND) {
+            currentSelection = robotChoice_->GetString(robotChoice_->GetSelection());
+        }
+
+        robotChoice_->Clear();
+        auto robotStatuses = simulator_->getRobotStatuses();
+        
+        for (const auto& status : robotStatuses) {
+            if (!status.name.empty()) {
+                robotChoice_->Append(status.name);
+            }
+        }
+
+        // Try to restore the previous selection
+        int index = robotChoice_->FindString(currentSelection);
+        if (index != wxNOT_FOUND) {
+            robotChoice_->SetSelection(index);
+        } else if (robotChoice_->GetCount() > 0) {
+            robotChoice_->SetSelection(0);
+        }
+
+        robotChoice_->Refresh();
     }
 }
 
 void SchedulerPanel::OnAssignTask(wxCommandEvent& event) {
-    if (robotChoice_->GetSelection() == wxNOT_FOUND) {
-        wxMessageBox("Please select a robot.", "Error", wxOK | wxICON_ERROR);
+    if (!robotChoice_ || robotChoice_->GetSelection() == wxNOT_FOUND) {
+        auto alertSystem = simulator_->getAlertSystem();
+        if (alertSystem) {
+            alertSystem->sendAlert("Please select a robot.", "Error");
+        }
         return;
     }
     std::string robotName = robotChoice_->GetStringSelection().ToStdString();
 
     if (roomChoice_->GetSelection() == wxNOT_FOUND) {
-        wxMessageBox("Please select a room.", "Error", wxOK | wxICON_ERROR);
+        auto alertSystem = simulator_->getAlertSystem();
+        if (alertSystem) {
+            alertSystem->sendAlert("Please select a room.", "Error");
+        }
         return;
     }
 
     Room* selectedRoom = reinterpret_cast<Room*>(roomChoice_->GetClientData(roomChoice_->GetSelection()));
     if (!selectedRoom) {
-        wxMessageBox("Invalid room selection.", "Error", wxOK | wxICON_ERROR);
+        auto alertSystem = simulator_->getAlertSystem();
+        if (alertSystem) {
+            alertSystem->sendAlert("Invalid room selection.", "Error");
+        }
         return;
     }
 
     if (strategyChoice_->GetSelection() == wxNOT_FOUND) {
-        wxMessageBox("Please select a cleaning strategy.", "Error", wxOK | wxICON_ERROR);
+        auto alertSystem = simulator_->getAlertSystem();
+        if (alertSystem) {
+            alertSystem->sendAlert("Please select a cleaning strategy.", "Error");
+        }
         return;
     }
     std::string strategy = strategyChoice_->GetStringSelection().ToStdString();
 
-    scheduler_->assignCleaningTask(robotName, selectedRoom->getRoomId(), strategy);
-
-    auto alertSystem = simulator_->getAlertSystem();
-    if (alertSystem) {
-        alertSystem->sendAlert("Task assigned to robot " + robotName + " for room " + selectedRoom->getRoomName(), "Task");
+    try {
+        scheduler_->assignCleaningTask(robotName, selectedRoom->getRoomId(), strategy);
+        // Inform user via alert panel instead of wxMessageBox
+        auto alertSystem = simulator_->getAlertSystem();
+        if (alertSystem) {
+            alertSystem->sendAlert("Task assigned to robot " + robotName + " for room " + selectedRoom->getRoomName(), "Task");
+        }
+    } catch (const std::exception& e) {
+        auto alertSystem = simulator_->getAlertSystem();
+        if (alertSystem) {
+            alertSystem->sendAlert(std::string("Assignment Error: ") + e.what(), "Error");
+        }
+        return;
     }
 
-    wxMessageBox("Task assigned.", "Info");
     UpdateTaskList();
 }
-
 void SchedulerPanel::OnRobotSelected(wxCommandEvent& event) {
     // If needed, update logic based on selected robot
 }
