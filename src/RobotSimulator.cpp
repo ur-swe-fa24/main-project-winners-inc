@@ -130,6 +130,8 @@ void RobotSimulator::returnToCharger(const std::string& robotName) {
 }
 
 void RobotSimulator::simulationLoop() {
+    const double UPDATE_INTERVAL = 0.1; // 100ms update interval
+    
     while (running_) {
         std::vector<std::shared_ptr<Robot>> robotsCopy;
 
@@ -141,29 +143,53 @@ void RobotSimulator::simulationLoop() {
 
         // Iterate over the copied robots
         for (auto& robot : robotsCopy) {
-            bool needsSave = false;
-            bool generateLowBatteryAlert = false;
-            bool generateChargingAlert = false;
+            std::lock_guard<std::mutex> lock(robotsMutex_);
+            
+            // Update robot state
+            robot->update(map_);
 
-            // Update the robot within a mutex lock
-            {
-                std::lock_guard<std::mutex> lock(robotsMutex_);
-                robot->update(map_);
+            // Check if robot needs charging
+            if (robot->needsCharging() && !robot->isCharging()) {
+                returnToCharger(robot->getName());
+            }
 
-                // Check if the robot has cleaned a room
-                Room* currentRoom = robot->getCurrentRoom();
-                if (currentRoom && currentRoom->isRoomClean) {
-                    // Save the room status asynchronously
-                    dbAdapter_->saveRoomStatusAsync(*currentRoom);
-                }
-            } // Mutex lock released
+            // Check if robot needs water refill
+            if (robot->needsWaterRefill() && robot->isCleaning()) {
+                robot->stopCleaning();
+                // TODO: Implement water refill station logic
+            }
 
-            // Perform other tasks such as sending alerts (if needed)
-            // ...
+            // Check if the robot has cleaned a room
+            Room* currentRoom = robot->getCurrentRoom();
+            if (currentRoom && robot->isCleaning()) {
+                currentRoom->isRoomClean = true;
+                // Save the room status asynchronously
+                dbAdapter_->saveRoomStatusAsync(*currentRoom);
+            }
+
+            // Handle alerts
+            if (robot->needsCharging() && !robot->isLowBatteryAlertSent()) {
+                std::cout << "Low battery alert for " << robot->getName() << std::endl;
+                robot->setLowBatteryAlertSent(true);
+            }
+
+            if (robot->needsWaterRefill() && !robot->isLowWaterAlertSent()) {
+                std::cout << "Low water alert for " << robot->getName() << std::endl;
+                robot->setLowWaterAlertSent(true);
+            }
+
+            // Reset alert flags when resources are replenished
+            if (!robot->needsCharging()) {
+                robot->setLowBatteryAlertSent(false);
+            }
+
+            if (!robot->needsWaterRefill()) {
+                robot->setLowWaterAlertSent(false);
+            }
         }
 
-        // Sleep before the next simulation step
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        // Sleep for update interval
+        std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(UPDATE_INTERVAL * 1000)));
     }
 }
 
@@ -180,18 +206,19 @@ void RobotSimulator::addRobot(const std::string& robotName) {
         throw std::runtime_error("Robot with name '" + robotName + "' already exists");
     }
     
-    // Create new robot at starting room
+    // Create new robot at starting room (charging station)
     Room* startingRoom = map_.getRoomById(0);
     if (!startingRoom) {
-        throw std::runtime_error("Starting room not found in the map");
+        throw std::runtime_error("Starting room (charging station) not found in the map");
     }
     
-    auto newRobot = std::make_shared<Robot>(robotName, 100);
+    // Initialize robot with full battery and water
+    auto newRobot = std::make_shared<Robot>(robotName, 100.0, 100.0);
     newRobot->setCurrentRoom(startingRoom);
     robots_.push_back(newRobot);
     
     // Log robot creation
-    std::cout << "Added new robot: " << robotName << " at starting room." << std::endl;
+    std::cout << "Added new robot: " << robotName << " at charging station." << std::endl;
 }
 
 void RobotSimulator::deleteRobot(const std::string& robotName) {
