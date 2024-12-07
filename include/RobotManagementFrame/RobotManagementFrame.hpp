@@ -16,15 +16,13 @@
 #include "alert/Alert.h"
 #include "RobotSimulator/RobotSimulator.hpp"
 #include "map_panel/map_panel.hpp"
-#include "Schedular/Schedular.hpp"  // Include Scheduler header
-#include "robot_control/robot_control_panel.hpp"  // Include new control panel header
-#include "scheduler_panel/scheduler_panel.hpp"  // Add this include
+#include "Schedular/Schedular.hpp"
+#include "robot_control/robot_control_panel.hpp"
+#include "scheduler_panel/scheduler_panel.hpp"
 
-// Forward declarations
 class LoginDialog;
 class AlertDialog;
 
-// Timer IDs
 enum {
     ALERT_TIMER_ID = wxID_HIGHEST + 1,
     STATUS_TIMER_ID
@@ -38,7 +36,6 @@ public:
     void AddAlert(const Alert& alert);  // Method to add alerts
 
 private:
-    // Methods
     void InitializeUsers();
     void CreateMenuBar();
     void BindEvents();
@@ -57,7 +54,6 @@ private:
     void UpdateSchedulerRobotChoices();
     void UpdateCleaningStrategies();
 
-    // Event Handlers
     void OnCheckAlerts(wxTimerEvent& evt);
     void OnRefreshStatus(wxCommandEvent& evt);
     void OnClearAlerts(wxCommandEvent& evt);
@@ -70,24 +66,25 @@ private:
     void OnAssignTask(wxCommandEvent& event);
     void OnRoomSelected(wxCommandEvent& event);
 
-    // Member variables
     static const std::string DB_URI;
     static const std::string DB_NAME;
     std::shared_ptr<MongoDBAdapter> dbAdapter;
-    std::unique_ptr<AlertSystem> alertSystem;
-    std::unique_ptr<RobotSimulator> simulator_;
+    std::shared_ptr<AlertSystem> alertSystem;    // Changed to shared_ptr
+    std::shared_ptr<RobotSimulator> simulator_;  // Changed to shared_ptr
+    std::shared_ptr<Scheduler> scheduler_;       // Changed to shared_ptr
     std::shared_ptr<User> currentUser;
+
     wxGrid* robotGrid;
     wxTimer* statusUpdateTimer;
     wxTimer* alertCheckTimer;
     MapPanel* mapPanel_;  
-    Scheduler scheduler_;
     RobotControlPanel* robotControlPanel;
-    std::vector<std::shared_ptr<User>> users;
-    std::map<std::string, std::string> userPasswords;
+    SchedulerPanel* schedulerPanel_;
     wxListBox* alertsList;
     wxTextCtrl* roomIdInput;
-    SchedulerPanel* schedulerPanel_;
+
+    std::vector<std::shared_ptr<User>> users;
+    std::map<std::string, std::string> userPasswords;
 
     DECLARE_EVENT_TABLE()
 };

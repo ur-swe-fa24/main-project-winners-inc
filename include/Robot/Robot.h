@@ -3,45 +3,47 @@
 
 #include <string>
 #include <memory>
+#include <queue>
+#include "CleaningTask/cleaningTask.h"
 
 class Room;
-class CleaningTask;
+class Map;
 
 class Robot {
 public:
     Robot(const std::string& name, double batteryLevel, double waterLevel = 100.0);
 
     void updateState(double deltaTime);
-    void startCleaningTask(std::shared_ptr<CleaningTask> task);
-    void stopCleaningTask();
-    void moveToRoom(Room* targetRoom);
-
+    void startCleaning(CleaningTask::CleanType cleaningType); 
+    void stopCleaning();
+    void setMovementPath(const std::vector<int>& roomIds, const Map& map);
+    void moveToRoom(Room* room);
+    
     double getBatteryLevel() const;
     double getWaterLevel() const;
     bool needsCharging() const;
     bool needsWaterRefill() const;
-
     bool isCleaning() const;
     bool isMoving() const;
+
     Room* getCurrentRoom() const;
     std::string getName() const;
-
     void setCurrentRoom(Room* room);
     void setCharging(bool charging);
     void refillWater();
     void fullyRecharge();
 
-    // Added methods for MongoDBAdapter
-    bool isCharging() const;
+    // Existing methods for alerts and status
+    bool isCharging() const; 
     double getMovementProgress() const;
     bool needsMaintenance() const;
     bool isLowBatteryAlertSent() const;
     bool isLowWaterAlertSent() const;
-    std::string getStatus() const; // "Cleaning", "Idle", "Moving", "Charging"
+    std::string getStatus() const;
 
     void setLowBatteryAlertSent(bool val);
     void setLowWaterAlertSent(bool val);
-
+    
 private:
     std::string name_;
     double batteryLevel_;
@@ -51,10 +53,18 @@ private:
     double cleaningProgress_;
     double movementProgress_;
     Room* currentRoom_;
+    
+    // Add these missing members
+    Room* nextRoom_;
+    double cleaningTimeRemaining_;
+    
     std::shared_ptr<CleaningTask> currentTask_;
-
+    Room* targetRoom_; 
     bool lowBatteryAlertSent_;
     bool lowWaterAlertSent_;
+
+    // Helper fields for movement queue
+    std::queue<Room*> movementQueue_;
 };
 
 #endif // ROBOT_H

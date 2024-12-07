@@ -96,39 +96,59 @@ void RobotControlPanel::OnRobotSelected(wxCommandEvent& event) {
 
 void RobotControlPanel::OnStartCleaning(wxCommandEvent& event) {
     if (selectedRobotName_.empty()) {
-        wxMessageBox("No robot selected!", "Error", wxOK|wxICON_ERROR);
+        wxMessageBox("No robot selected!", "Error");
         return;
     }
-    // Normally you might assign a task from scheduler to the robot
-    auto task = std::make_shared<CleaningTask>(1, CleaningTask::MEDIUM, CleaningTask::VACUUM, nullptr);
-    simulator_->assignTaskToRobot(selectedRobotName_, task);
-    wxMessageBox("Task assigned to start cleaning.", "Info", wxOK);
+    simulator_->startRobotCleaning(selectedRobotName_);
+    wxMessageBox("Robot started cleaning.", "Info");
 }
 
 void RobotControlPanel::OnStopCleaning(wxCommandEvent& event) {
-    wxMessageBox("This should send a signal to the simulator to stop the robot's cleaning task.", "Info");
-    // You'd implement logic to stop the current cleaning task in the simulator if needed.
+    if (selectedRobotName_.empty()) {
+        wxMessageBox("No robot selected!", "Error");
+        return;
+    }
+    simulator_->stopRobotCleaning(selectedRobotName_);
+    wxMessageBox("Robot stopped cleaning.", "Info");
 }
 
 void RobotControlPanel::OnReturnToCharger(wxCommandEvent& event) {
-    if (selectedRobotName_.empty()) return;
+    if (selectedRobotName_.empty()) {
+        wxMessageBox("No robot selected!", "Error");
+        return;
+    }
     simulator_->requestReturnToCharger(selectedRobotName_);
     wxMessageBox("Robot returning to charger.", "Info");
 }
 
-void RobotControlPanel::OnMoveToRoom(wxCommandEvent& event) {
-    // This might create a new cleaning task and add it to the scheduler queue
+
+void RobotControlPanel::OnMoveToRoom(wxCommandEvent& evt) {
     if (selectedRobotName_.empty()) {
         wxMessageBox("No robot selected!", "Error", wxOK|wxICON_ERROR);
         return;
     }
-    // Example: assign a cleaning task
-    auto task = std::make_shared<CleaningTask>(2, CleaningTask::MEDIUM, CleaningTask::SCRUB, nullptr);
-    scheduler_->addTask(task);
-    wxMessageBox("Task added to queue. Robot will pick it up automatically.", "Info");
+
+    int sel = roomChoice_->GetSelection();
+    if (sel == wxNOT_FOUND) {
+        wxMessageBox("Please select a room", "Error", wxOK|wxICON_ERROR);
+        return;
+    }
+
+    Room* targetRoom = reinterpret_cast<Room*>(roomChoice_->GetClientData(sel));
+    if (!targetRoom) {
+        wxMessageBox("Invalid room selection", "Error", wxOK|wxICON_ERROR);
+        return;
+    }
+
+    simulator_->moveRobotToRoom(selectedRobotName_, targetRoom->getRoomId());
+    wxMessageBox("Robot moving to " + targetRoom->getRoomName(), "Info");
 }
 
 void RobotControlPanel::OnPickUpRobot(wxCommandEvent& event) {
-    wxMessageBox("In real logic, you'd handle picking up the robot and placing it at charger.", "Info");
-    // For example, set robot to charging room directly via simulator if needed.
+    if (selectedRobotName_.empty()) {
+        wxMessageBox("No robot selected!", "Error");
+        return;
+    }
+    simulator_->manuallyPickUpRobot(selectedRobotName_);
+    wxMessageBox("Robot picked up and moved instantly to charger.", "Info");
 }

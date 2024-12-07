@@ -5,11 +5,14 @@
 #include <wx/listctrl.h>
 #include <wx/timer.h>
 #include <memory>
-#include "RobotSimulator/RobotSimulator.hpp"
-#include "Schedular/Schedular.hpp"
-#include "Room/Room.h"
-#include "map/map.h"  // Add this include for Map definition
 
+// Forward declarations
+class RobotSimulator;
+class Scheduler;
+class Room;
+
+// Include cleaningTask.h here because we need CleaningTask::CleanType
+#include "CleaningTask/cleaningTask.h" 
 
 class SchedulerPanel : public wxPanel {
 public:
@@ -17,7 +20,8 @@ public:
     ~SchedulerPanel();
 
     void UpdateRoomList(); 
-    void UpdateRobotChoices();
+    void UpdateRobotChoices(); 
+    void UpdateTaskList();
 
 private:
     void CreateControls();
@@ -26,7 +30,9 @@ private:
     void OnRobotSelected(wxCommandEvent& event);
     void OnRoomSelected(wxCommandEvent& event);
     void OnTimer(wxTimerEvent& event);
-    void UpdateTaskList();
+
+    // Helper method to handle logic after a room is selected
+    void UpdateRoomSelection(); 
 
     std::string cleaningStrategyToString(CleaningTask::CleanType cleanType);
 
@@ -37,7 +43,7 @@ private:
     wxChoice* strategyChoice_;
     wxListCtrl* taskListCtrl_;
     wxTimer* updateTimer_;
-    
+
     wxDECLARE_EVENT_TABLE();
 };
 

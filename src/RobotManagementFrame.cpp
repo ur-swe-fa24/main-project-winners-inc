@@ -7,8 +7,6 @@
 #include <wx/grid.h>
 #include <iostream>
 #include <wx/filename.h>
-
-// Adjust these includes based on your current structure
 #include "AlertSystem/alert_system.h"
 #include "RobotSimulator/RobotSimulator.hpp"
 #include "map/map.h"
@@ -55,28 +53,17 @@ RobotManagementFrame::RobotManagementFrame(const wxString& title)
 
         // Create Map
         auto map = std::make_shared<Map>(true); 
-        // Initialize rooms in DB if needed
         dbAdapter->initializeRooms(map->getRooms());
 
-        // Create Scheduler and AlertSystem
-        auto schedulerPtr = std::make_shared<Scheduler>();
-        alertSystem = std::make_unique<AlertSystem>();
+        // Create Scheduler and AlertSystem as shared_ptr
+        scheduler_ = std::make_shared<Scheduler>();
+        alertSystem = std::make_shared<AlertSystem>();
 
-        // Create RobotSimulator
-        // The new constructor requires std::shared_ptr<Map>, std::shared_ptr<Scheduler>, std::shared_ptr<AlertSystem>
-        // Convert alertSystem to shared_ptr if needed, or adjust RobotSimulator to accept unique_ptr
-        // For now, assume RobotSimulator also accepts a std::shared_ptr<AlertSystem>
-        std::shared_ptr<AlertSystem> alertSystemShared(alertSystem.get(), [](AlertSystem*){}); 
-        // NOTE: This is a tricky part. Ideally, AlertSystem should also be a shared_ptr directly instead of unique_ptr.
-        // Let's change alertSystem to shared_ptr for simplicity:
-        alertSystem.reset(); // discard unique_ptr
-        auto alertSystemPtr = std::make_shared<AlertSystem>();
-
-        simulator_ = std::make_shared<RobotSimulator>(map, schedulerPtr, alertSystemPtr);
+        // Create RobotSimulator with shared_ptr
+        simulator_ = std::make_shared<RobotSimulator>(map, scheduler_, alertSystem);
 
         SetStatusText("Simulator initialized");
 
-        // Initialize users and show login dialog
         InitializeUsers();
         if (!ShowLogin()) {
             Close(true);
@@ -93,8 +80,8 @@ RobotManagementFrame::RobotManagementFrame(const wxString& title)
         }
 
         if (currentUser->getRole()->hasPermission("Scheduler")) {
-            // SchedulerPanel expects shared_ptr<RobotSimulator>, shared_ptr<Scheduler>
-            schedulerPanel_ = new SchedulerPanel(notebook, simulator_, schedulerPtr);
+            // Now that schedulerPanel takes shared_ptr
+            schedulerPanel_ = new SchedulerPanel(notebook, simulator_, scheduler_);
             notebook->AddPage(schedulerPanel_, "Scheduler");
         }
 
@@ -103,14 +90,13 @@ RobotManagementFrame::RobotManagementFrame(const wxString& title)
         }
 
         if (currentUser->getRole()->hasPermission("Map")) {
-            // MapPanel takes (wxWindow*, std::shared_ptr<RobotSimulator>)
+            // MapPanel also takes shared_ptr<RobotSimulator>
             mapPanel_ = new MapPanel(notebook, simulator_);
             notebook->AddPage(mapPanel_, "Map");
         }
 
         if (currentUser->getRole()->hasPermission("Robot Control")) {
-            // RobotControlPanel now requires (wxWindow*, std::shared_ptr<RobotSimulator>, std::shared_ptr<Scheduler>)
-            robotControlPanel = new RobotControlPanel(notebook, simulator_, schedulerPtr);
+            robotControlPanel = new RobotControlPanel(notebook, simulator_, scheduler_);
             notebook->AddPage(robotControlPanel, "Robot Control");
         }
 
@@ -118,17 +104,16 @@ RobotManagementFrame::RobotManagementFrame(const wxString& title)
             CreateRobotAnalyticsPanel(notebook);
         }
 
-        // User Management Panel (only for admin)
         if (currentUser && currentUser->getRole()->hasPermission("ADMIN")) {
             CreateUserManagementPanel(notebook);
         }
 
         // Initialize timers
         alertCheckTimer = new wxTimer(this, ALERT_TIMER_ID);
-        alertCheckTimer->Start(5000); // Check every 5 seconds
+        alertCheckTimer->Start(5000); 
 
         statusUpdateTimer = new wxTimer(this, STATUS_TIMER_ID);
-        statusUpdateTimer->Start(1000); // Update every second
+        statusUpdateTimer->Start(1000);
 
         BindEvents();
 
@@ -160,11 +145,10 @@ RobotManagementFrame::~RobotManagementFrame() {
         delete alertCheckTimer;
     }
 
-    robotControlPanel = nullptr; // Will be deleted by wxWidgets
+    robotControlPanel = nullptr;
     schedulerPanel_ = nullptr;
     mapPanel_ = nullptr;
-    // No simulator_->stop() needed because RobotSimulator no longer has stop()
-    // simulator_ is a shared_ptr and will be destroyed automatically
+    // No simulator_->stop() since not defined
 }
 
 void RobotManagementFrame::CreateMenuBar() {
@@ -216,7 +200,6 @@ void RobotManagementFrame::LoadFromDatabase() {
     for (const auto& alert : alerts) {
         alertsList->Append(alert.getMessage());
     }
-
     UpdateRobotGrid();
 }
 
@@ -242,10 +225,7 @@ void RobotManagementFrame::CreateAlertsPanel(wxNotebook* notebook) {
 }
 
 void RobotManagementFrame::CreateRobotControlPanel(wxNotebook* notebook) {
-    // Already done above inline, remove this method or adapt your logic accordingly
-    // We do the creation in the constructor after login permissions check:
-    // robotControlPanel = new RobotControlPanel(notebook, simulator_, scheduler_);
-    // notebook->AddPage(robotControlPanel, "Robot Control");
+    // Already created inline after login checks in the constructor block.
 }
 
 void RobotManagementFrame::CreateDashboardPanel(wxNotebook* notebook) {
@@ -269,7 +249,6 @@ void RobotManagementFrame::CreateDashboardPanel(wxNotebook* notebook) {
     robotGrid->SetColSize(4, 120);
 
     UpdateRobotGrid();
-
     sizer->Add(robotGrid, 1, wxEXPAND | wxALL, 5);
 
     wxButton* refreshBtn = new wxButton(panel, wxID_ANY, "Refresh Status");
@@ -377,18 +356,43 @@ void RobotManagementFrame::OnClearAlerts(wxCommandEvent& evt) {
     alertsList->Clear();
 }
 
+void RobotManagementFrame::OnRefreshAlerts(wxCommandEvent& evt) {
+    if (!dbAdapter) return;
+    auto alerts = dbAdapter->retrieveAlerts();
+    for (const auto& alert : alerts) {
+        std::time_t timestamp = alert.getTimestamp();
+        std::string timeStr = std::ctime(&timestamp);
+        timeStr = timeStr.substr(0, timeStr.length() - 1);
+
+        wxString alertText = wxString::Format("[%s] %s: %s", 
+            timeStr,
+            alert.getType(),
+            alert.getMessage());
+
+        bool found = false;
+        for (unsigned int i = 0; i < alertsList->GetCount(); i++) {
+            if (alertsList->GetString(i) == alertText) {
+                found = true;
+                break;
+            }
+        }
+
+        if (!found) {
+            alertsList->Insert(alertText, 0);
+        }
+    }
+}
+
 void RobotManagementFrame::OnStartCleaning(wxCommandEvent& evt) {
-    // If needed, provide a public method in RobotControlPanel or handle from RobotManagementFrame differently.
-    // Or remove these calls and rely on the panel's own UI interaction.
-    wxMessageBox("OnStartCleaning invoked. Implement as needed.", "Info");
+    wxMessageBox("OnStartCleaning invoked. Implement logic here.", "Info");
 }
 
 void RobotManagementFrame::OnStopCleaning(wxCommandEvent& evt) {
-    wxMessageBox("OnStopCleaning invoked. Implement as needed.", "Info");
+    wxMessageBox("OnStopCleaning invoked. Implement logic here.", "Info");
 }
 
 void RobotManagementFrame::OnReturnToCharger(wxCommandEvent& evt) {
-    wxMessageBox("OnReturnToCharger invoked. Implement as needed.", "Info");
+    wxMessageBox("OnReturnToCharger invoked. Implement logic here.", "Info");
 }
 
 void RobotManagementFrame::OnStatusUpdateTimer(wxTimerEvent& evt) {
@@ -416,34 +420,6 @@ void RobotManagementFrame::AddAlert(const Alert& alert) {
         alert.getMessage());
 
     alertsList->Insert(alertText, 0);
-}
-
-void RobotManagementFrame::OnRefreshAlerts(wxCommandEvent& evt) {
-    if (!dbAdapter) return;
-
-    auto alerts = dbAdapter->retrieveAlerts();
-    for (const auto& alert : alerts) {
-        std::time_t timestamp = alert.getTimestamp();
-        std::string timeStr = std::ctime(&timestamp);
-        timeStr = timeStr.substr(0, timeStr.length() - 1);
-
-        wxString alertText = wxString::Format("[%s] %s: %s", 
-            timeStr,
-            alert.getType(),
-            alert.getMessage());
-
-        bool found = false;
-        for (unsigned int i = 0; i < alertsList->GetCount(); i++) {
-            if (alertsList->GetString(i) == alertText) {
-                found = true;
-                break;
-            }
-        }
-
-        if (!found) {
-            alertsList->Insert(alertText, 0);
-        }
-    }
 }
 
 void RobotManagementFrame::BindEvents() {
@@ -507,21 +483,8 @@ void RobotManagementFrame::CreateUserManagementPanel(wxNotebook* notebook) {
 }
 
 void RobotManagementFrame::UpdateRobotChoices() {
-    if (!simulator_) {
-        wxLogError("Simulator is not initialized");
-        return;
-    }
-
-    try {
-        // If robotControlPanel exists, ensure it has a public method to update robot list
-        // or remove these calls.
-        // For now, assume we have removed direct calls to robotControlPanel->UpdateRobotList().
-        UpdateSchedulerRobotChoices();
-    } catch (const std::exception& e) {
-        wxLogError("Error updating robot choices: %s", e.what());
-    } catch (...) {
-        wxLogError("Unknown error occurred while updating robot choices");
-    }
+    // Remove direct calls to robotControlPanel->UpdateRobotList() if it doesn't exist publicly
+    UpdateSchedulerRobotChoices();
 }
 
 void RobotManagementFrame::UpdateSchedulerRobotChoices() {
@@ -531,16 +494,19 @@ void RobotManagementFrame::UpdateSchedulerRobotChoices() {
 }
 
 void RobotManagementFrame::OnAssignTask(wxCommandEvent& event) {
-    event.Skip(); // Handled by SchedulerPanel
+    event.Skip();
 }
 
 void RobotManagementFrame::OnRoomSelected(wxCommandEvent& event) {
-    event.Skip(); // Handled by SchedulerPanel
+    event.Skip();
 }
 
 void RobotManagementFrame::CreateMapPanel(wxNotebook* notebook) {
-    // Already created inline in constructor after permissions check.
-    // Remove this method or keep code consistent.
+    // Already created inline in constructor after permission check
+}
+
+void RobotManagementFrame::CreateSchedulerPanel(wxNotebook* notebook) {
+    // Already created inline in constructor after permission check
 }
 
 void RobotManagementFrame::CreateRobotAnalyticsPanel(wxNotebook* notebook) {
@@ -552,10 +518,8 @@ void RobotManagementFrame::CreateRobotAnalyticsPanel(wxNotebook* notebook) {
     sizer->Add(label, 1, wxALL | wxEXPAND, 10);
 
     panel->SetSizer(sizer);
-
     notebook->AddPage(panel, "Robot Analytics");
 }
 
 wxBEGIN_EVENT_TABLE(RobotManagementFrame, wxFrame)
-    // Add event handlers if necessary
 wxEND_EVENT_TABLE()

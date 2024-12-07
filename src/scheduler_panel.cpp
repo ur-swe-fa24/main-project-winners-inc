@@ -1,6 +1,14 @@
 #include "scheduler_panel/scheduler_panel.hpp"
-#include "CleaningTask/CleaningTask.h"
+#include "CleaningTask/cleaningTask.h"    // Ensure correct spelling and case
 #include "Robot/Robot.h"
+#include "RobotSimulator/RobotSimulator.hpp"
+#include "Schedular/Schedular.hpp"
+#include "Room/Room.h"
+#include "AlertSystem/alert_system.h"
+
+// Include map/map.h so that getMap() returns a fully defined type
+#include "map/map.h"
+
 #include <algorithm>
 #include <iostream>
 
@@ -11,10 +19,13 @@ wxEND_EVENT_TABLE()
 SchedulerPanel::SchedulerPanel(wxWindow* parent, std::shared_ptr<RobotSimulator> simulator, std::shared_ptr<Scheduler> scheduler)
     : wxPanel(parent), simulator_(simulator), scheduler_(scheduler), robotChoice_(nullptr),
       roomChoice_(nullptr), strategyChoice_(nullptr), taskListCtrl_(nullptr), updateTimer_(nullptr) {
+
     CreateControls();
     BindEvents();
+
     UpdateRoomList();
     UpdateRobotChoices();
+
     updateTimer_ = new wxTimer(this);
     Bind(wxEVT_TIMER, &SchedulerPanel::OnTimer, this);
     updateTimer_->Start(1000); // Update every second
@@ -40,6 +51,7 @@ void SchedulerPanel::CreateControls() {
 
     wxStaticText* strategyLabel = new wxStaticText(this, wxID_ANY, "Cleaning Strategy:");
     strategyChoice_ = new wxChoice(this, wxID_ANY);
+    // Initially populate with some defaults; real logic in UpdateRoomSelection
     strategyChoice_->Append("Vacuum");
     strategyChoice_->Append("Scrub");
     strategyChoice_->Append("Shampoo");
@@ -71,12 +83,12 @@ void SchedulerPanel::CreateControls() {
 }
 
 void SchedulerPanel::BindEvents() {
-    // Additional binding if needed
+    // Additional event bindings if needed
 }
 
 void SchedulerPanel::UpdateRoomList() {
     roomChoice_->Clear();
-    // Now we have the full Map definition, so this works:
+    // We must have included map.h so that getMap() and getRooms() are fully known
     const auto& rooms = simulator_->getMap().getRooms();
     for (auto& room : rooms) {
         if (!room->isRoomClean) {
@@ -87,15 +99,45 @@ void SchedulerPanel::UpdateRoomList() {
 
     if (roomChoice_->GetCount() > 0) {
         roomChoice_->SetSelection(0);
+        UpdateRoomSelection(); 
     }
 }
 
+void SchedulerPanel::UpdateRoomSelection() {
+    int sel = roomChoice_->GetSelection();
+    if (sel == wxNOT_FOUND) return;
+
+    Room* selectedRoom = reinterpret_cast<Room*>(roomChoice_->GetClientData(sel));
+    if (!selectedRoom) return;
+
+    strategyChoice_->Clear();
+    std::string floorType = selectedRoom->getFlooringType();
+    if (floorType == "Carpet") {
+        strategyChoice_->Append("Vacuum");
+        strategyChoice_->Append("Shampoo");
+    } else if (floorType == "Wood" || floorType == "Tile") {
+        strategyChoice_->Append("Vacuum");
+        strategyChoice_->Append("Scrub");
+    } else {
+        strategyChoice_->Append("Vacuum");
+    }
+
+    if (strategyChoice_->GetCount() > 0) {
+        strategyChoice_->SetSelection(0);
+    }
+
+    UpdateRobotChoices(); 
+}
+
+void SchedulerPanel::OnRoomSelected(wxCommandEvent& event) {
+    UpdateRoomSelection();
+}
 
 void SchedulerPanel::UpdateRobotChoices() {
     robotChoice_->Clear();
-    auto robotStatuses = simulator_->getRobotStatuses();
-    for (auto& rs : robotStatuses) {
-        robotChoice_->Append(rs.name);
+    auto statuses = simulator_->getRobotStatuses();
+    for (auto& st : statuses) {
+        robotChoice_->Append(st.name);
     }
     if (robotChoice_->GetCount() > 0) {
         robotChoice_->SetSelection(0);
@@ -113,6 +155,7 @@ void SchedulerPanel::OnAssignTask(wxCommandEvent& event) {
         wxMessageBox("Please select a room.", "Error", wxOK | wxICON_ERROR);
         return;
     }
+
     Room* selectedRoom = reinterpret_cast<Room*>(roomChoice_->GetClientData(roomChoice_->GetSelection()));
     if (!selectedRoom) {
         wxMessageBox("Invalid room selection.", "Error", wxOK | wxICON_ERROR);
@@ -125,26 +168,19 @@ void SchedulerPanel::OnAssignTask(wxCommandEvent& event) {
     }
     std::string strategy = strategyChoice_->GetStringSelection().ToStdString();
 
-    // Assign cleaning task
     scheduler_->assignCleaningTask(robotName, selectedRoom->getRoomId(), strategy);
-    wxMessageBox("Task assigned.", "Info");
 
+    auto alertSystem = simulator_->getAlertSystem();
+    if (alertSystem) {
+        alertSystem->sendAlert("Task assigned to robot " + robotName + " for room " + selectedRoom->getRoomName(), "Task");
+    }
+
+    wxMessageBox("Task assigned.", "Info");
     UpdateTaskList();
 }
 
 void SchedulerPanel::OnRobotSelected(wxCommandEvent& event) {
-    // Could filter tasks or update strategies based on robot capabilities
-}
-
-void SchedulerPanel::OnRoomSelected(wxCommandEvent& event) {
-    // Adjust strategies based on room flooring type if needed
-    int sel = roomChoice_->GetSelection();
-    if (sel != wxNOT_FOUND) {
-        Room* selectedRoom = reinterpret_cast<Room*>(roomChoice_->GetClientData(sel));
-        if (selectedRoom) {
-            // Example: if carpet, add Shampoo; if wood, add Scrub, etc.
-        }
-    }
+    // If needed, update logic based on selected robot
 }
 
 void SchedulerPanel::OnTimer(wxTimerEvent& event) {
