@@ -4,8 +4,13 @@
 // Constructor implementation
 Room::Room(const std::string& roomName, int roomId, const std::string& flooringType, 
            const std::string& size, bool isRoomClean, const std::vector<Room*>& neighbors)
-    : roomName(roomName), roomId(roomId), flooringType(flooringType), 
-      size(size), isRoomClean(isRoomClean), neighbors(neighbors) {}
+    : roomName(roomName), 
+      roomId(roomId), 
+      flooringType(flooringType), 
+      isRoomClean(isRoomClean), 
+      size(size), 
+      neighbors(neighbors), 
+      map(nullptr) {}
 
 // Getter for room name
 std::string Room::getRoomName() const {

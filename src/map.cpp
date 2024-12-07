@@ -27,8 +27,8 @@ Map::~Map() {
     }
 }
 
-void Map::addRoom(const std::string& roomName, int id, const std::string& flooringType, bool isRoomClean) {
-    Room* newRoom = new Room(roomName, id, flooringType, "medium", isRoomClean);
+void Map::addRoom(const std::string& roomName, int id, const std::string& flooringType, const std::string& size, bool isRoomClean) {
+    Room* newRoom = new Room(roomName, id, flooringType, size, isRoomClean);
     roomMap.push_back(newRoom);
 }
 

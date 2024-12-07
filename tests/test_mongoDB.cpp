@@ -46,7 +46,7 @@ TEST_CASE("MongoDB Integration Test") {
 
     // Create Robot and Room instances using shared_ptr
     auto robot = std::make_shared<Robot>("CleaningRobot", 100);  // Example attributes
-    auto room = std::make_shared<Room>("MainRoom", 101, "wood", true, neighbors);  // Example attributes
+    auto room = std::make_shared<Room>("MainRoom", 101, "wood", "medium", true, neighbors);  // Example attributes
 
     // Create AlertSystem
     AlertSystem alertSystem;

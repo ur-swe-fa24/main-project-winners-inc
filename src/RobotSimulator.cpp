@@ -12,27 +12,10 @@ RobotSimulator::RobotSimulator(std::shared_ptr<MongoDBAdapter> dbAdapter, const 
     // Initialize rooms in the database
     dbAdapter_->initializeRooms(map_.getRooms());
 
-    // Initialize robots at starting room
+    // Initialize starting room
     Room* startingRoom = map_.getRoomById(0); // Assuming room ID 0 is the charging station
     if (!startingRoom) {
         throw std::runtime_error("Starting room not found in the map.");
-    }
-
-    // Create predefined robots
-    std::vector<std::pair<std::string, int>> robotConfigs = {
-        {"Cleaning Bot 1", 100},
-        {"Cleaning Bot 2", 100},
-        {"Cleaning Bot 3", 100},
-    };
-
-    // Add robots to the simulator
-    for (const auto& config : robotConfigs) {
-        auto robot = std::make_shared<Robot>(config.first, config.second);
-        robot->setCurrentRoom(startingRoom);
-        robots_.push_back(robot);
-
-        // Log robot creation
-        std::cout << "Created robot: " << config.first << " with battery level: " << config.second << std::endl;
     }
 }
 
