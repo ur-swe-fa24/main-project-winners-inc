@@ -3,62 +3,47 @@
 
 #include <vector>
 #include <memory>
-#include <thread>
-#include <mutex>
-#include <condition_variable>
-#include "Robot/Robot.h"
-#include "map/map.h"
-#include "adapter/MongoDBAdapter.hpp"
+#include <string>
+
+class Robot;
+class Scheduler;
+class AlertSystem;
+class Map;
+class CleaningTask;
 
 class RobotSimulator {
 public:
-    RobotSimulator(std::shared_ptr<MongoDBAdapter> dbAdapter, const std::string& mapFile);
-    ~RobotSimulator();
+    RobotSimulator(std::shared_ptr<Map> map,
+                   std::shared_ptr<Scheduler> scheduler,
+                   std::shared_ptr<AlertSystem> alertSystem);
 
-    void start();
-    void stop();
+    void addRobot(const std::shared_ptr<Robot>& robot);
+    void update(double deltaTime);
+
+    void assignTaskToRobot(const std::string& robotName, std::shared_ptr<CleaningTask> task);
+    void requestReturnToCharger(const std::string& robotName);
 
     struct RobotStatus {
         std::string name;
         double batteryLevel;
         double waterLevel;
-        std::string status;
         std::string currentRoomName;
-        
-        RobotStatus(const std::string& n, double bl, double wl, const std::string& s, const std::string& crn)
-            : name(n), batteryLevel(bl), waterLevel(wl), status(s), currentRoomName(crn) {}
+        bool isCleaning;
+        bool needsCharging;
+        std::string status;
     };
 
-    std::vector<RobotStatus> getRobotStatuses();
+    std::vector<RobotStatus> getRobotStatuses() const;
 
-    std::shared_ptr<Robot> getRobotByName(const std::string& name);
-
-    void startCleaning(const std::string& robotName);
-    void stopCleaning(const std::string& robotName);
-    void returnToCharger(const std::string& robotName);
-
-    Map& getMap();  // Non-const getter
-    const Map& getMap() const;
-
-    std::vector<std::shared_ptr<Robot>>& getRobots();  // Non-const getter
-    const std::vector<std::shared_ptr<Robot>>& getRobots() const;
-
-    void addRobot(const std::string& robotName);
-    void deleteRobot(const std::string& robotName);
+    const Map& getMap() const; // Added to allow scheduler_panel and others to get rooms
 
 private:
-    void simulationLoop();
-    void simulateRobotMovement();
-    Room* getNextRoomToClean(Room* currentRoom);
-
     std::vector<std::shared_ptr<Robot>> robots_;
-    Map map_;
-    std::shared_ptr<MongoDBAdapter> dbAdapter_;
+    std::shared_ptr<Map> map_;
+    std::shared_ptr<Scheduler> scheduler_;
+    std::shared_ptr<AlertSystem> alertSystem_;
 
-    std::thread simulationThread_;
-    std::mutex robotsMutex_;
-    std::condition_variable cv_;
-    bool running_;
+    void checkRobotStatesAndSendAlerts();
 };
 
 #endif // ROBOT_SIMULATOR_HPP
