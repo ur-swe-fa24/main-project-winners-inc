@@ -11,6 +11,10 @@
 CleaningTask::CleaningTask(int id, Priority priority, CleanType cleaningType, Room* room)
     : id(id), priority(priority), status("Pending"), cleaningType(cleaningType), room(room), robot(nullptr) {}
 
+// Simpler constructor overload - uses default values for id and priority
+CleaningTask::CleaningTask(Room* room, CleanType cleaningType)
+    : id(0), priority(MEDIUM), status("Pending"), cleaningType(cleaningType), room(room), robot(nullptr) {}
+
 // Assign a robot with a task
 void CleaningTask::assignRobot(const std::shared_ptr<Robot>& robot) {
     this->robot = robot;
