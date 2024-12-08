@@ -6,14 +6,13 @@
 #include <wx/timer.h>
 #include <memory>
 
-// Forward declarations
 class RobotSimulator;
 class Scheduler;
 class Room;
+class MongoDBAdapter;
+class AlertSystem;
 
-#include "CleaningTask/cleaningTask.h" 
-#include "adapter/MongoDBAdapter.hpp"
-#include "AlertSystem/alert_system.h"
+#include "CleaningTask/cleaningTask.h"
 
 class SchedulerPanel : public wxPanel {
 public:
@@ -25,29 +24,29 @@ public:
     ~SchedulerPanel();
 
     void UpdateRoomList(); 
-    void UpdateRobotChoices(); 
     void UpdateTaskList();
 
 private:
     void CreateControls();
     void BindEvents();
     void OnAssignTask(wxCommandEvent& event);
-    void OnRobotSelected(wxCommandEvent& event);
     void OnRoomSelected(wxCommandEvent& event);
     void OnTimer(wxTimerEvent& event);
     void UpdateRoomSelection(); 
-    std::string cleaningStrategyToString(CleaningTask::CleanType cleanType);
+
+    // New method to find suitable robot for given room
+    std::shared_ptr<Robot> findSuitableRobotForRoom(Room* room);
 
     std::shared_ptr<RobotSimulator> simulator_;
     std::shared_ptr<Scheduler> scheduler_;
     std::shared_ptr<AlertSystem> alertSystem_;
     std::shared_ptr<MongoDBAdapter> dbAdapter_;
 
-    wxChoice* robotChoice_;
+    // Removed robotChoice_ and strategyChoice_ since they are no longer user-selected
     wxChoice* roomChoice_;
-    wxChoice* strategyChoice_;
     wxListCtrl* taskListCtrl_;
     wxTimer* updateTimer_;
+    wxButton* assignTaskBtn_;
 
     wxDECLARE_EVENT_TABLE();
 };

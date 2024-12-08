@@ -426,8 +426,9 @@ void RobotManagementFrame::OnStatusUpdateTimer(wxTimerEvent& evt) {
     simulator_->update(1.0f);
 
     UpdateRobotGrid();
-    UpdateRobotChoices();
-    UpdateSchedulerRobotChoices();
+    // UpdateRobotChoices();
+    // Remove or comment out this line:
+    // UpdateSchedulerRobotChoices();
 
     if (mapPanel_) {
         mapPanel_->Refresh();
@@ -517,9 +518,6 @@ void RobotManagementFrame::UpdateRobotChoices() {
 }
 
 void RobotManagementFrame::UpdateSchedulerRobotChoices() {
-    if (schedulerPanel_) {
-        schedulerPanel_->UpdateRobotChoices();
-    }
 }
 
 void RobotManagementFrame::OnAssignTask(wxCommandEvent& event) {
