@@ -131,7 +131,6 @@ const std::vector<std::shared_ptr<Robot>>& RobotSimulator::getRobots() const {
     return robots_;
 }
 
-// Define assignTaskToRobot here since we declared it in the header
 void RobotSimulator::assignTaskToRobot(std::shared_ptr<CleaningTask> task) {
     auto robot = task->getRobot();
     if (!robot) return;
@@ -140,6 +139,7 @@ void RobotSimulator::assignTaskToRobot(std::shared_ptr<CleaningTask> task) {
     Room* targetRoom = task->getRoom();
     if (!currentRoom || !targetRoom) return;
 
+    robot->setTargetRoom(targetRoom); // use setter instead of direct access
     std::vector<int> route = map_->getRoute(*currentRoom, *targetRoom);
     if (!route.empty()) {
         robot->setMovementPath(route, *map_);

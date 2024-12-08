@@ -44,6 +44,7 @@ public:
     void setLowBatteryAlertSent(bool val);
     void setLowWaterAlertSent(bool val);
     void setCurrentTask(std::shared_ptr<CleaningTask> task);
+    void setTargetRoom(Room* room);
 
 private:
     std::string name_;

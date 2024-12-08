@@ -8,6 +8,7 @@
 
 class Map;
 class Robot;
+
 class Scheduler {
 public:
     Scheduler(Map* map, const std::vector<std::shared_ptr<Robot>>* robots) 
@@ -19,11 +20,11 @@ public:
     void assignCleaningTask(const std::string& robotName, int targetRoomId, const std::string& strategy);
     const std::vector<std::shared_ptr<CleaningTask>>& getAllTasks() const;
 
+private:
     std::shared_ptr<Robot> findRobotByName(const std::string& name);
 
-private:
     Map* map_;
-    const std::vector<std::shared_ptr<Robot>>* robots_;
+    const std::vector<std::shared_ptr<Robot>>* robots_; // const pointer
     std::vector<std::shared_ptr<CleaningTask>> tasks_;
     int taskIdCounter_;
 };

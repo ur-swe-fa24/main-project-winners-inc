@@ -11,12 +11,17 @@ class RobotSimulator;
 class Scheduler;
 class Room;
 
-// Include cleaningTask.h here because we need CleaningTask::CleanType
 #include "CleaningTask/cleaningTask.h" 
+#include "adapter/MongoDBAdapter.hpp"
+#include "AlertSystem/alert_system.h"
 
 class SchedulerPanel : public wxPanel {
 public:
-    SchedulerPanel(wxWindow* parent, std::shared_ptr<RobotSimulator> simulator, std::shared_ptr<Scheduler> scheduler);
+    SchedulerPanel(wxWindow* parent, 
+                   std::shared_ptr<RobotSimulator> simulator, 
+                   std::shared_ptr<Scheduler> scheduler,
+                   std::shared_ptr<AlertSystem> alertSystem,
+                   std::shared_ptr<MongoDBAdapter> dbAdapter);
     ~SchedulerPanel();
 
     void UpdateRoomList(); 
@@ -30,14 +35,14 @@ private:
     void OnRobotSelected(wxCommandEvent& event);
     void OnRoomSelected(wxCommandEvent& event);
     void OnTimer(wxTimerEvent& event);
-
-    // Helper method to handle logic after a room is selected
     void UpdateRoomSelection(); 
-
     std::string cleaningStrategyToString(CleaningTask::CleanType cleanType);
 
     std::shared_ptr<RobotSimulator> simulator_;
     std::shared_ptr<Scheduler> scheduler_;
+    std::shared_ptr<AlertSystem> alertSystem_;
+    std::shared_ptr<MongoDBAdapter> dbAdapter_;
+
     wxChoice* robotChoice_;
     wxChoice* roomChoice_;
     wxChoice* strategyChoice_;

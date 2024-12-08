@@ -30,7 +30,7 @@ RobotManagementFrame::RobotManagementFrame(const wxString& title)
       statusUpdateTimer(nullptr),
       alertCheckTimer(nullptr)
 {
-        try {
+    try {
         CreateMenuBar();
         CreateStatusBar(2);
         SetStatusText("Initializing...");
@@ -58,17 +58,14 @@ RobotManagementFrame::RobotManagementFrame(const wxString& title)
         // Create alert system
         alertSystem = std::make_shared<AlertSystem>();
 
-        // Create simulator first without scheduler
+        // Create simulator without scheduler initially
         simulator_ = std::make_shared<RobotSimulator>(map, nullptr, alertSystem);
         simulator_->addRobot("RobotA");
         simulator_->addRobot("RobotB");
         simulator_->addRobot("RobotC");
         SetStatusText("Simulator initialized");
 
-        // Now create scheduler after simulator has robots
-        // Scheduler requires map and robots:
-        // You must modify Scheduler to either have a constructor that takes null or provide a setRobots() method.
-        // Let's assume we can do:
+        // Create scheduler after we have robots in simulator
         scheduler_ = std::make_shared<Scheduler>(map.get(), &simulator_->getRobots());
 
         InitializeUsers();
@@ -86,7 +83,8 @@ RobotManagementFrame::RobotManagementFrame(const wxString& title)
         }
 
         if (currentUser->getRole()->hasPermission("Scheduler")) {
-            schedulerPanel_ = new SchedulerPanel(notebook, simulator_, scheduler_);
+            // Pass alertSystem and dbAdapter as well
+            schedulerPanel_ = new SchedulerPanel(notebook, simulator_, scheduler_, alertSystem, dbAdapter);
             notebook->AddPage(schedulerPanel_, "Scheduler");
         }
 
@@ -129,8 +127,6 @@ RobotManagementFrame::RobotManagementFrame(const wxString& title)
         UpdateRobotGrid();
 
         Center();
-
-
     } catch (const std::exception& e) {
         wxMessageBox(wxString::Format("Initialization failed: %s", e.what()), "Error",
                      wxOK | wxICON_ERROR);
@@ -138,6 +134,7 @@ RobotManagementFrame::RobotManagementFrame(const wxString& title)
         return;
     }
 }
+
 
 RobotManagementFrame::~RobotManagementFrame() {
     if (statusUpdateTimer) {
@@ -152,8 +149,8 @@ RobotManagementFrame::~RobotManagementFrame() {
     robotControlPanel = nullptr;
     schedulerPanel_ = nullptr;
     mapPanel_ = nullptr;
-    // No simulator_->stop() since not defined
 }
+
 
 void RobotManagementFrame::CreateMenuBar() {
     wxMenuBar* menuBar = new wxMenuBar();

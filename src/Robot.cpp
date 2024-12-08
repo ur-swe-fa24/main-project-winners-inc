@@ -17,20 +17,38 @@ void Robot::updateState(double deltaTime) {
     if (isCharging_) {
         batteryLevel_ = std::min(100.0, batteryLevel_ + deltaTime * 20.0);
     } else {
-        double depletion = deltaTime;
-        if (cleaning_) depletion += 2.0 * deltaTime;
-        batteryLevel_ = std::max(0.0, batteryLevel_ - depletion);
+        if (cleaning_ && currentTask_) {
+            double batteryDepletion = 2.0 * deltaTime;
+            batteryLevel_ = std::max(0.0, batteryLevel_ - batteryDepletion);
+
+            if (currentTask_->getCleanType() == CleaningTask::SHAMPOO) {
+                double waterDepletion = 1.0 * deltaTime;
+                waterLevel_ = std::max(0.0, waterLevel_ - waterDepletion);
+            }
+        }
     }
 
+    // Handle movement
     if (isMoving()) {
         movementProgress_ += deltaTime * 10.0;
         if (movementProgress_ >= 100.0) {
             currentRoom_ = nextRoom_;
             nextRoom_ = nullptr;
             movementProgress_ = 0.0;
+            // If there are more steps in movementQueue_, move on
+            if (!movementQueue_.empty()) {
+                nextRoom_ = movementQueue_.front();
+                movementQueue_.pop();
+            } else {
+                // Movement finished, check if we're at targetRoom_ and have a task
+                if (currentTask_ && targetRoom_ == currentRoom_ && !cleaning_) {
+                    startCleaning(currentTask_->getCleanType());
+                }
+            }
         }
     }
 
+    // Handle cleaning time
     if (cleaning_ && currentTask_) {
         cleaningTimeRemaining_ -= deltaTime;
         if (cleaningTimeRemaining_ <= 0) {
@@ -53,9 +71,22 @@ void Robot::updateState(double deltaTime) {
 }
 
 void Robot::startCleaning(CleaningTask::CleanType cleaningType) {
-    if (isCleaning() || !currentRoom_) return;
+    if (isCleaning() || !currentRoom_ || !currentTask_) return;
     cleaning_ = true;
-    cleaningTimeRemaining_ = 60.0; 
+
+    double baseTime = 15.0; // default medium
+    std::string size = currentRoom_->getSize();
+    std::transform(size.begin(), size.end(), size.begin(), ::tolower);
+
+    if (size == "small") {
+        baseTime = 5.0;
+    } else if (size == "medium") {
+        baseTime = 10.0;
+    } else if (size == "large") {
+        baseTime = 15.0;
+    }
+
+    cleaningTimeRemaining_ = baseTime;
 }
 
 void Robot::stopCleaning() {
@@ -67,17 +98,24 @@ void Robot::stopCleaning() {
 void Robot::setMovementPath(const std::vector<int>& roomIds, const Map& map) {
     while (!movementQueue_.empty()) movementQueue_.pop();
 
-    for (size_t i = 0; i < roomIds.size(); ++i) {
-        Room* r = map.getRoomById(roomIds[i]);
+    for (int roomId : roomIds) {
+        Room* r = map.getRoomById(roomId);
         if (r) {
-            if (i == 0 && r == currentRoom_) continue;
+            // Don't skip current room
             movementQueue_.push(r);
         }
+    }
+
+    // Pop the first room if it equals currentRoom_ to avoid redundant step
+    if (!movementQueue_.empty() && movementQueue_.front() == currentRoom_) {
+        movementQueue_.pop();
     }
 
     if (!movementQueue_.empty()) {
         nextRoom_ = movementQueue_.front();
         movementQueue_.pop();
+    } else {
+        nextRoom_ = nullptr;
     }
 }
 
@@ -91,6 +129,11 @@ void Robot::moveToRoom(Room* room) {
 Room* Robot::getNextRoom() const {
     return nextRoom_;
 }
+
+void Robot::setTargetRoom(Room* room) {
+    targetRoom_ = room;
+}
+
 
 double Robot::getBatteryLevel() const { return batteryLevel_; }
 double Robot::getWaterLevel() const { return waterLevel_; }

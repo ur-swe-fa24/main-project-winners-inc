@@ -41,10 +41,6 @@ void Scheduler::assignCleaningTask(const std::string& robotName, int targetRoomI
     task->assignRobot(robot);
     addTask(task);
     robot->setCurrentTask(task);
-    // Robot doesn't move yet, let RobotSimulator set route after assign.
-
-    // If we have access to RobotSimulator here, call simulator->assignTaskToRobot(task).
-    // Otherwise, RobotSimulator can monitor tasks and set path itself.
 }
 
 const std::vector<std::shared_ptr<CleaningTask>>& Scheduler::getAllTasks() const {

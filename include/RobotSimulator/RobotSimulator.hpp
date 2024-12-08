@@ -42,6 +42,7 @@ public:
 
     // Declare the method here:
     void assignTaskToRobot(std::shared_ptr<CleaningTask> task);
+    std::shared_ptr<Robot> getRobotByName(const std::string& name);
 
 private:
     std::vector<std::shared_ptr<Robot>> robots_;
@@ -50,7 +51,6 @@ private:
     std::shared_ptr<AlertSystem> alertSystem_;
 
     void checkRobotStatesAndSendAlerts();
-    std::shared_ptr<Robot> getRobotByName(const std::string& name);
 };
 
 #endif // ROBOT_SIMULATOR_HPP
