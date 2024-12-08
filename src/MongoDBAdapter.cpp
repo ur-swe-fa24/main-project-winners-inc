@@ -76,9 +76,8 @@ void MongoDBAdapter::saveAlert(const Alert& alert) {
         kvp("robot_name", alert.getRobot() ? alert.getRobot()->getName() : "None"),
         kvp("room_name", alert.getRoom() ? alert.getRoom()->getRoomName() : "None"),
         kvp("timestamp", static_cast<int64_t>(alert.getTimestamp())),
-        kvp("severity", alert.getSeverity())
+        kvp("severity", static_cast<int32_t>(alert.getSeverity()))
     );
-
     try {
         alertCollection.insert_one(alert_doc.view());
         std::cout << "Alert saved to MongoDB: " << alert.getTitle() << std::endl;
@@ -88,9 +87,13 @@ void MongoDBAdapter::saveAlert(const Alert& alert) {
 }
 
 void MongoDBAdapter::saveAlertAsync(const Alert& alert) {
-    if (!running_) return;
+    if (!running_) {
+        std::cout << "saveAlertAsync called after adapter stopped" << std::endl;
+        return;
+    }
     std::lock_guard<std::mutex> lock(mutex_);
-    auto clonedAlert = std::make_shared<Alert>(alert); // Clone the alert for thread safety
+    auto clonedAlert = std::make_shared<Alert>(alert);
+    std::cout << "saveAlertAsync: Pushing alert into queue" << std::endl;
     alertQueue_.push(clonedAlert);
     cv_.notify_one();
 }
@@ -111,7 +114,7 @@ std::vector<Alert> MongoDBAdapter::retrieveAlerts() {
             Alert::Severity severity = static_cast<Alert::Severity>(severityInt);
 
             // Create shared_ptr instances of Robot and Room
-            auto robot = std::make_shared<Robot>(robot_name, 100);  // Example attributes
+            auto robot = std::make_shared<Robot>(robot_name, 100.0, Robot::Size::MEDIUM, Robot::Strategy::VACUUM, 100.0);
             auto room = std::make_shared<Room>(room_name, 101);     // Example attributes
 
             // Create an Alert instance and add it to the vector
@@ -226,7 +229,7 @@ std::vector<std::shared_ptr<Robot>> MongoDBAdapter::retrieveRobotStatuses() {
             bool low_water_alert_sent = doc["low_water_alert_sent"].get_bool().value;
 
             // Create a Robot instance and add it to the vector
-            auto robot = std::make_shared<Robot>(name, battery_level, water_level);
+            auto robot = std::make_shared<Robot>(name, battery_level, Robot::Size::MEDIUM, Robot::Strategy::VACUUM, water_level);
             // Set additional attributes as needed
             // robot->setStatus(status); // Implement setters if necessary
             // robot->setCurrentRoom(current_room); // Implement setters if necessary
@@ -398,21 +401,23 @@ void MongoDBAdapter::processRoomQueue() {
 }
 
 void MongoDBAdapter::processAlertQueue() {
-    std::queue<std::shared_ptr<Alert>> localQueue;
-    
+    std::queue<std::shared_ptr<Alert>> localQueue; // Only define once outside the loop
+
     while (running_) {
         std::unique_lock<std::mutex> lock(mutex_);
         cv_.wait(lock, [this]() { return !alertQueue_.empty() || !running_; });
-        
+
         if (!running_) break;
-        
+
+        // Do not redefine localQueue here
         std::swap(localQueue, alertQueue_);
         lock.unlock();
-        
+
         while (!localQueue.empty()) {
             auto alert = localQueue.front();
             localQueue.pop();
             if (alert) {
+                std::cout << "processAlertQueue: Saving alert..." << std::endl;
                 saveAlert(*alert);
             }
         }
@@ -439,4 +444,46 @@ void MongoDBAdapter::processRobotStatusQueue() {
             }
         }
     }
+}
+
+
+
+void MongoDBAdapter::saveRobotAnalytics(std::shared_ptr<Robot> robot) {
+    if (!robot) return;
+    std::lock_guard<std::mutex> lock(mutex_);
+    auto analyticsCollection = db_["robot_analytics"];
+
+    try {
+        // Upsert document by robot name
+        analyticsCollection.replace_one(
+            make_document(kvp("name", robot->getName())),
+            make_document(
+                kvp("name", robot->getName()),
+                kvp("error_count", robot->getErrorCount()),
+                kvp("total_work_time", robot->getTotalWorkTime())
+            ),
+            mongocxx::options::replace{}.upsert(true)
+        );
+    } catch (const mongocxx::exception& e) {
+        std::cerr << "Error saving robot analytics to MongoDB: " << e.what() << std::endl;
+    }
+}
+
+std::vector<std::tuple<std::string,int,double>> MongoDBAdapter::retrieveRobotAnalytics() {
+    std::vector<std::tuple<std::string,int,double>> result;
+    auto analyticsCollection = db_["robot_analytics"];
+
+    try {
+        auto cursor = analyticsCollection.find({});
+        for (auto&& doc : cursor) {
+            std::string name = doc["name"].get_string().value.to_string();
+            int error_count = doc["error_count"].get_int32().value;
+            double total_work_time = doc["total_work_time"].get_double().value;
+            result.push_back(std::make_tuple(name, error_count, total_work_time));
+        }
+    } catch (const mongocxx::exception& e) {
+        std::cerr << "Error retrieving robot analytics from MongoDB: " << e.what() << std::endl;
+    }
+
+    return result;
 }

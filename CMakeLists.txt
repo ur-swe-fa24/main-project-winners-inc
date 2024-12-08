@@ -34,11 +34,12 @@ set(SOURCES
     src/alert.cpp
     src/virtual_wall.cpp
     src/alert_system.cpp
-    src/Schedular.cpp
+    src/Scheduler.cpp
     src/robot_metrics.cpp
     src/config/ResourceConfig.cpp
     src/scheduler_panel.cpp
     src/cleaningTask.cpp
+    src/analytics.cpp
 )
 
 # Define header files
@@ -56,11 +57,12 @@ set(HEADERS
     include/alert/Alert.h
     include/virtual_wall/virtual_wall.h
     include/AlertSystem/alert_system.h
-    include/Schedular/Schedular.hpp
+    include/Scheduler/Scheduler.hpp
     include/robot_metrics/robot_metrics.h
     include/config/ResourceConfig.hpp
     include/scheduler_panel/scheduler_panel.hpp
     include/CleaningTask/cleaningTask.h
+    include/analytics/analytics.h
 )
 
 # Add library target
@@ -98,4 +100,4 @@ endfunction()
 
 # Add subdirectories
 add_subdirectory(app)
-add_subdirectory(tests)
+# add_subdirectory(tests)

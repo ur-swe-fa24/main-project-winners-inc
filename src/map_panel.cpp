@@ -1,58 +1,54 @@
 #include "map_panel/map_panel.hpp"
-#include "Room/Room.h"
+#include <wx/dcbuffer.h>
 #include <cmath>
 #include <map>
 #include <algorithm>
-#include <wx/dcbuffer.h> // For double buffering to prevent flickering
+#include <iostream>
+#include "map/map.h"
+#include "Room/Room.h"
+#include "Robot/Robot.h" // Include if needed for robot access
 
-BEGIN_EVENT_TABLE(MapPanel, wxPanel)
+wxBEGIN_EVENT_TABLE(MapPanel, wxPanel)
     EVT_PAINT(MapPanel::OnPaint)
-    EVT_LEFT_DOWN(MapPanel::OnMouseClick)  // Add this line to capture left-click events
-END_EVENT_TABLE()
+    EVT_LEFT_DOWN(MapPanel::OnMouseClick) // Capture left-click events
+wxEND_EVENT_TABLE()
 
-MapPanel::MapPanel(wxWindow* parent, const Map& map, RobotSimulator* simulator)
-    : wxPanel(parent), map_(map), simulator_(simulator) {
+MapPanel::MapPanel(wxWindow* parent, std::shared_ptr<RobotSimulator> simulator)
+    : wxPanel(parent), simulator_(simulator) {
     SetBackgroundColour(*wxWHITE);
     SetBackgroundStyle(wxBG_STYLE_PAINT);
 }
 
 void MapPanel::OnPaint(wxPaintEvent& event) {
-    if (map_.getRooms().empty()) return;
-
     wxAutoBufferedPaintDC dc(this);
     dc.Clear();
 
-    // Get the size of the panel
+    const Map& map = simulator_->getMap();
+    const std::vector<Room*>& rooms = map.getRooms();
+    if (rooms.empty()) return;
+
+    // Get panel size
     int width, height;
     GetClientSize(&width, &height);
 
-    // Determine scaling factors
+    // Determine scaling factors and layout
     int margin = 50;
     int drawableWidth = width - 2 * margin;
     int drawableHeight = height - 2 * margin;
-
-    // Get rooms from the map
-    const std::vector<Room*>& rooms = map_.getRooms();
-
-    // Map room IDs to positions
-    std::map<int, wxPoint> roomPositions;
-
-    // For simplicity, arrange rooms in a circle
     size_t numRooms = rooms.size();
     if (numRooms == 0) return;
 
     double angleIncrement = 2 * M_PI / numRooms;
     double radius = std::min(drawableWidth, drawableHeight) / 2 - margin;
-
-    // Calculate center of the panel
     int centerX = width / 2;
     int centerY = height / 2;
 
-    // Calculate room positions
+    // Map room IDs to positions
+    std::map<int, wxPoint> roomPositions;
     for (size_t i = 0; i < numRooms; ++i) {
         double angle = i * angleIncrement;
-        int x = centerX + static_cast<int>(radius * cos(angle));
-        int y = centerY + static_cast<int>(radius * sin(angle));
+        int x = centerX + static_cast<int>(radius * std::cos(angle));
+        int y = centerY + static_cast<int>(radius * std::sin(angle));
         roomPositions[rooms[i]->getRoomId()] = wxPoint(x, y);
     }
 
@@ -70,7 +66,7 @@ void MapPanel::OnPaint(wxPaintEvent& event) {
 
     // Draw virtual walls
     dc.SetPen(wxPen(*wxRED, 2, wxPENSTYLE_DOT));
-    const auto& virtualWalls = map_.getVirtualWalls();
+    const auto& virtualWalls = map.getVirtualWalls();
     for (const auto& vw : virtualWalls) {
         const Room* room1 = vw.getRoom1();
         const Room* room2 = vw.getRoom2();
@@ -82,12 +78,12 @@ void MapPanel::OnPaint(wxPaintEvent& event) {
     }
 
     // Draw rooms
-    int roomRadius = 20;  // Base room radius
+    int roomRadius = 20;
     for (const Room* room : rooms) {
         if (!room) continue;
         wxPoint pos = roomPositions[room->getRoomId()];
         
-        // Determine circle size based on room size
+        // Adjust radius based on room size
         int circleRadius = roomRadius;
         if (room->getSize() == "small") {
             circleRadius = roomRadius - 5;
@@ -95,20 +91,19 @@ void MapPanel::OnPaint(wxPaintEvent& event) {
             circleRadius = roomRadius + 5;
         }
 
-        // Set color based on room type and cleanliness
+        // Set brush based on cleanliness and whether it's a charger
         if (room->getRoomId() == 0) {
-            dc.SetBrush(*wxYELLOW_BRUSH);  // Charging station
+            dc.SetBrush(*wxYELLOW_BRUSH); // Charging station
         } else if (room->isRoomClean) {
-            dc.SetBrush(*wxGREEN_BRUSH);   // Clean room
+            dc.SetBrush(*wxGREEN_BRUSH); // Clean room
         } else {
-            dc.SetBrush(*wxLIGHT_GREY_BRUSH);  // Dirty room
+            dc.SetBrush(*wxLIGHT_GREY_BRUSH); // Dirty room
         }
 
         dc.SetPen(*wxBLACK_PEN);
         dc.DrawCircle(pos, circleRadius);
 
-        // Draw room name
-        wxString roomLabel = wxString::Format("%s (%d)", 
+        wxString roomLabel = wxString::Format("%s (%d)",
             wxString::FromUTF8(room->getRoomName()), room->getRoomId());
         dc.DrawText(roomLabel, pos.x - circleRadius, pos.y - circleRadius - 15);
     }
@@ -117,34 +112,37 @@ void MapPanel::OnPaint(wxPaintEvent& event) {
     const auto& robots = simulator_->getRobots();
     for (const auto& robot : robots) {
         if (!robot) continue;
-        
+
         Room* currentRoom = robot->getCurrentRoom();
         Room* nextRoom = robot->getNextRoom();
-        
         if (!currentRoom) continue;
-        
-        wxPoint pos;
-        int movementProgress = robot->getMovementProgress();
 
-        if (nextRoom && movementProgress > 0) {
-            // Interpolate position for moving robots
+        wxPoint pos;
+        double movementProgress = robot->getMovementProgress(); // Ensure double or convert
+
+        if (nextRoom && movementProgress > 0.0) {
             wxPoint from = roomPositions[currentRoom->getRoomId()];
             wxPoint to = roomPositions[nextRoom->getRoomId()];
-            double progress = 1.0 - static_cast<double>(movementProgress) / 5.0;  // Progress from 0 to 1
 
-            // Calculate position along the path
+            // movementProgress should be between 0 and 100, we normalize to [0,1]
+            double progress = movementProgress / 100.0;
+            // If your old logic used /5.0, ensure movementProgress scale is consistent.
+            // Adjust as per your logic. For now, assume movementProgress in %:
             pos.x = from.x + static_cast<int>((to.x - from.x) * progress);
             pos.y = from.y + static_cast<int>((to.y - from.y) * progress);
         } else {
             pos = roomPositions[currentRoom->getRoomId()];
         }
 
-        // Draw robot
         dc.SetBrush(*wxBLUE_BRUSH);
+
+        if (robot->isFailed()) {
+            dc.SetBrush(*wxRED_BRUSH);
+            }
+
         dc.SetPen(*wxBLACK_PEN);
-        dc.DrawCircle(pos, roomRadius / 2);  // Robot is half the size of a room
-        
-        // Draw robot name
+        dc.DrawCircle(pos, roomRadius / 2);
+
         wxString robotName = wxString::FromUTF8(robot->getName());
         dc.DrawText(robotName, pos.x + roomRadius / 2 + 5, pos.y - 5);
     }

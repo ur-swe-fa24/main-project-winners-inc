@@ -1,35 +1,40 @@
-#pragma once
+#ifndef ROBOT_CONTROL_PANEL_HPP
+#define ROBOT_CONTROL_PANEL_HPP
 
 #include <wx/wx.h>
-#include <wx/choice.h>
-#include "RobotSimulator/RobotSimulator.hpp"
-#include "Room/Room.h"
+#include <memory>
+
+class RobotSimulator;
+class Scheduler;
+class Room;
 
 class RobotControlPanel : public wxPanel {
 public:
-    RobotControlPanel(wxWindow* parent, RobotSimulator* simulator);
-    virtual ~RobotControlPanel();  // Add virtual destructor
-    
-    // Event handlers - made public so they can be called from RobotManagementFrame
+    RobotControlPanel(wxWindow* parent, std::shared_ptr<RobotSimulator> simulator, std::shared_ptr<Scheduler> scheduler);
+    ~RobotControlPanel();
+
+private:
+    void CreateControls();
+    void UpdateRobotList();
+    void UpdateRoomList();
+
     void OnRobotSelected(wxCommandEvent& event);
     void OnStartCleaning(wxCommandEvent& event);
     void OnStopCleaning(wxCommandEvent& event);
     void OnReturnToCharger(wxCommandEvent& event);
     void OnMoveToRoom(wxCommandEvent& event);
-    void OnPickUpRobot(wxCommandEvent& event);  // New handler for pick up
-    void UpdateRobotList();  // Made public so it can be called from RobotManagementFrame
+    void OnPickUpRobot(wxCommandEvent& event);
 
-private:
-    void CreateControls();
-    void UpdateRoomList();
-    
-    // Member variables
-    RobotSimulator* simulator_;
+    std::shared_ptr<RobotSimulator> simulator_;
+    std::shared_ptr<Scheduler> scheduler_;
     wxChoice* robotChoice_;
     wxChoice* roomChoice_;
     wxButton* moveButton_;
-    wxButton* pickUpButton_;  // New button member
-    std::shared_ptr<Robot> selectedRobot_;  // Changed back to shared_ptr
+    wxButton* pickUpButton_;
+    std::string selectedRobotName_;
 
-    DECLARE_EVENT_TABLE()
+    wxDECLARE_EVENT_TABLE();
 };
+
+#endif // ROBOT_CONTROL_PANEL_HPP
+

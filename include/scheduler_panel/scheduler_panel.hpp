@@ -4,39 +4,58 @@
 #include <wx/wx.h>
 #include <wx/listctrl.h>
 #include <wx/timer.h>
-#include "RobotSimulator/RobotSimulator.hpp"
-#include "Schedular/Schedular.hpp"
+#include <memory>
+#include <vector>
+
+class RobotSimulator;
+class Scheduler;
+class Room;
+class MongoDBAdapter;
+class AlertSystem;
+class Robot;
+
+#include "CleaningTask/cleaningTask.h"
 
 class SchedulerPanel : public wxPanel {
 public:
-    SchedulerPanel(wxWindow* parent, RobotSimulator* simulator, Scheduler* scheduler);
+    SchedulerPanel(wxWindow* parent, 
+                   std::shared_ptr<RobotSimulator> simulator, 
+                   std::shared_ptr<Scheduler> scheduler,
+                   std::shared_ptr<AlertSystem> alertSystem,
+                   std::shared_ptr<MongoDBAdapter> dbAdapter);
     ~SchedulerPanel();
 
-    void UpdateRoomList(); // Method to update room list
-    void UpdateRobotChoices(); // Moved to public section
+    void UpdateRoomList();
+    void UpdateTaskList();
 
 private:
     void CreateControls();
     void BindEvents();
     void OnAssignTask(wxCommandEvent& event);
-    void OnRobotSelected(wxCommandEvent& event);
     void OnRoomSelected(wxCommandEvent& event);
     void OnTimer(wxTimerEvent& event);
-    void UpdateTaskList();
 
-    // Helper function
-    std::string cleaningStrategyToString(CleaningTask::CleanType cleanType);
+    void UpdateRoomSelection();
+    void UpdateRobotListForRoom(Room* room);
 
-    // Member variables
-    RobotSimulator* simulator_;
-    Scheduler* scheduler_;
-    wxChoice* robotChoice_;
+    // Method to find a single suitable robot (not used if we return multiple)
+    std::shared_ptr<Robot> findSuitableRobotForRoom(Room* room);
+
+    // Method to find all suitable robots for a given room
+    std::vector<std::shared_ptr<Robot>> findSuitableRobotsForRoom(Room* room);
+
+    std::shared_ptr<RobotSimulator> simulator_;
+    std::shared_ptr<Scheduler> scheduler_;
+    std::shared_ptr<AlertSystem> alertSystem_;
+    std::shared_ptr<MongoDBAdapter> dbAdapter_;
+
     wxChoice* roomChoice_;
-    wxChoice* strategyChoice_;
+    wxChoice* robotChoice_; // New choice for selecting the robot
     wxListCtrl* taskListCtrl_;
     wxTimer* updateTimer_;
-    
-    DECLARE_EVENT_TABLE()
+    wxButton* assignTaskBtn_;
+
+    wxDECLARE_EVENT_TABLE();
 };
 
 #endif // SCHEDULER_PANEL_HPP

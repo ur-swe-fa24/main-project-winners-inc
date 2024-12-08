@@ -95,6 +95,8 @@
         "hash_set": "cpp",
         "execution": "cpp",
         "valarray": "cpp",
-        "any": "cpp"
+        "any": "cpp",
+        "print": "cpp",
+        "ranges": "cpp"
     }
 }

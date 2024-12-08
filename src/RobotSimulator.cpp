@@ -1,242 +1,239 @@
 #include "RobotSimulator/RobotSimulator.hpp"
-#include <chrono>
+#include "Robot/Robot.h"
+#include "Scheduler/Scheduler.hpp"
+#include "AlertSystem/alert_system.h"
+#include "map/map.h"
+#include "CleaningTask/cleaningTask.h"
+#include "alert/Alert.h"
+#include "adapter/MongoDBAdapter.hpp" // Ensure included if needed
 #include <iostream>
-#include <queue>
-#include <set>
+#include <algorithm>
+#include <ctime>
 
-RobotSimulator::RobotSimulator(std::shared_ptr<MongoDBAdapter> dbAdapter, const std::string& mapFile)
-    : dbAdapter_(dbAdapter), running_(false) {
-    // Load the map
-    map_.loadFromFile(mapFile);
+RobotSimulator::RobotSimulator(std::shared_ptr<Map> map,
+                               std::shared_ptr<Scheduler> scheduler,
+                               std::shared_ptr<AlertSystem> alertSystem,
+                               std::shared_ptr<MongoDBAdapter> dbAdapter)
+    : map_(map), scheduler_(scheduler), alertSystem_(alertSystem), dbAdapter_(dbAdapter) {}
 
-    // Initialize rooms in the database
-    dbAdapter_->initializeRooms(map_.getRooms());
-
-    // Initialize starting room
-    Room* startingRoom = map_.getRoomById(0); // Assuming room ID 0 is the charging station
-    if (!startingRoom) {
-        throw std::runtime_error("Starting room not found in the map.");
+std::shared_ptr<Robot> RobotSimulator::getRobotByName(const std::string& name) {
+    for (auto& r : robots_) {
+        if (r->getName() == name) return r;
     }
-}
-
-RobotSimulator::~RobotSimulator() {
-    stop();
-}
-
-void RobotSimulator::start() {
-    running_ = true;
-    simulationThread_ = std::thread(&RobotSimulator::simulationLoop, this);
-}
-
-void RobotSimulator::stop() {
-    running_ = false;
-    cv_.notify_all();
-    if (simulationThread_.joinable()) {
-        simulationThread_.join();
-    }
-}
-
-Map& RobotSimulator::getMap() {
-    return map_;
-}
-
-const Map& RobotSimulator::getMap() const {
-    return map_;
+    return nullptr;
 }
 
 std::vector<std::shared_ptr<Robot>>& RobotSimulator::getRobots() {
     return robots_;
 }
 
-const std::vector<std::shared_ptr<Robot>>& RobotSimulator::getRobots() const {
-    return robots_;
+void RobotSimulator::update(double deltaTime) {
+    std::cout << "[DEBUG] RobotSimulator::update start\n";
+    for (auto& robot : robots_) {
+        bool wasCleaning = robot->isCleaning();
+        robot->updateState(deltaTime);
+        bool nowCleaning = robot->isCleaning();
+
+        // Reintroduce analytics saving after each robot update
+        if (dbAdapter_) {
+            // The robot maintains errorCount_ and totalWorkTime_ internally.
+            // By calling saveRobotAnalytics here, the DB is updated in real-time.
+            dbAdapter_->saveRobotAnalytics(robot);
+        }
+
+        // Handle low resources and return to charger if needed
+        if ((robot->getBatteryLevel() < 20.0 || robot->getWaterLevel() <= 0.0) && !robot->isCharging()) {
+            requestReturnToCharger(robot->getName());
+            continue;
+        }
+
+        // If robot just finished a cleaning task
+        if (wasCleaning && !nowCleaning && !robot->getCurrentTask()) {
+            if (scheduler_) {
+                auto nextTask = scheduler_->getNextTaskForRobot(robot->getName());
+                if (nextTask) {
+                    robot->setCurrentTask(nextTask);
+                    assignTaskToRobot(nextTask);
+                } else {
+                    handleNoTaskAndReturnToChargerIfNeeded(robot);
+                }
+            } else {
+                handleNoTaskAndReturnToChargerIfNeeded(robot);
+            }
+        }
+    }
+
+    std::cout << "[DEBUG] After RobotSimulator::update cycle:\n";
+    for (auto& robot : robots_) {
+        std::cout << "  Robot " << robot->getName() 
+                  << " currentTask=" << (robot->getCurrentTask() ? std::to_string(robot->getCurrentTask()->getID()) : "None")
+                  << " Status=" << robot->getStatus() << "\n";
+    }
+
+    checkRobotStatesAndSendAlerts();
+    std::cout << "[DEBUG] RobotSimulator::update end\n";
 }
 
-std::vector<RobotSimulator::RobotStatus> RobotSimulator::getRobotStatuses() {
-    std::lock_guard<std::mutex> lock(robotsMutex_);
+void RobotSimulator::handleNoTaskAndReturnToChargerIfNeeded(std::shared_ptr<Robot> robot) {
+    double battery = robot->getBatteryLevel();
+    double water = robot->getWaterLevel();
+
+    bool noTasksLeft = true; 
+    bool lowResources = (battery < 20.0 || water <= 0);
+    bool needsReturn = (noTasksLeft || lowResources);
+
+    if (needsReturn) {
+        std::cout << "Debug: Robot " << robot->getName()
+                  << " has no tasks and/or low resources, returning to charger.\n";
+        requestReturnToCharger(robot->getName());
+    } else {
+        std::cout << "Debug: Robot " << robot->getName()
+                  << " has no tasks but does not need charger right now.\n";
+    }
+}
+
+void RobotSimulator::moveRobotToRoom(const std::string& robotName, int roomId) {
+    auto robot = getRobotByName(robotName);
+    if (!robot) return;
+    Room* currentRoom = robot->getCurrentRoom();
+    Room* targetRoom = map_->getRoomById(roomId);
+    if (!currentRoom || !targetRoom) return;
+
+    auto route = map_->getRoute(*currentRoom, *targetRoom);
+    if (route.empty()) {
+        if (alertSystem_) {
+            alertSystem_->sendAlert("No path found for robot " + robotName, "Movement");
+            // Optionally save alert
+            if (dbAdapter_) {
+                // Convert currentRoom to shared_ptr<Room>
+                std::shared_ptr<Room> curRoomPtr = currentRoom ? std::make_shared<Room>(*currentRoom) : nullptr;
+                Alert alert("Movement", "No path found for robot " + robotName, 
+                            getRobotByName(robotName), curRoomPtr, std::time(nullptr), Alert::LOW);
+                dbAdapter_->saveAlert(alert);
+            }
+        }
+        return;
+    }
+
+    robot->setMovementPath(route, *map_);
+}
+
+void RobotSimulator::startRobotCleaning(const std::string& robotName) {
+    auto robot = getRobotByName(robotName);
+    if (!robot) return;
+    robot->startCleaning(CleaningTask::VACUUM); 
+}
+
+void RobotSimulator::stopRobotCleaning(const std::string& robotName) {
+    auto robot = getRobotByName(robotName);
+    if (!robot) return;
+    robot->stopCleaning();
+}
+
+void RobotSimulator::manuallyPickUpRobot(const std::string& robotName) {
+    auto robot = getRobotByName(robotName);
+    if (!robot) return;
+    Room* charger = map_->getRoomById(0);
+    if (!charger) return;
+    robot->setCurrentRoom(charger);
+    robot->setCharging(true);
+}
+
+void RobotSimulator::requestReturnToCharger(const std::string& robotName) {
+    auto robot = getRobotByName(robotName);
+    if (!robot) return;
+    Room* charger = map_->getRoomById(0);
+    if (!charger) return;
+
+    auto route = map_->getRoute(*robot->getCurrentRoom(), *charger);
+    if (!route.empty()) {
+        robot->setMovementPath(route, *map_);
+    } else {
+        robot->setCurrentRoom(charger);
+        robot->setCharging(true);
+    }
+}
+
+std::vector<RobotSimulator::RobotStatus> RobotSimulator::getRobotStatuses() const {
     std::vector<RobotStatus> statuses;
-    for (const auto& robot : robots_) {
-        std::string currentRoomName = robot->getCurrentRoom() ? robot->getCurrentRoom()->getRoomName() : "Unknown";
-        statuses.emplace_back(robot->getName(),
-                              robot->getBatteryLevel(),
-                              robot->getWaterLevel(),
-                              robot->getStatus(),
-                              currentRoomName);
+    for (auto& robot : robots_) {
+        RobotStatus rs {
+            robot->getName(),
+            robot->getBatteryLevel(),
+            robot->getWaterLevel(),
+            robot->getCurrentRoom() ? robot->getCurrentRoom()->getRoomName() : "Unknown",
+            robot->isCleaning(),
+            robot->needsCharging(),
+            robot->getStatus()
+        };
+        statuses.push_back(rs);
     }
     return statuses;
 }
 
-std::shared_ptr<Robot> RobotSimulator::getRobotByName(const std::string& name) {
-    std::lock_guard<std::mutex> lock(robotsMutex_);
-    for (const auto& robot : robots_) {
-        if (robot->getName() == name) {
-            return robot;
-        }
-    }
-    return nullptr;  // Return nullptr if not found
+const Map& RobotSimulator::getMap() const {
+    return *map_;
 }
 
-void RobotSimulator::startCleaning(const std::string& robotName) {
-    std::lock_guard<std::mutex> lock(robotsMutex_);
-    bool found = false;
+std::shared_ptr<AlertSystem> RobotSimulator::getAlertSystem() const {
+    return alertSystem_;
+}
+
+void RobotSimulator::checkRobotStatesAndSendAlerts() {
     for (auto& robot : robots_) {
-        if (robot->getName() == robotName) {
-            robot->startCleaning();
-            found = true;
-            break;
+        // Battery alert
+        if (robot->needsCharging() && !robot->isLowBatteryAlertSent()) {
+            if (alertSystem_) {
+                alertSystem_->sendAlert("Robot " + robot->getName() + " has low battery.", "Battery");
+            }
+            if (dbAdapter_) {
+                std::shared_ptr<Room> curRoomPtr = robot->getCurrentRoom() ? std::make_shared<Room>(*robot->getCurrentRoom()) : nullptr;
+                Alert alert("Battery", "Robot " + robot->getName() + " has low battery.", robot, curRoomPtr, std::time(nullptr), Alert::HIGH);
+                dbAdapter_->saveAlert(alert);
+            }
+            robot->setLowBatteryAlertSent(true);
+        }
+
+        // Water alert
+        if (robot->needsWaterRefill() && !robot->isLowWaterAlertSent()) {
+            if (alertSystem_) {
+                alertSystem_->sendAlert("Robot " + robot->getName() + " has low water.", "Water");
+            }
+            if (dbAdapter_) {
+                std::shared_ptr<Room> curRoomPtr = robot->getCurrentRoom() ? std::make_shared<Room>(*robot->getCurrentRoom()) : nullptr;
+                Alert alert("Water", "Robot " + robot->getName() + " has low water.", robot, curRoomPtr, std::time(nullptr), Alert::HIGH);
+                dbAdapter_->saveAlert(alert);
+            }
+            robot->setLowWaterAlertSent(true);
         }
     }
-    if (!found) {
-        throw std::runtime_error("Robot not found: " + robotName);
-    }
-    cv_.notify_one();
 }
 
-void RobotSimulator::stopCleaning(const std::string& robotName) {
-    std::lock_guard<std::mutex> lock(robotsMutex_);
-    bool found = false;
-    for (auto& robot : robots_) {
-        if (robot->getName() == robotName) {
-            robot->stopCleaning();
-            found = true;
-            break;
-        }
-    }
-    if (!found) {
-        throw std::runtime_error("Robot not found: " + robotName);
-    }
-    cv_.notify_one();
-}
-
-void RobotSimulator::returnToCharger(const std::string& robotName) {
-    std::lock_guard<std::mutex> lock(robotsMutex_);
-    bool found = false;
-    for (auto& robot : robots_) {
-        if (robot->getName() == robotName) {
-            if (!robot->isCharging()) {
-                robot->recharge(map_); // Pass the map object
-                std::cout << "Robot " << robotName << " is returning to charger." << std::endl;
-            } else {
-                std::cout << "Robot " << robotName << " is already charging." << std::endl;
-            }
-            found = true;
-            break;
-        }
-    }
-    if (!found) {
-        throw std::runtime_error("Robot not found: " + robotName);
-    }
-    cv_.notify_one();
-}
-
-void RobotSimulator::simulationLoop() {
-    const double UPDATE_INTERVAL = 0.1; // 100ms update interval
-    
-    while (running_) {
-        std::vector<std::shared_ptr<Robot>> robotsCopy;
-
-        // Copy the robots vector while holding the mutex
-        {
-            std::lock_guard<std::mutex> lock(robotsMutex_);
-            robotsCopy = robots_;
-        }
-
-        // Iterate over the copied robots
-        for (auto& robot : robotsCopy) {
-            std::lock_guard<std::mutex> lock(robotsMutex_);
-            
-            // Update robot state
-            robot->update(map_);
-
-            // Check if robot needs charging
-            if (robot->needsCharging() && !robot->isCharging()) {
-                returnToCharger(robot->getName());
-            }
-
-            // Check if robot needs water refill
-            if (robot->needsWaterRefill() && robot->isCleaning()) {
-                robot->stopCleaning();
-                // TODO: Implement water refill station logic
-            }
-
-            // Check if the robot has cleaned a room
-            Room* currentRoom = robot->getCurrentRoom();
-            if (currentRoom && robot->isCleaning()) {
-                currentRoom->isRoomClean = true;
-                // Save the room status asynchronously
-                dbAdapter_->saveRoomStatusAsync(*currentRoom);
-            }
-
-            // Handle alerts
-            if (robot->needsCharging() && !robot->isLowBatteryAlertSent()) {
-                std::cout << "Low battery alert for " << robot->getName() << std::endl;
-                robot->setLowBatteryAlertSent(true);
-            }
-
-            if (robot->needsWaterRefill() && !robot->isLowWaterAlertSent()) {
-                std::cout << "Low water alert for " << robot->getName() << std::endl;
-                robot->setLowWaterAlertSent(true);
-            }
-
-            // Reset alert flags when resources are replenished
-            if (!robot->needsCharging()) {
-                robot->setLowBatteryAlertSent(false);
-            }
-
-            if (!robot->needsWaterRefill()) {
-                robot->setLowWaterAlertSent(false);
-            }
-        }
-
-        // Sleep for update interval
-        std::this_thread::sleep_for(std::chrono::milliseconds(static_cast<int>(UPDATE_INTERVAL * 1000)));
-    }
-}
 
 void RobotSimulator::addRobot(const std::string& robotName) {
-    std::lock_guard<std::mutex> lock(robotsMutex_);
-    
-    // Check if robot with this name already exists
-    auto it = std::find_if(robots_.begin(), robots_.end(),
-        [&robotName](const std::shared_ptr<Robot>& robot) {
-            return robot->getName() == robotName;
-        });
-    
-    if (it != robots_.end()) {
-        throw std::runtime_error("Robot with name '" + robotName + "' already exists");
-    }
-    
-    // Create new robot at starting room (charging station)
-    Room* startingRoom = map_.getRoomById(0);
-    if (!startingRoom) {
-        throw std::runtime_error("Starting room (charging station) not found in the map");
-    }
-    
-    // Initialize robot with full battery and water
-    auto newRobot = std::make_shared<Robot>(robotName, 100.0, 100.0);
-    newRobot->setCurrentRoom(startingRoom);
+    Room* charger = map_->getRoomById(0);
+    // Default to MEDIUM size and VACUUM strategy if none specified
+    auto newRobot = std::make_shared<Robot>(robotName, 100.0, Robot::Size::MEDIUM, Robot::Strategy::VACUUM, 100.0);
+    if (charger) newRobot->setCurrentRoom(charger);
+    newRobot->setMap(map_.get()); 
     robots_.push_back(newRobot);
-    
-    // Log robot creation
-    std::cout << "Added new robot: " << robotName << " at charging station." << std::endl;
 }
 
-void RobotSimulator::deleteRobot(const std::string& robotName) {
-    std::lock_guard<std::mutex> lock(robotsMutex_);
-    
-    // Find robot with the given name
-    auto it = std::find_if(robots_.begin(), robots_.end(),
-        [&robotName](const std::shared_ptr<Robot>& robot) {
-            return robot->getName() == robotName;
-        });
-    
-    if (it == robots_.end()) {
-        throw std::runtime_error("Robot with name '" + robotName + "' not found");
+void RobotSimulator::assignTaskToRobot(std::shared_ptr<CleaningTask> task) {
+    auto robot = task->getRobot();
+    if (!robot) return;
+
+    Room* currentRoom = robot->getCurrentRoom();
+    Room* targetRoom = task->getRoom();
+    if (!currentRoom || !targetRoom) return;
+
+    robot->setTargetRoom(targetRoom);
+    auto route = map_->getRoute(*currentRoom, *targetRoom);
+    if (!route.empty()) {
+        robot->setMovementPath(route, *map_);
     }
-    
-    // Remove robot from vector
-    robots_.erase(it);
-    
-    // Log robot deletion
-    std::cout << "Deleted robot: " << robotName << std::endl;
 }
+
+// In Scheduler, make sure when assigning tasks, we save tasks alerts as before
+// using the code snippet provided by the user.
+
