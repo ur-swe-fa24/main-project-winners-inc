@@ -4,32 +4,42 @@
 #include "RobotSimulator/RobotSimulator.hpp"
 #include "Scheduler/Scheduler.hpp"
 #include "Room/Room.h"
-#include "adapter/MongoDBAdapter.hpp"
 #include "AlertSystem/alert_system.h"
-#include "alert/Alert.h"
-
+#include "adapter/MongoDBAdapter.hpp"
 #include "map/map.h"
+
+#include <wx/msgdlg.h>
+#include <wx/button.h>
+#include <wx/stattext.h>
 #include <algorithm>
 #include <iostream>
 
 wxBEGIN_EVENT_TABLE(SchedulerPanel, wxPanel)
-    // Add event table entries if needed
+// Add event table entries if needed
 wxEND_EVENT_TABLE()
 
-SchedulerPanel::SchedulerPanel(wxWindow* parent, 
-                               std::shared_ptr<RobotSimulator> simulator, 
+SchedulerPanel::SchedulerPanel(wxWindow* parent,
+                               std::shared_ptr<RobotSimulator> simulator,
                                std::shared_ptr<Scheduler> scheduler,
                                std::shared_ptr<AlertSystem> alertSystem,
                                std::shared_ptr<MongoDBAdapter> dbAdapter)
-    : wxPanel(parent), simulator_(simulator), scheduler_(scheduler),
-      alertSystem_(alertSystem), dbAdapter_(dbAdapter),
-      robotChoice_(nullptr), roomChoice_(nullptr), strategyChoice_(nullptr),
-      taskListCtrl_(nullptr), updateTimer_(nullptr)
+    : wxPanel(parent),
+      simulator_(simulator),
+      scheduler_(scheduler),
+      alertSystem_(alertSystem),
+      dbAdapter_(dbAdapter),
+      robotChoice_(nullptr),
+      roomChoice_(nullptr),
+      strategyChoice_(nullptr),
+      taskListCtrl_(nullptr),
+      updateTimer_(nullptr) 
 {
     CreateControls();
     BindEvents();
+
     UpdateRoomList();
     UpdateRobotChoices();
+
     updateTimer_ = new wxTimer(this);
     Bind(wxEVT_TIMER, &SchedulerPanel::OnTimer, this);
     updateTimer_->Start(1000); // Update every second
@@ -45,14 +55,17 @@ SchedulerPanel::~SchedulerPanel() {
 void SchedulerPanel::CreateControls() {
     wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
 
+    // Robot selection
     wxStaticText* robotLabel = new wxStaticText(this, wxID_ANY, "Select Robot:");
     robotChoice_ = new wxChoice(this, wxID_ANY);
 
+    // Room selection
     wxStaticText* roomLabelStaticText = new wxStaticText(this, wxID_ANY, "Select Room:");
     roomChoice_ = new wxChoice(this, wxID_ANY);
 
     wxStaticText* strategyLabel = new wxStaticText(this, wxID_ANY, "Cleaning Strategy:");
     strategyChoice_ = new wxChoice(this, wxID_ANY);
+    // Initially populate, actual population in OnRoomSelected
     strategyChoice_->Append("Vacuum");
     strategyChoice_->Append("Scrub");
     strategyChoice_->Append("Shampoo");
@@ -79,6 +92,7 @@ void SchedulerPanel::CreateControls() {
     taskListCtrl_->InsertColumn(4, "Status");
 
     sizer->Add(taskListCtrl_, 1, wxEXPAND | wxALL, 5);
+
     SetSizer(sizer);
 }
 
@@ -95,6 +109,7 @@ void SchedulerPanel::UpdateRoomList() {
         currentSelectionString = roomChoice_->GetString(currentSelection);
     }
 
+    // Build new room list with only dirty rooms
     std::vector<std::pair<wxString, void*>> newRoomList;
     const auto& rooms = simulator_->getMap().getRooms();
     for (const auto& room : rooms) {
@@ -104,8 +119,10 @@ void SchedulerPanel::UpdateRoomList() {
         }
     }
 
-    bool needUpdate = (newRoomList.size() != roomChoice_->GetCount());
-    if (!needUpdate) {
+    bool needUpdate = false;
+    if (newRoomList.size() != roomChoice_->GetCount()) {
+        needUpdate = true;
+    } else {
         for (size_t i = 0; i < newRoomList.size(); ++i) {
             if (newRoomList[i].first != roomChoice_->GetString(i)) {
                 needUpdate = true;
@@ -116,9 +133,10 @@ void SchedulerPanel::UpdateRoomList() {
 
     if (needUpdate) {
         roomChoice_->Clear();
-        for (auto& entry : newRoomList) {
-            roomChoice_->Append(entry.first, entry.second);
+        for (const auto& roomEntry : newRoomList) {
+            roomChoice_->Append(roomEntry.first, roomEntry.second);
         }
+
         int newSelectionIndex = roomChoice_->FindString(currentSelectionString);
         if (newSelectionIndex != wxNOT_FOUND) {
             roomChoice_->SetSelection(newSelectionIndex);
@@ -166,82 +184,78 @@ void SchedulerPanel::OnRoomSelected(wxCommandEvent& event) {
 
 void SchedulerPanel::UpdateRobotChoices() {
     if (!simulator_) {
+        // Log error
         if (alertSystem_) {
             alertSystem_->sendAlert("Simulator is not initialized", "Error");
         }
         return;
     }
 
-    wxString currentSelection;
-    if (robotChoice_->GetSelection() != wxNOT_FOUND) {
-        currentSelection = robotChoice_->GetString(robotChoice_->GetSelection());
-    }
-
-    robotChoice_->Clear();
-    auto robotStatuses = simulator_->getRobotStatuses();
-    for (const auto& st : robotStatuses) {
-        if (!st.name.empty()) {
-            robotChoice_->Append(st.name);
+    if (robotChoice_) {
+        wxString currentSelection;
+        if (robotChoice_->GetSelection() != wxNOT_FOUND) {
+            currentSelection = robotChoice_->GetString(robotChoice_->GetSelection());
         }
-    }
 
-    int index = robotChoice_->FindString(currentSelection);
-    if (index != wxNOT_FOUND) {
-        robotChoice_->SetSelection(index);
-    } else if (robotChoice_->GetCount() > 0) {
-        robotChoice_->SetSelection(0);
+        robotChoice_->Clear();
+        auto robotStatuses = simulator_->getRobotStatuses();
+
+        for (const auto& status : robotStatuses) {
+            if (!status.name.empty()) {
+                robotChoice_->Append(status.name);
+            }
+        }
+
+        int index = robotChoice_->FindString(currentSelection);
+        if (index != wxNOT_FOUND) {
+            robotChoice_->SetSelection(index);
+        } else if (robotChoice_->GetCount() > 0) {
+            robotChoice_->SetSelection(0);
+        }
+
+        robotChoice_->Refresh();
     }
-    robotChoice_->Refresh();
 }
 
 void SchedulerPanel::OnAssignTask(wxCommandEvent& event) {
+    auto alertSystem = alertSystem_;
     if (!robotChoice_ || robotChoice_->GetSelection() == wxNOT_FOUND) {
-        if (alertSystem_) alertSystem_->sendAlert("Please select a robot.", "Error");
+        if (alertSystem) alertSystem->sendAlert("Please select a robot.", "Error");
+        wxMessageBox("Please select a robot.", "Error", wxOK|wxICON_ERROR);
         return;
     }
     std::string robotName = robotChoice_->GetStringSelection().ToStdString();
 
     if (roomChoice_->GetSelection() == wxNOT_FOUND) {
-        if (alertSystem_) alertSystem_->sendAlert("Please select a room.", "Error");
+        if (alertSystem) alertSystem->sendAlert("Please select a room.", "Error");
+        wxMessageBox("Please select a room.", "Error", wxOK|wxICON_ERROR);
         return;
     }
 
     Room* selectedRoom = reinterpret_cast<Room*>(roomChoice_->GetClientData(roomChoice_->GetSelection()));
     if (!selectedRoom) {
-        if (alertSystem_) alertSystem_->sendAlert("Invalid room selection.", "Error");
+        if (alertSystem) alertSystem->sendAlert("Invalid room selection.", "Error");
+        wxMessageBox("Invalid room selection.", "Error", wxOK|wxICON_ERROR);
         return;
     }
 
     if (strategyChoice_->GetSelection() == wxNOT_FOUND) {
-        if (alertSystem_) alertSystem_->sendAlert("Please select a cleaning strategy.", "Error");
+        if (alertSystem) alertSystem->sendAlert("Please select a cleaning strategy.", "Error");
+        wxMessageBox("Please select a cleaning strategy.", "Error", wxOK|wxICON_ERROR);
         return;
     }
     std::string strategy = strategyChoice_->GetStringSelection().ToStdString();
 
     try {
         scheduler_->assignCleaningTask(robotName, selectedRoom->getRoomId(), strategy);
-
-        const auto& tasks = scheduler_->getAllTasks();
-        if (!tasks.empty()) {
-            auto task = tasks.back(); 
-            simulator_->assignTaskToRobot(task);
-            if (alertSystem_) {
-                alertSystem_->sendAlert("Task assigned to robot " + robotName + " for room " + selectedRoom->getRoomName(), "Task");
-            }
-            if (dbAdapter_) {
-                auto robot = task->getRobot();
-                Alert newAlert("Task", 
-                               "Task assigned to robot " + robotName + " for room " + selectedRoom->getRoomName(),
-                               robot,
-                               std::make_shared<Room>(*selectedRoom),
-                               std::time(nullptr),
-                               Alert::LOW);
-                dbAdapter_->saveAlertAsync(newAlert);
-            }
-        }
-
+        // After assigning the task, we have done the alert logic in the scheduler
+        // So no need to duplicate here. Unless you want to send additional alert here:
+        // For debugging, we can also show a message
+        wxMessageBox("Task assigned to " + robotChoice_->GetStringSelection() + " for " + wxString(selectedRoom->getRoomName()),
+                     "Info", wxOK|wxICON_INFORMATION);
     } catch (const std::exception& e) {
-        if (alertSystem_) alertSystem_->sendAlert(std::string("Assignment Error: ") + e.what(), "Error");
+        if (alertSystem) alertSystem->sendAlert(std::string("Assignment Error: ") + e.what(), "Error");
+        wxMessageBox(e.what(), "Assignment Error", wxOK|wxICON_ERROR);
         return;
     }
 
@@ -250,7 +264,7 @@ void SchedulerPanel::OnAssignTask(wxCommandEvent& event) {
 
 
 void SchedulerPanel::OnRobotSelected(wxCommandEvent& event) {
-    // Update logic if needed
+    // If needed, update logic based on selected robot
 }
 
 void SchedulerPanel::OnTimer(wxTimerEvent& event) {
@@ -267,7 +281,7 @@ void SchedulerPanel::UpdateTaskList() {
     for (const auto& task : tasks) {
         if (!task) continue;
         long itemIndex = taskListCtrl_->InsertItem(index, wxString::Format("%d", task->getID()));
-        
+
         Room* room = task->getRoom();
         if (room) {
             taskListCtrl_->SetItem(itemIndex, 1, wxString::FromUTF8(room->getRoomName()));

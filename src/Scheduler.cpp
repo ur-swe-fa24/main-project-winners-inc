@@ -1,10 +1,13 @@
-// Scheduler.cpp
 #include "Scheduler/Scheduler.hpp"
 #include "map/map.h"
 #include "Robot/Robot.h"
 #include "RobotSimulator/RobotSimulator.hpp"
+#include "AlertSystem/alert_system.h"
+#include "adapter/MongoDBAdapter.hpp"
+#include "alert/Alert.h"  // Make sure this is included for the Alert class
 #include <algorithm>
 #include <stdexcept>
+#include <ctime>
 
 void Scheduler::addTask(std::shared_ptr<CleaningTask> task) {
     tasks_.push_back(task);
@@ -44,14 +47,14 @@ std::shared_ptr<Robot> Scheduler::findRobotByName(const std::string& name) {
 }
 
 void Scheduler::assignCleaningTask(const std::string& robotName, int targetRoomId, const std::string& strategy) {
-    Room* targetRoom = map_->getRoomById(targetRoomId);
-    if (!targetRoom) throw std::runtime_error("Target room not found.");
+    Room* selectedRoom = map_->getRoomById(targetRoomId);
+    if (!selectedRoom) throw std::runtime_error("Target room not found.");
 
     auto robot = findRobotByName(robotName);
     if (!robot) throw std::runtime_error("Robot not found.");
 
-    auto ctype = CleaningTask::stringToCleanType(strategy);
-    auto task = std::make_shared<CleaningTask>(++taskIdCounter_, CleaningTask::MEDIUM, ctype, targetRoom);
+    CleaningTask::CleanType ctype = CleaningTask::stringToCleanType(strategy);
+    auto task = std::make_shared<CleaningTask>(++taskIdCounter_, CleaningTask::MEDIUM, ctype, selectedRoom);
 
     task->assignRobot(robot);
     addTask(task);
@@ -59,6 +62,20 @@ void Scheduler::assignCleaningTask(const std::string& robotName, int targetRoomI
 
     if (simulator_) {
         simulator_->assignTaskToRobot(task);
+    }
+
+    // Send alert and save to DB
+    if (alertSystem_) {
+        alertSystem_->sendAlert("Task assigned to robot " + robotName + " for room " + selectedRoom->getRoomName(), "Task");
+    }
+    if (dbAdapter_) {
+        Alert newAlert("Task", 
+                       "Task assigned to robot " + robotName + " for room " + selectedRoom->getRoomName(),
+                       robot,
+                       std::make_shared<Room>(*selectedRoom),
+                       std::time(nullptr),
+                       Alert::LOW);
+        dbAdapter_->saveAlertAsync(newAlert);
     }
 }
 
@@ -69,13 +86,11 @@ const std::vector<std::shared_ptr<CleaningTask>>& Scheduler::getAllTasks() const
 void Scheduler::checkAndReturnToChargerIfNeeded(std::shared_ptr<Robot> robot) {
     if (!simulator_) return;
 
-    // If no tasks are left for this robot, let's return it to the charger.
-    // Additionally, if battery <20% or water <20%, it also should return.
     double battery = robot->getBatteryLevel();
     double water = robot->getWaterLevel();
 
-    // Return to charger if no tasks left OR low battery/water
-    bool noTasksLeft = tasks_.empty(); // This method is called only after no tasks for that robot, but double-check
+    // Return to charger if no tasks left OR battery < 20% or water < 20%
+    bool noTasksLeft = tasks_.empty();
     bool needsReturn = noTasksLeft || battery < 20.0 || water < 20.0;
 
     if (needsReturn) {

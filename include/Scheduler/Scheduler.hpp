@@ -9,15 +9,25 @@
 class Map;
 class Robot;
 class RobotSimulator;
+class AlertSystem;   // Forward declarations
+class MongoDBAdapter;
 
 class Scheduler {
 public:
-    // Accept const pointer to robot vector
     Scheduler(Map* map, const std::vector<std::shared_ptr<Robot>>* robots)
-        : map_(map), robots_(robots), taskIdCounter_(0), simulator_(nullptr) {}
+        : map_(map), robots_(robots), taskIdCounter_(0), simulator_(nullptr), alertSystem_(nullptr), dbAdapter_(nullptr) {}
 
     void setSimulator(std::shared_ptr<RobotSimulator> simulator) {
         simulator_ = simulator;
+    }
+
+    // Add these two setter methods for alertSystem_ and dbAdapter_
+    void setAlertSystem(std::shared_ptr<AlertSystem> alertSystem) {
+        alertSystem_ = alertSystem;
+    }
+
+    void setDBAdapter(std::shared_ptr<MongoDBAdapter> dbAdapter) {
+        dbAdapter_ = dbAdapter;
     }
 
     void addTask(std::shared_ptr<CleaningTask> task);
@@ -35,7 +45,10 @@ private:
     std::vector<std::shared_ptr<CleaningTask>> tasks_;
     int taskIdCounter_;
     std::shared_ptr<RobotSimulator> simulator_;
+
+    // Add these private members
+    std::shared_ptr<AlertSystem> alertSystem_;
+    std::shared_ptr<MongoDBAdapter> dbAdapter_;
 };
 
 #endif // SCHEDULER_HPP
-

@@ -10,12 +10,14 @@ class Scheduler;
 class AlertSystem;
 class Map;
 class CleaningTask;
+class MongoDBAdapter; // Forward declare if not included here
 
 class RobotSimulator {
 public:
     RobotSimulator(std::shared_ptr<Map> map,
                    std::shared_ptr<Scheduler> scheduler,
-                   std::shared_ptr<AlertSystem> alertSystem);
+                   std::shared_ptr<AlertSystem> alertSystem,
+                   std::shared_ptr<MongoDBAdapter> dbAdapter); // Ensure dbAdapter is passed
 
     void update(double deltaTime);
     void moveRobotToRoom(const std::string& robotName, int roomId);
@@ -40,20 +42,18 @@ public:
     const Map& getMap() const;  
     std::shared_ptr<AlertSystem> getAlertSystem() const;
 
-    // Assign a given task to a robot and set its path
     void assignTaskToRobot(std::shared_ptr<CleaningTask> task);
-
-    // Access a robot by name
-    std::shared_ptr<Robot> getRobotByName(const std::string& name);
 
 private:
     std::vector<std::shared_ptr<Robot>> robots_;
     std::shared_ptr<Map> map_;
     std::shared_ptr<Scheduler> scheduler_;
     std::shared_ptr<AlertSystem> alertSystem_;
+    std::shared_ptr<MongoDBAdapter> dbAdapter_; // Make sure this is here
 
     void checkRobotStatesAndSendAlerts();
     void handleNoTaskAndReturnToChargerIfNeeded(std::shared_ptr<Robot> robot);
+    std::shared_ptr<Robot> getRobotByName(const std::string& name);
 };
 
 #endif // ROBOT_SIMULATOR_HPP

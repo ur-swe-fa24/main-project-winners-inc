@@ -4,13 +4,17 @@
 #include "AlertSystem/alert_system.h"
 #include "map/map.h"
 #include "CleaningTask/cleaningTask.h"
+#include "alert/Alert.h"
+#include "adapter/MongoDBAdapter.hpp" // Ensure included if needed
 #include <iostream>
 #include <algorithm>
+#include <ctime>
 
 RobotSimulator::RobotSimulator(std::shared_ptr<Map> map,
                                std::shared_ptr<Scheduler> scheduler,
-                               std::shared_ptr<AlertSystem> alertSystem)
-    : map_(map), scheduler_(scheduler), alertSystem_(alertSystem) {}
+                               std::shared_ptr<AlertSystem> alertSystem,
+                               std::shared_ptr<MongoDBAdapter> dbAdapter)
+    : map_(map), scheduler_(scheduler), alertSystem_(alertSystem), dbAdapter_(dbAdapter) {}
 
 std::shared_ptr<Robot> RobotSimulator::getRobotByName(const std::string& name) {
     for (auto& r : robots_) {
@@ -25,18 +29,10 @@ void RobotSimulator::update(double deltaTime) {
         robot->updateState(deltaTime);
         bool nowCleaning = robot->isCleaning();
 
-        // If battery is below 20% while cleaning, immediately stop cleaning and return to charger
-        if (nowCleaning && robot->needsCharging()) {
-            std::cout << "Debug: " << robot->getName() << " battery <20% while cleaning. Stopping cleaning and returning to charger.\n";
-            robot->stopCleaning();
-            requestReturnToCharger(robot->getName());
-        }
-
-        // Check if robot just finished cleaning a task
+        // If robot just finished cleaning a task
         if (wasCleaning && !nowCleaning && !robot->getCurrentTask()) {
             // Robot completed a task, attempt to get next task
             if (scheduler_) {
-                // Debug: Check how many tasks are currently in the scheduler
                 const auto& allTasks = scheduler_->getAllTasks();
                 std::cout << "Debug: Currently, there are " << allTasks.size()
                           << " task(s) in the scheduler.\n";
@@ -44,19 +40,15 @@ void RobotSimulator::update(double deltaTime) {
                           << robot->getName() << "...\n";
 
                 auto nextTask = scheduler_->getNextTaskForRobot(robot->getName());
-
                 std::cout << "Debug: nextTask is " << (nextTask ? "not null" : "null") << "\n";
 
                 if (nextTask) {
-                    // Got a new task, assign and set path
                     robot->setCurrentTask(nextTask);
                     assignTaskToRobot(nextTask);
                 } else {
-                    // No new tasks returned for this robot, handle return to charger if needed
                     handleNoTaskAndReturnToChargerIfNeeded(robot);
                 }
             } else {
-                // No scheduler: just handle return to charger logic
                 handleNoTaskAndReturnToChargerIfNeeded(robot);
             }
         }
@@ -69,7 +61,6 @@ void RobotSimulator::handleNoTaskAndReturnToChargerIfNeeded(std::shared_ptr<Robo
     double battery = robot->getBatteryLevel();
     double water = robot->getWaterLevel();
 
-    // If no tasks are left for this robot OR low resources, return to charger.
     bool noTasksLeft = true; 
     bool lowResources = (battery < 20.0 || water <= 0);
     bool needsReturn = (noTasksLeft || lowResources);
@@ -95,6 +86,14 @@ void RobotSimulator::moveRobotToRoom(const std::string& robotName, int roomId) {
     if (route.empty()) {
         if (alertSystem_) {
             alertSystem_->sendAlert("No path found for robot " + robotName, "Movement");
+            // Optionally save alert
+            if (dbAdapter_) {
+                // Convert currentRoom to shared_ptr<Room>
+                std::shared_ptr<Room> curRoomPtr = currentRoom ? std::make_shared<Room>(*currentRoom) : nullptr;
+                Alert alert("Movement", "No path found for robot " + robotName, 
+                            getRobotByName(robotName), curRoomPtr, std::time(nullptr), Alert::LOW);
+                dbAdapter_->saveAlertAsync(alert);
+            }
         }
         return;
     }
@@ -133,7 +132,6 @@ void RobotSimulator::requestReturnToCharger(const std::string& robotName) {
     if (!route.empty()) {
         robot->setMovementPath(route, *map_);
     } else {
-        // If no route, move robot directly to charger and start charging
         robot->setCurrentRoom(charger);
         robot->setCharging(true);
     }
@@ -166,20 +164,30 @@ std::shared_ptr<AlertSystem> RobotSimulator::getAlertSystem() const {
 
 void RobotSimulator::checkRobotStatesAndSendAlerts() {
     for (auto& robot : robots_) {
-        // If robot needs charging, send battery alert
-        if (robot->needsCharging()) {
+        // Battery alert
+        if (robot->needsCharging() && !robot->isLowBatteryAlertSent()) {
             if (alertSystem_) {
-                std::cout << "Debug: Sending low battery alert for " << robot->getName() << std::endl;
                 alertSystem_->sendAlert("Robot " + robot->getName() + " has low battery.", "Battery");
             }
+            if (dbAdapter_) {
+                std::shared_ptr<Room> curRoomPtr = robot->getCurrentRoom() ? std::make_shared<Room>(*robot->getCurrentRoom()) : nullptr;
+                Alert alert("Battery", "Robot " + robot->getName() + " has low battery.", robot, curRoomPtr, std::time(nullptr), Alert::HIGH);
+                dbAdapter_->saveAlertAsync(alert);
+            }
+            robot->setLowBatteryAlertSent(true);
         }
 
-        // If robot needs water refill, send water alert
-        if (robot->needsWaterRefill()) {
+        // Water alert
+        if (robot->needsWaterRefill() && !robot->isLowWaterAlertSent()) {
             if (alertSystem_) {
-                std::cout << "Debug: Sending low water alert for " << robot->getName() << std::endl;
                 alertSystem_->sendAlert("Robot " + robot->getName() + " has low water.", "Water");
             }
+            if (dbAdapter_) {
+                std::shared_ptr<Room> curRoomPtr = robot->getCurrentRoom() ? std::make_shared<Room>(*robot->getCurrentRoom()) : nullptr;
+                Alert alert("Water", "Robot " + robot->getName() + " has low water.", robot, curRoomPtr, std::time(nullptr), Alert::HIGH);
+                dbAdapter_->saveAlertAsync(alert);
+            }
+            robot->setLowWaterAlertSent(true);
         }
     }
 }
@@ -209,3 +217,7 @@ void RobotSimulator::assignTaskToRobot(std::shared_ptr<CleaningTask> task) {
         robot->setMovementPath(route, *map_);
     }
 }
+
+// In Scheduler, make sure when assigning tasks, we save tasks alerts as before
+// using the code snippet provided by the user.
+

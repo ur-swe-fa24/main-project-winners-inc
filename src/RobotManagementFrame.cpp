@@ -59,7 +59,8 @@ RobotManagementFrame::RobotManagementFrame(const wxString& title)
         alertSystem = std::make_shared<AlertSystem>();
 
         // Create simulator without scheduler initially
-        simulator_ = std::make_shared<RobotSimulator>(map, nullptr, alertSystem);
+        simulator_ = std::make_shared<RobotSimulator>(map, nullptr, alertSystem, dbAdapter);
+
         simulator_->addRobot("RobotA");
         simulator_->addRobot("RobotB");
         simulator_->addRobot("RobotC");

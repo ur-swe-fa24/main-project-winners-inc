@@ -8,7 +8,6 @@
 #include "Room/Room.h"
 
 class Map;
-class CleaningTask;
 
 class Robot {
 public:
@@ -47,6 +46,11 @@ public:
     std::shared_ptr<CleaningTask> getCurrentTask() const;
     void setTargetRoom(Room* room);
 
+    // New methods to handle partial task saving and resuming
+    void saveCurrentTask();
+    bool resumeSavedTask();
+    void setMap(std::shared_ptr<Map> map) { robotMap_ = map; }
+
 private:
     std::string name_;
     double batteryLevel_;
@@ -62,8 +66,15 @@ private:
     bool lowBatteryAlertSent_;
     bool lowWaterAlertSent_;
 
+    std::shared_ptr<Map> robotMap_;
+
     std::queue<Room*> movementQueue_;
     std::shared_ptr<CleaningTask> currentTask_;
+
+    // Variables for partial task saving
+    std::shared_ptr<CleaningTask> savedTask_;
+    double savedCleaningTimeRemaining_;
+
 };
 
 #endif // ROBOT_H
