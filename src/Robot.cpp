@@ -1,4 +1,3 @@
-// In Robot.cpp
 #include "Robot/Robot.h"
 #include "CleaningTask/cleaningTask.h"
 #include "Room/Room.h"
@@ -15,11 +14,42 @@ Robot::Robot(const std::string& name, double batteryLevel, double waterLevel)
 {}
 
 void Robot::updateState(double deltaTime) {
+    // If battery <= 0, robot cannot move or clean
+    if (batteryLevel_ <= 0.0) {
+        // Stop everything
+        stopCleaning();
+        nextRoom_ = nullptr;
+        while(!movementQueue_.empty()) movementQueue_.pop();
+        // Robot is effectively dead in the water, no movement or cleaning
+        batteryLevel_ = 0.0;
+        return;
+    }
+
+    // If robot is at charger (room id=0 assumed) and battery<100, start charging
+    // If battery≥100, stop charging and refill water.
+    if (currentRoom_ && currentRoom_->getRoomId() == 0) {
+        if (batteryLevel_ < 100.0 && !isCharging_) {
+            isCharging_ = true;
+        }
+        if (isCharging_) {
+            batteryLevel_ = std::min(100.0, batteryLevel_ + deltaTime * 20.0);
+            if (batteryLevel_ >= 100.0) {
+                batteryLevel_ = 100.0;
+                isCharging_ = false;
+                // Refill water as well once fully charged
+                waterLevel_ = 100.0;
+            }
+            // While charging, do not proceed with other activities
+            return;
+        }
+    }
+
     if (isCharging_) {
         batteryLevel_ = std::min(100.0, batteryLevel_ + deltaTime * 20.0);
     } else {
         if (cleaning_ && currentTask_) {
-            double batteryDepletion = 2.0 * deltaTime;
+            // Increased battery depletion rate
+            double batteryDepletion = 10.0 * deltaTime;
             batteryLevel_ = std::max(0.0, batteryLevel_ - batteryDepletion);
 
             if (currentTask_->getCleanType() == CleaningTask::SHAMPOO) {
@@ -88,9 +118,11 @@ void Robot::startCleaning(CleaningTask::CleanType cleaningType) {
 }
 
 void Robot::stopCleaning() {
-    cleaning_ = false;
-    currentTask_.reset();
-    cleaningProgress_ = 0.0;
+    if (cleaning_) {
+        cleaning_ = false;
+        currentTask_.reset();
+        cleaningProgress_ = 0.0;
+    }
 }
 
 void Robot::setMovementPath(const std::vector<int>& roomIds, const Map& map) {
@@ -150,6 +182,7 @@ bool Robot::isLowBatteryAlertSent() const { return lowBatteryAlertSent_; }
 bool Robot::isLowWaterAlertSent() const { return lowWaterAlertSent_; }
 
 std::string Robot::getStatus() const {
+    if (batteryLevel_ <= 0) return "Out of battery";
     if (isCharging_) return "Charging";
     if (cleaning_) return "Cleaning";
     if (isMoving()) return "Moving";

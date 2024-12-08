@@ -20,11 +20,17 @@ std::shared_ptr<Robot> RobotSimulator::getRobotByName(const std::string& name) {
 }
 
 void RobotSimulator::update(double deltaTime) {
-    // Update each robot
     for (auto& robot : robots_) {
         bool wasCleaning = robot->isCleaning();
         robot->updateState(deltaTime);
         bool nowCleaning = robot->isCleaning();
+
+        // If battery is below 20% while cleaning, immediately stop cleaning and return to charger
+        if (nowCleaning && robot->needsCharging()) {
+            std::cout << "Debug: " << robot->getName() << " battery <20% while cleaning. Stopping cleaning and returning to charger.\n";
+            robot->stopCleaning();
+            requestReturnToCharger(robot->getName());
+        }
 
         // Check if robot just finished cleaning a task
         if (wasCleaning && !nowCleaning && !robot->getCurrentTask()) {
@@ -63,15 +69,9 @@ void RobotSimulator::handleNoTaskAndReturnToChargerIfNeeded(std::shared_ptr<Robo
     double battery = robot->getBatteryLevel();
     double water = robot->getWaterLevel();
 
-    // Check conditions:
-    // 1) No tasks left for this robot (since getNextTaskForRobot returned null)
-    // 2) Battery < 20% or Water ≤ 0%
-    // Robot should return to charger if EITHER condition is true.
-
-    // Since we know getNextTaskForRobot returned no task, we can assume no tasks left.
+    // If no tasks are left for this robot OR low resources, return to charger.
     bool noTasksLeft = true; 
     bool lowResources = (battery < 20.0 || water <= 0);
-
     bool needsReturn = (noTasksLeft || lowResources);
 
     if (needsReturn) {
@@ -166,13 +166,18 @@ std::shared_ptr<AlertSystem> RobotSimulator::getAlertSystem() const {
 
 void RobotSimulator::checkRobotStatesAndSendAlerts() {
     for (auto& robot : robots_) {
+        // If robot needs charging, send battery alert
         if (robot->needsCharging()) {
             if (alertSystem_) {
+                std::cout << "Debug: Sending low battery alert for " << robot->getName() << std::endl;
                 alertSystem_->sendAlert("Robot " + robot->getName() + " has low battery.", "Battery");
             }
         }
+
+        // If robot needs water refill, send water alert
         if (robot->needsWaterRefill()) {
             if (alertSystem_) {
+                std::cout << "Debug: Sending low water alert for " << robot->getName() << std::endl;
                 alertSystem_->sendAlert("Robot " + robot->getName() + " has low water.", "Water");
             }
         }
