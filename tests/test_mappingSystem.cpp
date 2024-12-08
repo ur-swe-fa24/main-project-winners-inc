@@ -66,6 +66,7 @@ TEST_CASE("Testing Room"){
         Room room2("Kitchen", 2, "Tile", "Medium", true);
 
         room1.addNeighbor(&room2);
+        room2.addNeighbor(&room1);
 
         REQUIRE(room1.neighbors.size() == 1);
         REQUIRE(room1.neighbors[0] == &room2);
@@ -206,22 +207,26 @@ TEST_CASE("Testing Map"){
         Room* room1 = new Room("Living Room", 1, "Wood", "Large", true);
         Room* room2 = new Room("Kitchen", 2, "Tile", "Medium", false);
         Room* room3 = new Room("Bathroom", 3, "Tile", "Small", true);
+        Room* room4 = new Room("Dining Room", 4, "Tile", "Medium", false);
         
         map.addRoom("Living Room", 1, "Wood", "Large", true);
         map.addRoom("Kitchen", 2, "Tile", "Medium", false);
         map.addRoom("Bathroom", 3, "Tile", "Small", true);
+        map.addRoom("Dining Room", 4, "Tile", "Medium", false);
         
         map.connectRooms(room1, room2);
+        map.connectRooms(room1, room3);
         map.connectRooms(room2, room3);
+        map.connectRooms(room3, room4);
         
         map.addVirtualWall(room2, room3);
 
-        std::vector<int> route = map.getRoute(*room1, *room3);
+        std::vector<int> route = map.getRoute(*room1, *room4);
         
         REQUIRE(route.size() == 3);
         REQUIRE(route[0] == 1);  // Living Room
-        REQUIRE(route[1] == 2);  // Kitchen
-        REQUIRE(route[2] == 3);  // Bathroom
+        REQUIRE(route[1] == 3);  // Kitchen
+        REQUIRE(route[2] == 4);  // Bathroom
     }
 }
 
