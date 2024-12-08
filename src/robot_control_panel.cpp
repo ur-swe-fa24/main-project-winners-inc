@@ -1,13 +1,20 @@
 #include "robot_control/robot_control_panel.hpp"
 #include "RobotSimulator/RobotSimulator.hpp"
-#include "map/map.h"
-#include "AlertSystem/alert_system.h"
 #include "Scheduler/Scheduler.hpp"
-#include "CleaningTask/cleaningTask.h"
-#include <wx/msgdlg.h>
+#include "Room/Room.h"
+#include "Robot/Robot.h"
+#include "alert/Alert.h"
+#include "AlertSystem/alert_system.h"
+#include "adapter/MongoDBAdapter.hpp"
+#include "RobotManagementFrame/RobotManagementFrame.hpp" // For AddAlert method and frame access
+
+#include <ctime>
+#include <algorithm>
+#include <memory>
+#include <string>
 
 wxBEGIN_EVENT_TABLE(RobotControlPanel, wxPanel)
-    // event table entries
+// event table if needed
 wxEND_EVENT_TABLE()
 
 RobotControlPanel::RobotControlPanel(wxWindow* parent, std::shared_ptr<RobotSimulator> simulator, std::shared_ptr<Scheduler> scheduler)
@@ -85,7 +92,6 @@ void RobotControlPanel::UpdateRoomList() {
     }
 }
 
-
 void RobotControlPanel::OnRobotSelected(wxCommandEvent& event) {
     int sel = robotChoice_->GetSelection();
     if (sel != wxNOT_FOUND) {
@@ -101,63 +107,172 @@ void RobotControlPanel::OnRobotSelected(wxCommandEvent& event) {
     }
 }
 
+// Helper function to find a robot by name
+static std::shared_ptr<Robot> findRobotByName(const std::shared_ptr<RobotSimulator>& simulator, const std::string& robotName) {
+    const auto& robots = simulator->getRobots();
+    for (auto& r : robots) {
+        if (r->getName() == robotName) {
+            return r;
+        }
+    }
+    return nullptr;
+}
+
+// Helper: Get main frame to display alerts
+RobotManagementFrame* getMainFrame(wxWindow* wnd) {
+    wxWindow* top = wxGetTopLevelParent(wnd);
+    return dynamic_cast<RobotManagementFrame*>(top);
+}
+
 void RobotControlPanel::OnStartCleaning(wxCommandEvent& event) {
+    auto alertSystem = simulator_->getAlertSystem(); 
+    auto dbAdapter = simulator_->getDbAdapter(); 
+    auto frame = getMainFrame(this);
+
     if (selectedRobotName_.empty()) {
-        auto alertSystem = simulator_->getAlertSystem();
         if (alertSystem) alertSystem->sendAlert("No robot selected!", "Error");
+        if (dbAdapter && frame) {
+            Alert alert("Error", "No robot selected!", nullptr, nullptr, std::time(nullptr), Alert::HIGH);
+            dbAdapter->saveAlert(alert);
+            frame->AddAlert(alert);
+        }
         return;
     }
+
     simulator_->startRobotCleaning(selectedRobotName_);
-    auto alertSystem = simulator_->getAlertSystem();
     if (alertSystem) alertSystem->sendAlert("Robot started cleaning.", "Info");
+    if (dbAdapter && frame) {
+        auto robot = findRobotByName(simulator_, selectedRobotName_);
+        std::shared_ptr<Room> room = (robot && robot->getCurrentRoom()) ? std::make_shared<Room>(*robot->getCurrentRoom()) : nullptr;
+        Alert alert("Info", "Robot started cleaning.", robot, room, std::time(nullptr), Alert::LOW);
+        dbAdapter->saveAlert(alert);
+        frame->AddAlert(alert);
+    }
 }
 
 void RobotControlPanel::OnStopCleaning(wxCommandEvent& event) {
+    auto alertSystem = simulator_->getAlertSystem();
+    auto dbAdapter = simulator_->getDbAdapter();
+    auto frame = getMainFrame(this);
+
     if (selectedRobotName_.empty()) {
-        wxMessageBox("No robot selected!", "Error");
+        if (alertSystem) alertSystem->sendAlert("No robot selected!", "Error");
+        if (dbAdapter && frame) {
+            Alert alert("Error", "No robot selected!", nullptr, nullptr, std::time(nullptr), Alert::HIGH);
+            dbAdapter->saveAlert(alert);
+            frame->AddAlert(alert);
+        }
         return;
     }
+
     simulator_->stopRobotCleaning(selectedRobotName_);
-    wxMessageBox("Robot stopped cleaning.", "Info");
+    if (alertSystem) alertSystem->sendAlert("Robot stopped cleaning.", "Info");
+    if (dbAdapter && frame) {
+        auto robot = findRobotByName(simulator_, selectedRobotName_);
+        std::shared_ptr<Room> room = (robot && robot->getCurrentRoom()) ? std::make_shared<Room>(*robot->getCurrentRoom()) : nullptr;
+        Alert alert("Info", "Robot stopped cleaning.", robot, room, std::time(nullptr), Alert::LOW);
+        dbAdapter->saveAlert(alert);
+        frame->AddAlert(alert);
+    }
 }
 
 void RobotControlPanel::OnReturnToCharger(wxCommandEvent& event) {
+    auto alertSystem = simulator_->getAlertSystem();
+    auto dbAdapter = simulator_->getDbAdapter();
+    auto frame = getMainFrame(this);
+
     if (selectedRobotName_.empty()) {
-        wxMessageBox("No robot selected!", "Error");
+        if (alertSystem) alertSystem->sendAlert("No robot selected!", "Error");
+        if (dbAdapter && frame) {
+            Alert alert("Error", "No robot selected!", nullptr, nullptr, std::time(nullptr), Alert::HIGH);
+            dbAdapter->saveAlert(alert);
+            frame->AddAlert(alert);
+        }
         return;
     }
+
     simulator_->requestReturnToCharger(selectedRobotName_);
-    wxMessageBox("Robot returning to charger.", "Info");
+    if (alertSystem) alertSystem->sendAlert("Robot returning to charger.", "Info");
+    if (dbAdapter && frame) {
+        auto robot = findRobotByName(simulator_, selectedRobotName_);
+        std::shared_ptr<Room> room = (robot && robot->getCurrentRoom()) ? std::make_shared<Room>(*robot->getCurrentRoom()) : nullptr;
+        Alert alert("Info", "Robot returning to charger.", robot, room, std::time(nullptr), Alert::LOW);
+        dbAdapter->saveAlert(alert);
+        frame->AddAlert(alert);
+    }
 }
 
-
 void RobotControlPanel::OnMoveToRoom(wxCommandEvent& evt) {
+    auto alertSystem = simulator_->getAlertSystem();
+    auto dbAdapter = simulator_->getDbAdapter();
+    auto frame = getMainFrame(this);
+
     if (selectedRobotName_.empty()) {
-        wxMessageBox("No robot selected!", "Error", wxOK|wxICON_ERROR);
+        if (alertSystem) alertSystem->sendAlert("No robot selected!", "Error");
+        if (dbAdapter && frame) {
+            Alert alert("Error", "No robot selected!", nullptr, nullptr, std::time(nullptr), Alert::HIGH);
+            dbAdapter->saveAlert(alert);
+            frame->AddAlert(alert);
+        }
         return;
     }
 
     int sel = roomChoice_->GetSelection();
     if (sel == wxNOT_FOUND) {
-        wxMessageBox("Please select a room", "Error", wxOK|wxICON_ERROR);
+        if (alertSystem) alertSystem->sendAlert("Please select a room.", "Error");
+        if (dbAdapter && frame) {
+            Alert alert("Error", "Please select a room.", nullptr, nullptr, std::time(nullptr), Alert::HIGH);
+            dbAdapter->saveAlert(alert);
+            frame->AddAlert(alert);
+        }
         return;
     }
 
     Room* targetRoom = reinterpret_cast<Room*>(roomChoice_->GetClientData(sel));
     if (!targetRoom) {
-        wxMessageBox("Invalid room selection", "Error", wxOK|wxICON_ERROR);
+        if (alertSystem) alertSystem->sendAlert("Invalid room selection.", "Error");
+        if (dbAdapter && frame) {
+            Alert alert("Error", "Invalid room selection.", nullptr, nullptr, std::time(nullptr), Alert::HIGH);
+            dbAdapter->saveAlert(alert);
+            frame->AddAlert(alert);
+        }
         return;
     }
 
     simulator_->moveRobotToRoom(selectedRobotName_, targetRoom->getRoomId());
-    wxMessageBox("Robot moving to " + targetRoom->getRoomName(), "Info");
+    if (alertSystem) alertSystem->sendAlert("Robot moving to " + targetRoom->getRoomName(), "Info");
+    if (dbAdapter && frame) {
+        auto robot = findRobotByName(simulator_, selectedRobotName_);
+        std::shared_ptr<Room> room = std::make_shared<Room>(*targetRoom);
+        Alert alert("Info", "Robot moving to " + targetRoom->getRoomName(), robot, room, std::time(nullptr), Alert::LOW);
+        dbAdapter->saveAlert(alert);
+        frame->AddAlert(alert);
+    }
 }
 
 void RobotControlPanel::OnPickUpRobot(wxCommandEvent& event) {
+    auto alertSystem = simulator_->getAlertSystem();
+    auto dbAdapter = simulator_->getDbAdapter();
+    auto frame = getMainFrame(this);
+
     if (selectedRobotName_.empty()) {
-        wxMessageBox("No robot selected!", "Error");
+        if (alertSystem) alertSystem->sendAlert("No robot selected!", "Error");
+        if (dbAdapter && frame) {
+            Alert alert("Error", "No robot selected!", nullptr, nullptr, std::time(nullptr), Alert::HIGH);
+            dbAdapter->saveAlert(alert);
+            frame->AddAlert(alert);
+        }
         return;
     }
+
     simulator_->manuallyPickUpRobot(selectedRobotName_);
-    wxMessageBox("Robot picked up and moved instantly to charger.", "Info");
+
+    if (alertSystem) alertSystem->sendAlert("Robot picked up and moved instantly to charger.", "Info");
+    if (dbAdapter && frame) {
+        auto robot = findRobotByName(simulator_, selectedRobotName_);
+        std::shared_ptr<Room> room = (robot && robot->getCurrentRoom()) ? std::make_shared<Room>(*robot->getCurrentRoom()) : nullptr;
+        Alert alert("Info", "Robot picked up and moved instantly to charger.", robot, room, std::time(nullptr), Alert::LOW);
+        dbAdapter->saveAlert(alert);
+        frame->AddAlert(alert);
+    }
 }

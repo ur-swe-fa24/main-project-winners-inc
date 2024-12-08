@@ -75,7 +75,7 @@ void Scheduler::assignCleaningTask(const std::string& robotName, int targetRoomI
                        std::make_shared<Room>(*selectedRoom),
                        std::time(nullptr),
                        Alert::LOW);
-        dbAdapter_->saveAlertAsync(newAlert);
+        dbAdapter_->saveAlert(newAlert);
     }
 }
 

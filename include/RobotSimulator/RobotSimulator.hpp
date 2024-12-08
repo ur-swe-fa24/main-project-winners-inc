@@ -43,6 +43,9 @@ public:
     std::shared_ptr<AlertSystem> getAlertSystem() const;
 
     void assignTaskToRobot(std::shared_ptr<CleaningTask> task);
+    std::shared_ptr<MongoDBAdapter> getDbAdapter() const {
+        return dbAdapter_; // assuming dbAdapter_ is a member variable
+    }
 
 private:
     std::vector<std::shared_ptr<Robot>> robots_;

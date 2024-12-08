@@ -93,7 +93,7 @@ TEST_CASE("MongoDB Integration Test") {
         // Test async alert saving
         std::time_t currentTime = std::time(nullptr);
         auto alert = std::make_shared<Alert>("Async Alert", "Test Async", robot, room, currentTime);
-        dbAdapter.saveAlertAsync(*alert);
+        dbAdapter.saveAlert(*alert);
 
         // Test async robot status saving
         dbAdapter.saveRobotStatusAsync(robot);

@@ -118,7 +118,7 @@ RobotManagementFrame::RobotManagementFrame(const wxString& title)
         }
 
         alertCheckTimer = new wxTimer(this, ALERT_TIMER_ID);
-        alertCheckTimer->Start(5000); 
+        alertCheckTimer->Start(1000); 
 
         statusUpdateTimer = new wxTimer(this, STATUS_TIMER_ID);
         statusUpdateTimer->Start(1000);
@@ -418,7 +418,7 @@ void RobotManagementFrame::OnStatusUpdateTimer(wxTimerEvent& evt) {
 
 void RobotManagementFrame::AddAlert(const Alert& alert) {
     if (dbAdapter) {
-        dbAdapter->saveAlertAsync(alert);
+        dbAdapter->saveAlert(alert);
     }
 
     std::time_t timestamp = alert.getTimestamp();

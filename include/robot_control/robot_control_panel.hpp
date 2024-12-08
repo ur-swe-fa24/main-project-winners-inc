@@ -37,3 +37,4 @@ private:
 };
 
 #endif // ROBOT_CONTROL_PANEL_HPP
+

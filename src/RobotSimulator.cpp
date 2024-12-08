@@ -92,7 +92,7 @@ void RobotSimulator::moveRobotToRoom(const std::string& robotName, int roomId) {
                 std::shared_ptr<Room> curRoomPtr = currentRoom ? std::make_shared<Room>(*currentRoom) : nullptr;
                 Alert alert("Movement", "No path found for robot " + robotName, 
                             getRobotByName(robotName), curRoomPtr, std::time(nullptr), Alert::LOW);
-                dbAdapter_->saveAlertAsync(alert);
+                dbAdapter_->saveAlert(alert);
             }
         }
         return;
@@ -172,7 +172,7 @@ void RobotSimulator::checkRobotStatesAndSendAlerts() {
             if (dbAdapter_) {
                 std::shared_ptr<Room> curRoomPtr = robot->getCurrentRoom() ? std::make_shared<Room>(*robot->getCurrentRoom()) : nullptr;
                 Alert alert("Battery", "Robot " + robot->getName() + " has low battery.", robot, curRoomPtr, std::time(nullptr), Alert::HIGH);
-                dbAdapter_->saveAlertAsync(alert);
+                dbAdapter_->saveAlert(alert);
             }
             robot->setLowBatteryAlertSent(true);
         }
@@ -185,7 +185,7 @@ void RobotSimulator::checkRobotStatesAndSendAlerts() {
             if (dbAdapter_) {
                 std::shared_ptr<Room> curRoomPtr = robot->getCurrentRoom() ? std::make_shared<Room>(*robot->getCurrentRoom()) : nullptr;
                 Alert alert("Water", "Robot " + robot->getName() + " has low water.", robot, curRoomPtr, std::time(nullptr), Alert::HIGH);
-                dbAdapter_->saveAlertAsync(alert);
+                dbAdapter_->saveAlert(alert);
             }
             robot->setLowWaterAlertSent(true);
         }
