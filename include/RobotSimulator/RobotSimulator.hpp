@@ -10,14 +10,14 @@ class Scheduler;
 class AlertSystem;
 class Map;
 class CleaningTask;
-class MongoDBAdapter; // Forward declare if not included here
+class MongoDBAdapter;
 
 class RobotSimulator {
 public:
     RobotSimulator(std::shared_ptr<Map> map,
                    std::shared_ptr<Scheduler> scheduler,
                    std::shared_ptr<AlertSystem> alertSystem,
-                   std::shared_ptr<MongoDBAdapter> dbAdapter); // Ensure dbAdapter is passed
+                   std::shared_ptr<MongoDBAdapter> dbAdapter);
 
     void update(double deltaTime);
     void moveRobotToRoom(const std::string& robotName, int roomId);
@@ -26,7 +26,9 @@ public:
     void manuallyPickUpRobot(const std::string& robotName);
     void requestReturnToCharger(const std::string& robotName);
     void addRobot(const std::string& robotName);
-    const std::vector<std::shared_ptr<Robot>>& getRobots() const;
+
+    // Now return a non-const reference so we can modify the vector
+    std::vector<std::shared_ptr<Robot>>& getRobots();
 
     struct RobotStatus {
         std::string name;
@@ -44,7 +46,7 @@ public:
 
     void assignTaskToRobot(std::shared_ptr<CleaningTask> task);
     std::shared_ptr<MongoDBAdapter> getDbAdapter() const {
-        return dbAdapter_; // assuming dbAdapter_ is a member variable
+        return dbAdapter_;
     }
 
 private:
@@ -52,7 +54,7 @@ private:
     std::shared_ptr<Map> map_;
     std::shared_ptr<Scheduler> scheduler_;
     std::shared_ptr<AlertSystem> alertSystem_;
-    std::shared_ptr<MongoDBAdapter> dbAdapter_; // Make sure this is here
+    std::shared_ptr<MongoDBAdapter> dbAdapter_;
 
     void checkRobotStatesAndSendAlerts();
     void handleNoTaskAndReturnToChargerIfNeeded(std::shared_ptr<Robot> robot);

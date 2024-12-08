@@ -6,11 +6,16 @@
 #include <queue>
 #include "CleaningTask/cleaningTask.h"
 #include "Room/Room.h"
-#include "map/map.h"  // Include the map header so Map is fully known
+#include "map/map.h"
 
 class Robot {
 public:
-    Robot(const std::string& name, double batteryLevel, double waterLevel = 100.0);
+    // Enums for size and cleaning strategy
+    enum class Size { SMALL, MEDIUM, LARGE };
+    enum class Strategy { VACUUM, SCRUB, SHAMPOO };
+
+    // Modified constructor to accept size and strategy
+    Robot(const std::string& name, double batteryLevel, Size size, Strategy strategy, double waterLevel = 100.0);
 
     void updateState(double deltaTime);
     void startCleaning(CleaningTask::CleanType cleaningType);
@@ -47,7 +52,11 @@ public:
 
     void saveCurrentTask();
     bool resumeSavedTask();
-    void setMap(Map* m) { robotMap_ = m; } // Use raw pointer
+    void setMap(Map* m) { robotMap_ = m; }
+
+    // Getters for size and strategy if needed
+    Size getSize() const { return size_; }
+    Strategy getStrategy() const { return strategy_; }
 
 private:
     std::string name_;
@@ -64,12 +73,15 @@ private:
     bool lowBatteryAlertSent_;
     bool lowWaterAlertSent_;
 
-    Map* robotMap_; // Raw pointer to Map
+    Map* robotMap_;
 
     std::queue<Room*> movementQueue_;
     std::shared_ptr<CleaningTask> currentTask_;
     std::shared_ptr<CleaningTask> savedTask_;
     double savedCleaningTimeRemaining_;
+
+    Size size_;
+    Strategy strategy_;
 };
 
 #endif // ROBOT_H

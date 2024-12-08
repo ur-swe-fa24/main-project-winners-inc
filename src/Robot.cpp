@@ -5,12 +5,13 @@
 #include <algorithm>
 #include <iostream>
 
-Robot::Robot(const std::string& name, double batteryLevel, double waterLevel)
+Robot::Robot(const std::string& name, double batteryLevel, Size size, Strategy strategy, double waterLevel)
     : name_(name), batteryLevel_(batteryLevel), waterLevel_(waterLevel),
       cleaning_(false), isCharging_(false), cleaningProgress_(0.0), movementProgress_(0.0),
       currentRoom_(nullptr), nextRoom_(nullptr), cleaningTimeRemaining_(0.0),
       targetRoom_(nullptr), lowBatteryAlertSent_(false), lowWaterAlertSent_(false),
-      currentTask_(nullptr), savedTask_(nullptr), savedCleaningTimeRemaining_(0.0)
+      currentTask_(nullptr), savedTask_(nullptr), savedCleaningTimeRemaining_(0.0),
+      size_(size), strategy_(strategy), robotMap_(nullptr)
 {}
 
 void Robot::updateState(double deltaTime) {

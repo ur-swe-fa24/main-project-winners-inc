@@ -23,6 +23,10 @@ std::shared_ptr<Robot> RobotSimulator::getRobotByName(const std::string& name) {
     return nullptr;
 }
 
+std::vector<std::shared_ptr<Robot>>& RobotSimulator::getRobots() {
+    return robots_;
+}
+
 void RobotSimulator::update(double deltaTime) {
     for (auto& robot : robots_) {
         bool wasCleaning = robot->isCleaning();
@@ -192,16 +196,14 @@ void RobotSimulator::checkRobotStatesAndSendAlerts() {
     }
 }
 
+
 void RobotSimulator::addRobot(const std::string& robotName) {
     Room* charger = map_->getRoomById(0);
-    auto newRobot = std::make_shared<Robot>(robotName, 100.0, 100.0);
+    // Default to MEDIUM size and VACUUM strategy if none specified
+    auto newRobot = std::make_shared<Robot>(robotName, 100.0, Robot::Size::MEDIUM, Robot::Strategy::VACUUM, 100.0);
     if (charger) newRobot->setCurrentRoom(charger);
-    newRobot->setMap(map_.get()); // Set map reference here
+    newRobot->setMap(map_.get()); 
     robots_.push_back(newRobot);
-}
-
-const std::vector<std::shared_ptr<Robot>>& RobotSimulator::getRobots() const {
-    return robots_;
 }
 
 void RobotSimulator::assignTaskToRobot(std::shared_ptr<CleaningTask> task) {

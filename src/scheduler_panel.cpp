@@ -251,8 +251,6 @@ void SchedulerPanel::OnAssignTask(wxCommandEvent& event) {
         // After assigning the task, we have done the alert logic in the scheduler
         // So no need to duplicate here. Unless you want to send additional alert here:
         // For debugging, we can also show a message
-        wxMessageBox("Task assigned to " + robotChoice_->GetStringSelection() + " for " + wxString(selectedRoom->getRoomName()),
-                     "Info", wxOK|wxICON_INFORMATION);
     } catch (const std::exception& e) {
         if (alertSystem) alertSystem->sendAlert(std::string("Assignment Error: ") + e.what(), "Error");
         wxMessageBox(e.what(), "Assignment Error", wxOK|wxICON_ERROR);

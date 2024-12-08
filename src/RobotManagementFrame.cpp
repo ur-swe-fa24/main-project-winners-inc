@@ -61,9 +61,27 @@ RobotManagementFrame::RobotManagementFrame(const wxString& title)
         // Create simulator without scheduler initially
         simulator_ = std::make_shared<RobotSimulator>(map, nullptr, alertSystem, dbAdapter);
 
-        simulator_->addRobot("RobotA");
-        simulator_->addRobot("RobotB");
-        simulator_->addRobot("RobotC");
+        auto addPredefinedRobot = [&](const std::string& name,
+                                    Robot::Size size,
+                                    Robot::Strategy strategy) {
+            Room* charger = map->getRoomById(0);
+            auto newRobot = std::make_shared<Robot>(name, 100.0, size, strategy, 100.0);
+            if (charger) newRobot->setCurrentRoom(charger);
+            newRobot->setMap(map.get());
+            simulator_->getRobots().push_back(newRobot);
+        };
+
+        addPredefinedRobot("Robot_Large_Vacuum", Robot::Size::LARGE, Robot::Strategy::VACUUM);
+        addPredefinedRobot("Robot_Large_Scrub", Robot::Size::LARGE, Robot::Strategy::SCRUB);
+        addPredefinedRobot("Robot_Large_Shampoo", Robot::Size::LARGE, Robot::Strategy::SHAMPOO);
+
+        addPredefinedRobot("Robot_Medium_Vacuum", Robot::Size::MEDIUM, Robot::Strategy::VACUUM);
+        addPredefinedRobot("Robot_Medium_Scrub", Robot::Size::MEDIUM, Robot::Strategy::SCRUB);
+        addPredefinedRobot("Robot_Medium_Shampoo", Robot::Size::MEDIUM, Robot::Strategy::SHAMPOO);
+
+        addPredefinedRobot("Robot_Small_Vacuum", Robot::Size::SMALL, Robot::Strategy::VACUUM);
+        addPredefinedRobot("Robot_Small_Scrub", Robot::Size::SMALL, Robot::Strategy::SCRUB);
+        addPredefinedRobot("Robot_Small_Shampoo", Robot::Size::SMALL, Robot::Strategy::SHAMPOO);
         SetStatusText("Simulator initialized");
 
             // Create scheduler after we have robots in simulator

@@ -114,7 +114,7 @@ std::vector<Alert> MongoDBAdapter::retrieveAlerts() {
             Alert::Severity severity = static_cast<Alert::Severity>(severityInt);
 
             // Create shared_ptr instances of Robot and Room
-            auto robot = std::make_shared<Robot>(robot_name, 100);  // Example attributes
+            auto robot = std::make_shared<Robot>(robot_name, 100.0, Robot::Size::MEDIUM, Robot::Strategy::VACUUM, 100.0);
             auto room = std::make_shared<Room>(room_name, 101);     // Example attributes
 
             // Create an Alert instance and add it to the vector
@@ -229,7 +229,7 @@ std::vector<std::shared_ptr<Robot>> MongoDBAdapter::retrieveRobotStatuses() {
             bool low_water_alert_sent = doc["low_water_alert_sent"].get_bool().value;
 
             // Create a Robot instance and add it to the vector
-            auto robot = std::make_shared<Robot>(name, battery_level, water_level);
+            auto robot = std::make_shared<Robot>(name, battery_level, Robot::Size::MEDIUM, Robot::Strategy::VACUUM, water_level);
             // Set additional attributes as needed
             // robot->setStatus(status); // Implement setters if necessary
             // robot->setCurrentRoom(current_room); // Implement setters if necessary
