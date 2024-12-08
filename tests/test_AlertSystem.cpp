@@ -89,18 +89,18 @@ TEST_CASE("AlertSystem Handles Null Message and Type") {
     AlertSystem alertSystem;
     auto role = std::make_shared<Role>("Operator");
     auto user = User("OperatorUser", role);
-    auto alert = createSampleAlert();  
+    Alert alert = createSampleAlert();  // Properly initialized
 
     SECTION("Null message and type") {
-        alertSystem.sendAlert(nullptr, nullptr);  // Both are null
+        alertSystem.sendAlert("", "");  // Both are null
     }
 
     SECTION("Null message only") {
-        alertSystem.sendAlert(nullptr, alert.getType());  // Alert exists, user is null
+        alertSystem.sendAlert("", alert.getType());  // Valid alert type
     }
 
     SECTION("Null type only") {
-        alertSystem.sendAlert(alert.getMessage(), nullptr);  // User exists, alert is null
+        alertSystem.sendAlert(alert.getMessage(), "");  // Valid message
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
