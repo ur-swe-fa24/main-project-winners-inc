@@ -33,28 +33,29 @@ void RobotSimulator::update(double deltaTime) {
         robot->updateState(deltaTime);
         bool nowCleaning = robot->isCleaning();
 
-        if (robot->isFailed()) {
-            // Robot failed this update?
-            // Send alert
-            if (alertSystem_) {
-                alertSystem_->sendAlert("Robot " + robot->getName() + " has failed!", "Error");
-            }
-            if (dbAdapter_) {
-                Alert failureAlert("Error", "Robot failed unexpectedly",
-                    robot, nullptr, std::time(nullptr), Alert::HIGH);
-                dbAdapter_->saveAlert(failureAlert);
-                // Also save analytics
-                dbAdapter_->saveRobotAnalytics(robot);
-            }
-            // Once failed, robot no longer can do tasks
-            // No more logic needed here, just skip this robot.
+        // If robot failed is handled in updateState now.
+
+        // At ANYTIME if battery<20 or water<=0, return to charger
+        if ((robot->getBatteryLevel() < 20.0 || robot->getWaterLevel() <= 0.0) && !robot->isCharging()) {
+            requestReturnToCharger(robot->getName());
+            // Once returning to charger, no more tasks are processed this update
             continue;
         }
 
-        // If robot just finished cleaning...
+        // If robot just finished cleaning a task and has no current task
         if (wasCleaning && !nowCleaning && !robot->getCurrentTask()) {
             if (scheduler_) {
-                // existing logic to get next task...
+                // Attempt to get the next task for this robot in FIFO order
+                auto nextTask = scheduler_->getNextTaskForRobot(robot->getName());
+                if (nextTask) {
+                    robot->setCurrentTask(nextTask);
+                    assignTaskToRobot(nextTask);
+                } else {
+                    // If no next task, handle no tasks scenario
+                    handleNoTaskAndReturnToChargerIfNeeded(robot);
+                }
+            } else {
+                handleNoTaskAndReturnToChargerIfNeeded(robot);
             }
         }
     }
