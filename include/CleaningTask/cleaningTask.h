@@ -18,6 +18,7 @@ public:
 
     // Constructor
     CleaningTask(int id, Priority priority, CleanType cleaningType, Room* room);
+    CleaningTask(Room* room, CleanType cleaningType); 
     ~CleaningTask() = default;
 
     // Getters
