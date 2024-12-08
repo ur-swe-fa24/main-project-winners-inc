@@ -16,7 +16,7 @@
 #include "alert/Alert.h"
 #include "RobotSimulator/RobotSimulator.hpp"
 #include "map_panel/map_panel.hpp"
-#include "Schedular/Schedular.hpp"
+#include "Scheduler/Scheduler.hpp"
 #include "robot_control/robot_control_panel.hpp"
 #include "scheduler_panel/scheduler_panel.hpp"
 

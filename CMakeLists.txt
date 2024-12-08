@@ -34,7 +34,7 @@ set(SOURCES
     src/alert.cpp
     src/virtual_wall.cpp
     src/alert_system.cpp
-    src/Schedular.cpp
+    src/Scheduler.cpp
     src/robot_metrics.cpp
     src/config/ResourceConfig.cpp
     src/scheduler_panel.cpp
@@ -56,7 +56,7 @@ set(HEADERS
     include/alert/Alert.h
     include/virtual_wall/virtual_wall.h
     include/AlertSystem/alert_system.h
-    include/Schedular/Schedular.hpp
+    include/Scheduler/Scheduler.hpp
     include/robot_metrics/robot_metrics.h
     include/config/ResourceConfig.hpp
     include/scheduler_panel/scheduler_panel.hpp

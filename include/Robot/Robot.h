@@ -4,7 +4,7 @@
 #include <string>
 #include <memory>
 #include <queue>
-#include "CleaningTask/cleaningTask.h" // Ensure this is correct
+#include "CleaningTask/cleaningTask.h" 
 #include "Room/Room.h"
 
 class Map;
@@ -43,6 +43,7 @@ public:
 
     void setLowBatteryAlertSent(bool val);
     void setLowWaterAlertSent(bool val);
+    void setCurrentTask(std::shared_ptr<CleaningTask> task);
 
 private:
     std::string name_;
@@ -60,7 +61,7 @@ private:
     bool lowWaterAlertSent_;
 
     std::queue<Room*> movementQueue_;
-    std::shared_ptr<CleaningTask> currentTask_; // ADD THIS LINE
+    std::shared_ptr<CleaningTask> currentTask_;
 };
 
 #endif // ROBOT_H

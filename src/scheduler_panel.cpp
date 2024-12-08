@@ -2,7 +2,7 @@
 #include "CleaningTask/cleaningTask.h"    // Ensure correct spelling and case
 #include "Robot/Robot.h"
 #include "RobotSimulator/RobotSimulator.hpp"
-#include "Schedular/Schedular.hpp"
+#include "Scheduler/Scheduler.hpp"
 #include "Room/Room.h"
 #include "AlertSystem/alert_system.h"
 
@@ -211,58 +211,52 @@ void SchedulerPanel::UpdateRobotChoices() {
 }
 
 void SchedulerPanel::OnAssignTask(wxCommandEvent& event) {
+    auto alertSystem = simulator_->getAlertSystem();
     if (!robotChoice_ || robotChoice_->GetSelection() == wxNOT_FOUND) {
-        auto alertSystem = simulator_->getAlertSystem();
-        if (alertSystem) {
-            alertSystem->sendAlert("Please select a robot.", "Error");
-        }
+        if (alertSystem) alertSystem->sendAlert("Please select a robot.", "Error");
         return;
     }
     std::string robotName = robotChoice_->GetStringSelection().ToStdString();
 
     if (roomChoice_->GetSelection() == wxNOT_FOUND) {
-        auto alertSystem = simulator_->getAlertSystem();
-        if (alertSystem) {
-            alertSystem->sendAlert("Please select a room.", "Error");
-        }
+        if (alertSystem) alertSystem->sendAlert("Please select a room.", "Error");
         return;
     }
 
     Room* selectedRoom = reinterpret_cast<Room*>(roomChoice_->GetClientData(roomChoice_->GetSelection()));
     if (!selectedRoom) {
-        auto alertSystem = simulator_->getAlertSystem();
-        if (alertSystem) {
-            alertSystem->sendAlert("Invalid room selection.", "Error");
-        }
+        if (alertSystem) alertSystem->sendAlert("Invalid room selection.", "Error");
         return;
     }
 
     if (strategyChoice_->GetSelection() == wxNOT_FOUND) {
-        auto alertSystem = simulator_->getAlertSystem();
-        if (alertSystem) {
-            alertSystem->sendAlert("Please select a cleaning strategy.", "Error");
-        }
+        if (alertSystem) alertSystem->sendAlert("Please select a cleaning strategy.", "Error");
         return;
     }
     std::string strategy = strategyChoice_->GetStringSelection().ToStdString();
 
     try {
         scheduler_->assignCleaningTask(robotName, selectedRoom->getRoomId(), strategy);
-        // Inform user via alert panel instead of wxMessageBox
-        auto alertSystem = simulator_->getAlertSystem();
+        // If RobotSimulator has assignTaskToRobot:
+        // Find the task we just created (last added)
+        const auto& tasks = scheduler_->getAllTasks();
+        if (!tasks.empty()) {
+            auto task = tasks.back(); 
+            simulator_->assignTaskToRobot(task); // This sets the robot path
+        }
+
         if (alertSystem) {
             alertSystem->sendAlert("Task assigned to robot " + robotName + " for room " + selectedRoom->getRoomName(), "Task");
         }
     } catch (const std::exception& e) {
-        auto alertSystem = simulator_->getAlertSystem();
-        if (alertSystem) {
-            alertSystem->sendAlert(std::string("Assignment Error: ") + e.what(), "Error");
-        }
+        if (alertSystem) alertSystem->sendAlert(std::string("Assignment Error: ") + e.what(), "Error");
         return;
     }
 
     UpdateTaskList();
 }
+
+
 void SchedulerPanel::OnRobotSelected(wxCommandEvent& event) {
     // If needed, update logic based on selected robot
 }

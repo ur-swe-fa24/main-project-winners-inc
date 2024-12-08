@@ -10,7 +10,7 @@
 #include "AlertSystem/alert_system.h"
 #include "RobotSimulator/RobotSimulator.hpp"
 #include "map/map.h"
-#include "Schedular/Schedular.hpp"
+#include "Scheduler/Scheduler.hpp"
 #include "robot_control/robot_control_panel.hpp"
 #include "scheduler_panel/scheduler_panel.hpp"
 #include "user/user.h"
@@ -30,7 +30,7 @@ RobotManagementFrame::RobotManagementFrame(const wxString& title)
       statusUpdateTimer(nullptr),
       alertCheckTimer(nullptr)
 {
-    try {
+        try {
         CreateMenuBar();
         CreateStatusBar(2);
         SetStatusText("Initializing...");
@@ -40,7 +40,7 @@ RobotManagementFrame::RobotManagementFrame(const wxString& title)
         wxString cwd = wxGetCwd();
         std::cout << "Current working directory: " << cwd.mb_str() << std::endl;
 
-        // Initialize database connection
+        // Initialize DB
         try {
             dbAdapter = std::make_shared<MongoDBAdapter>(DB_URI, DB_NAME);
             SetStatusText("Connected to database");
@@ -51,21 +51,25 @@ RobotManagementFrame::RobotManagementFrame(const wxString& title)
             return;
         }
 
-        // Create Map
+        // Create map
         auto map = std::make_shared<Map>(true); 
         dbAdapter->initializeRooms(map->getRooms());
 
-        // Create Scheduler and AlertSystem as shared_ptr
-        scheduler_ = std::make_shared<Scheduler>();
+        // Create alert system
         alertSystem = std::make_shared<AlertSystem>();
 
-        // Create RobotSimulator with shared_ptr
-        simulator_ = std::make_shared<RobotSimulator>(map, scheduler_, alertSystem);
+        // Create simulator first without scheduler
+        simulator_ = std::make_shared<RobotSimulator>(map, nullptr, alertSystem);
         simulator_->addRobot("RobotA");
         simulator_->addRobot("RobotB");
         simulator_->addRobot("RobotC");
-
         SetStatusText("Simulator initialized");
+
+        // Now create scheduler after simulator has robots
+        // Scheduler requires map and robots:
+        // You must modify Scheduler to either have a constructor that takes null or provide a setRobots() method.
+        // Let's assume we can do:
+        scheduler_ = std::make_shared<Scheduler>(map.get(), &simulator_->getRobots());
 
         InitializeUsers();
         if (!ShowLogin()) {
@@ -77,13 +81,11 @@ RobotManagementFrame::RobotManagementFrame(const wxString& title)
         SetSizer(new wxBoxSizer(wxVERTICAL));
         GetSizer()->Add(notebook, 1, wxEXPAND);
 
-        // Create panels based on permissions
         if (currentUser->getRole()->hasPermission("Dashboard")) {
             CreateDashboardPanel(notebook);
         }
 
         if (currentUser->getRole()->hasPermission("Scheduler")) {
-            // Now that schedulerPanel takes shared_ptr
             schedulerPanel_ = new SchedulerPanel(notebook, simulator_, scheduler_);
             notebook->AddPage(schedulerPanel_, "Scheduler");
         }
@@ -93,7 +95,6 @@ RobotManagementFrame::RobotManagementFrame(const wxString& title)
         }
 
         if (currentUser->getRole()->hasPermission("Map")) {
-            // MapPanel also takes shared_ptr<RobotSimulator>
             mapPanel_ = new MapPanel(notebook, simulator_);
             notebook->AddPage(mapPanel_, "Map");
         }
@@ -111,7 +112,6 @@ RobotManagementFrame::RobotManagementFrame(const wxString& title)
             CreateUserManagementPanel(notebook);
         }
 
-        // Initialize timers
         alertCheckTimer = new wxTimer(this, ALERT_TIMER_ID);
         alertCheckTimer->Start(5000); 
 
@@ -129,6 +129,7 @@ RobotManagementFrame::RobotManagementFrame(const wxString& title)
         UpdateRobotGrid();
 
         Center();
+
 
     } catch (const std::exception& e) {
         wxMessageBox(wxString::Format("Initialization failed: %s", e.what()), "Error",
@@ -399,6 +400,9 @@ void RobotManagementFrame::OnReturnToCharger(wxCommandEvent& evt) {
 }
 
 void RobotManagementFrame::OnStatusUpdateTimer(wxTimerEvent& evt) {
+    // Update simulator to move robots
+    simulator_->update(1.0f);
+
     UpdateRobotGrid();
     UpdateRobotChoices();
     UpdateSchedulerRobotChoices();

@@ -1,6 +1,6 @@
 #include "RobotSimulator/RobotSimulator.hpp"
 #include "Robot/Robot.h"
-#include "Schedular/Schedular.hpp"
+#include "Scheduler/Scheduler.hpp"
 #include "AlertSystem/alert_system.h"
 #include "map/map.h"
 #include "CleaningTask/cleaningTask.h"
@@ -12,7 +12,6 @@ RobotSimulator::RobotSimulator(std::shared_ptr<Map> map,
                                std::shared_ptr<AlertSystem> alertSystem)
     : map_(map), scheduler_(scheduler), alertSystem_(alertSystem) {}
 
-// Define getRobotByName
 std::shared_ptr<Robot> RobotSimulator::getRobotByName(const std::string& name) {
     for (auto& r : robots_) {
         if (r->getName() == name) return r;
@@ -23,7 +22,6 @@ std::shared_ptr<Robot> RobotSimulator::getRobotByName(const std::string& name) {
 void RobotSimulator::update(double deltaTime) {
     for (auto& robot : robots_) {
         robot->updateState(deltaTime);
-        // If robot done cleaning or needs tasks, handle logic here
     }
     checkRobotStatesAndSendAlerts();
 }
@@ -37,7 +35,9 @@ void RobotSimulator::moveRobotToRoom(const std::string& robotName, int roomId) {
 
     std::vector<int> route = map_->getRoute(*currentRoom, *targetRoom);
     if (route.empty()) {
-        alertSystem_->sendAlert("No path found for robot " + robotName, "Movement");
+        if (alertSystem_) {
+            alertSystem_->sendAlert("No path found for robot " + robotName, "Movement");
+        }
         return;
     }
 
@@ -47,7 +47,7 @@ void RobotSimulator::moveRobotToRoom(const std::string& robotName, int roomId) {
 void RobotSimulator::startRobotCleaning(const std::string& robotName) {
     auto robot = getRobotByName(robotName);
     if (!robot) return;
-    robot->startCleaning(CleaningTask::VACUUM); // Or choose strategy dynamically
+    robot->startCleaning(CleaningTask::VACUUM); 
 }
 
 void RobotSimulator::stopRobotCleaning(const std::string& robotName) {
@@ -66,18 +66,15 @@ void RobotSimulator::manuallyPickUpRobot(const std::string& robotName) {
 }
 
 void RobotSimulator::requestReturnToCharger(const std::string& robotName) {
-    // Similar logic as manuallyPickUpRobot, but maybe find route to charger
     auto robot = getRobotByName(robotName);
     if (!robot) return;
     Room* charger = map_->getRoomById(0);
     if (!charger) return;
 
-    // Set path to charger
     std::vector<int> route = map_->getRoute(*robot->getCurrentRoom(), *charger);
     if (!route.empty()) {
         robot->setMovementPath(route, *map_);
     } else {
-        // If no route, just pick up?
         robot->setCurrentRoom(charger);
         robot->setCharging(true);
     }
@@ -111,17 +108,19 @@ std::shared_ptr<AlertSystem> RobotSimulator::getAlertSystem() const {
 void RobotSimulator::checkRobotStatesAndSendAlerts() {
     for (auto& robot : robots_) {
         if (robot->needsCharging()) {
-            alertSystem_->sendAlert("Robot " + robot->getName() + " has low battery.", "Battery");
+            if (alertSystem_) {
+                alertSystem_->sendAlert("Robot " + robot->getName() + " has low battery.", "Battery");
+            }
         }
         if (robot->needsWaterRefill()) {
-            alertSystem_->sendAlert("Robot " + robot->getName() + " has low water.", "Water");
+            if (alertSystem_) {
+                alertSystem_->sendAlert("Robot " + robot->getName() + " has low water.", "Water");
+            }
         }
     }
 }
 
-
 void RobotSimulator::addRobot(const std::string& robotName) {
-    // Create a new robot at starting room (e.g. room ID 0)
     Room* charger = map_->getRoomById(0);
     auto newRobot = std::make_shared<Robot>(robotName, 100.0, 100.0);
     if (charger) newRobot->setCurrentRoom(charger);
@@ -130,4 +129,19 @@ void RobotSimulator::addRobot(const std::string& robotName) {
 
 const std::vector<std::shared_ptr<Robot>>& RobotSimulator::getRobots() const {
     return robots_;
+}
+
+// Define assignTaskToRobot here since we declared it in the header
+void RobotSimulator::assignTaskToRobot(std::shared_ptr<CleaningTask> task) {
+    auto robot = task->getRobot();
+    if (!robot) return;
+
+    Room* currentRoom = robot->getCurrentRoom();
+    Room* targetRoom = task->getRoom();
+    if (!currentRoom || !targetRoom) return;
+
+    std::vector<int> route = map_->getRoute(*currentRoom, *targetRoom);
+    if (!route.empty()) {
+        robot->setMovementPath(route, *map_);
+    }
 }

@@ -18,8 +18,6 @@ public:
                    std::shared_ptr<AlertSystem> alertSystem);
 
     void update(double deltaTime);
-
-    // Add these methods to control robots
     void moveRobotToRoom(const std::string& robotName, int roomId);
     void startRobotCleaning(const std::string& robotName);
     void stopRobotCleaning(const std::string& robotName);
@@ -27,7 +25,6 @@ public:
     void requestReturnToCharger(const std::string& robotName);
     void addRobot(const std::string& robotName);
     const std::vector<std::shared_ptr<Robot>>& getRobots() const;
-
 
     struct RobotStatus {
         std::string name;
@@ -40,10 +37,11 @@ public:
     };
 
     std::vector<RobotStatus> getRobotStatuses() const;
-    const Map& getMap() const;
-    
-    // Return alertSystem
+    const Map& getMap() const;  
     std::shared_ptr<AlertSystem> getAlertSystem() const;
+
+    // Declare the method here:
+    void assignTaskToRobot(std::shared_ptr<CleaningTask> task);
 
 private:
     std::vector<std::shared_ptr<Robot>> robots_;
@@ -52,8 +50,7 @@ private:
     std::shared_ptr<AlertSystem> alertSystem_;
 
     void checkRobotStatesAndSendAlerts();
-    std::shared_ptr<Robot> getRobotByName(const std::string& name); // add this helper
-
+    std::shared_ptr<Robot> getRobotByName(const std::string& name);
 };
 
 #endif // ROBOT_SIMULATOR_HPP

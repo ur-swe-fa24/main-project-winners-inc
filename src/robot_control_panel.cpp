@@ -1,7 +1,8 @@
 #include "robot_control/robot_control_panel.hpp"
 #include "RobotSimulator/RobotSimulator.hpp"
 #include "map/map.h"
-#include "Schedular/Schedular.hpp"
+#include "AlertSystem/alert_system.h"
+#include "Scheduler/Scheduler.hpp"
 #include "CleaningTask/cleaningTask.h"
 #include <wx/msgdlg.h>
 
@@ -71,13 +72,19 @@ void RobotControlPanel::UpdateRobotList() {
 }
 
 void RobotControlPanel::UpdateRoomList() {
-    // For demonstration: Just a few dummy rooms or get rooms from map if you have it accessible
-    // If you have a global map available, populate it here.
-    // roomChoice_->Append("Room A", someRoomPointer);
-    // roomChoice_->Append("Room B", someRoomPointer);
-    // Enable if rooms are known
-    roomChoice_->Enable(!roomChoice_->IsEmpty());
+    roomChoice_->Clear();
+    const auto& rooms = simulator_->getMap().getRooms();
+    for (const auto& r : rooms) {
+        if (!r) continue;
+        wxString label = wxString::Format("%s (%s)", r->getRoomName(), r->getFlooringType());
+        roomChoice_->Append(label, r);
+    }
+    roomChoice_->Enable(roomChoice_->GetCount() > 0);
+    if (roomChoice_->GetCount() > 0) {
+        roomChoice_->SetSelection(0);
+    }
 }
+
 
 void RobotControlPanel::OnRobotSelected(wxCommandEvent& event) {
     int sel = robotChoice_->GetSelection();
@@ -96,11 +103,13 @@ void RobotControlPanel::OnRobotSelected(wxCommandEvent& event) {
 
 void RobotControlPanel::OnStartCleaning(wxCommandEvent& event) {
     if (selectedRobotName_.empty()) {
-        wxMessageBox("No robot selected!", "Error");
+        auto alertSystem = simulator_->getAlertSystem();
+        if (alertSystem) alertSystem->sendAlert("No robot selected!", "Error");
         return;
     }
     simulator_->startRobotCleaning(selectedRobotName_);
-    wxMessageBox("Robot started cleaning.", "Info");
+    auto alertSystem = simulator_->getAlertSystem();
+    if (alertSystem) alertSystem->sendAlert("Robot started cleaning.", "Info");
 }
 
 void RobotControlPanel::OnStopCleaning(wxCommandEvent& event) {
