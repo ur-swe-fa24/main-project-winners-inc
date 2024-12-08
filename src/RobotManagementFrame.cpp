@@ -18,6 +18,7 @@
 #include "permission/permission.h"
 #include "alert/Alert.h"
 #include "adapter/MongoDBAdapter.hpp"
+#include "analytics/analytics.h"
 
 const std::string RobotManagementFrame::DB_URI = "mongodb://localhost:27017";
 const std::string RobotManagementFrame::DB_NAME = "mydb9";
@@ -285,6 +286,8 @@ void RobotManagementFrame::CreateDashboardPanel(wxNotebook* notebook) {
     notebook->AddPage(panel, "Dashboard");
 }
 
+
+
 void RobotManagementFrame::UpdateRobotGrid() {
     auto robotStatuses = simulator_->getRobotStatuses();
     int requiredRows = (int)robotStatuses.size();
@@ -537,16 +540,10 @@ void RobotManagementFrame::CreateSchedulerPanel(wxNotebook* notebook) {
 }
 
 void RobotManagementFrame::CreateRobotAnalyticsPanel(wxNotebook* notebook) {
-    wxPanel* panel = new wxPanel(notebook, wxID_ANY);
-    wxStaticText* label = new wxStaticText(panel, wxID_ANY,
-        "Robot Analytics Panel under construction", wxDefaultPosition, wxDefaultSize, wxALIGN_CENTER);
-
-    wxBoxSizer* sizer = new wxBoxSizer(wxVERTICAL);
-    sizer->Add(label, 1, wxALL | wxEXPAND, 10);
-
-    panel->SetSizer(sizer);
-    notebook->AddPage(panel, "Robot Analytics");
+    auto analyticsPanel = new RobotAnalyticsPanel(notebook, dbAdapter, simulator_);
+    notebook->AddPage(analyticsPanel, "Robot Analytics");
 }
+
 
 wxBEGIN_EVENT_TABLE(RobotManagementFrame, wxFrame)
 wxEND_EVENT_TABLE()

@@ -267,11 +267,17 @@ void RobotControlPanel::OnPickUpRobot(wxCommandEvent& event) {
 
     simulator_->manuallyPickUpRobot(selectedRobotName_);
 
-    if (alertSystem) alertSystem->sendAlert("Robot picked up and moved instantly to charger.", "Info");
+    // Find the robot
+    auto robot = findRobotByName(simulator_, selectedRobotName_);
+    if (robot) {
+        // Mark the robot as repaired
+        robot->repair();  // We'll add this method in Robot class
+    }
+
+    if (alertSystem) alertSystem->sendAlert("Robot picked up, repaired, and moved instantly to charger.", "Info");
     if (dbAdapter && frame) {
-        auto robot = findRobotByName(simulator_, selectedRobotName_);
         std::shared_ptr<Room> room = (robot && robot->getCurrentRoom()) ? std::make_shared<Room>(*robot->getCurrentRoom()) : nullptr;
-        Alert alert("Info", "Robot picked up and moved instantly to charger.", robot, room, std::time(nullptr), Alert::LOW);
+        Alert alert("Info", "Robot picked up, repaired, and moved instantly to charger.", robot, room, std::time(nullptr), Alert::LOW);
         dbAdapter->saveAlert(alert);
         frame->AddAlert(alert);
     }

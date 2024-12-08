@@ -28,14 +28,23 @@ void Robot::updateState(double deltaTime) {
         totalWorkTime_ += deltaTime;
     }
 
-    // Random failure chance
-    double failChance = 0.001; // 0.1% chance per update, adjust as needed
-    double rnd = (double)rand() / RAND_MAX;
-    if (rnd < failChance && !failed_) {
-        failed_ = true;
-        errorCount_++;
+    // Only attempt failure if robot is currently cleaning
+    if (cleaning_) {
+        double failChance = 0.001; // 0.1% chance per update while cleaning
+        double rnd = (double)rand() / RAND_MAX;
+        if (rnd < failChance && !failed_) {
+            failed_ = true;
+            errorCount_++;
+            // Status now "Error"
+            return; // Once failed, just return. Next frame we handle in simulator
+        }
+    }
 
-        // Status now "Error"
+    // If battery hits 0, robot cannot move or clean
+    if (batteryLevel_ <= 0.0) {
+        if (cleaning_) stopCleaning();
+        nextRoom_ = nullptr;
+        return; 
     }
 
     // If battery hits 0, robot cannot move or clean
@@ -60,7 +69,7 @@ void Robot::updateState(double deltaTime) {
     } else {
         // Not charging, handle cleaning resource depletion
         if (cleaning_ && currentTask_) {
-            double batteryDepletion = 10.0 * deltaTime;
+            double batteryDepletion = 5.0 * deltaTime;
             batteryLevel_ = std::max(0.0, batteryLevel_ - batteryDepletion);
             if (currentTask_->getCleanType() == CleaningTask::SHAMPOO) {
                 double waterDepletion = 1.0 * deltaTime;
@@ -298,3 +307,6 @@ bool Robot::resumeSavedTask() {
     return false;
 }
 
+void Robot::repair() {
+    failed_ = false;
+}

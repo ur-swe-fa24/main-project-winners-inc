@@ -61,9 +61,12 @@ public:
     int errorCount_;
     double totalWorkTime_; // total cleaning/working time in seconds
     bool failed_;          // indicates if the robot has failed
+
+    void repair();
+    bool isFailed() const { return failed_; }
+
     int getErrorCount() const { return errorCount_; }
     double getTotalWorkTime() const { return totalWorkTime_; }
-    bool isFailed() const { return failed_; }
 
 
 private:

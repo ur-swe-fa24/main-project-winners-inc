@@ -447,36 +447,43 @@ void MongoDBAdapter::processRobotStatusQueue() {
 }
 
 
+
 void MongoDBAdapter::saveRobotAnalytics(std::shared_ptr<Robot> robot) {
     if (!robot) return;
     std::lock_guard<std::mutex> lock(mutex_);
     auto analyticsCollection = db_["robot_analytics"];
 
-    // Upsert robot analytics based on robot name
-    auto filter = make_document(kvp("name", robot->getName()));
-    auto update = make_document(
-        kvp("$set", make_document(
-            kvp("error_count", robot->getErrorCount()),
-            kvp("total_work_time", robot->getTotalWorkTime())
-        ))
-    );
-
-    analyticsCollection.update_one(filter.view(), update.view(), mongocxx::options::update{}.upsert(true));
+    try {
+        // Upsert document by robot name
+        analyticsCollection.replace_one(
+            make_document(kvp("name", robot->getName())),
+            make_document(
+                kvp("name", robot->getName()),
+                kvp("error_count", robot->getErrorCount()),
+                kvp("total_work_time", robot->getTotalWorkTime())
+            ),
+            mongocxx::options::replace{}.upsert(true)
+        );
+    } catch (const mongocxx::exception& e) {
+        std::cerr << "Error saving robot analytics to MongoDB: " << e.what() << std::endl;
+    }
 }
 
 std::vector<std::tuple<std::string,int,double>> MongoDBAdapter::retrieveRobotAnalytics() {
-    std::vector<std::tuple<std::string,int,double>> data;
+    std::vector<std::tuple<std::string,int,double>> result;
     auto analyticsCollection = db_["robot_analytics"];
+
     try {
         auto cursor = analyticsCollection.find({});
         for (auto&& doc : cursor) {
             std::string name = doc["name"].get_string().value.to_string();
-            int error_count = doc["error_count"].get_int32();
+            int error_count = doc["error_count"].get_int32().value;
             double total_work_time = doc["total_work_time"].get_double().value;
-            data.push_back(std::make_tuple(name, error_count, total_work_time));
+            result.push_back(std::make_tuple(name, error_count, total_work_time));
         }
     } catch (const mongocxx::exception& e) {
         std::cerr << "Error retrieving robot analytics from MongoDB: " << e.what() << std::endl;
     }
-    return data;
+
+    return result;
 }
