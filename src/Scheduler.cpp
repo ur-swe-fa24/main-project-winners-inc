@@ -118,9 +118,40 @@ void Scheduler::checkAndReturnToChargerIfNeeded(std::shared_ptr<Robot> robot) {
     }
 
     bool needsReturn = noTasksLeft || battery < 20.0 || water < 20.0;
+    std::string name = robot->getName();
+    Room* errorRoom = robot->getCurrentRoom();
+
     if (needsReturn && simulator_) {
         std::cout << "[DEBUG] " << robot->getName() << " returning to charger.\n";
         simulator_->requestReturnToCharger(robot->getName());
+        
+        // if (alertSystem_ && (battery < 20.0)) {
+        //     alertSystem_->sendAlert(name + " has low battery levels. Returning to charger.\n", "Battery");
+        // }
+        // if (dbAdapter_ && (battery < 20.0)) {
+        //     Alert newAlert("Battery",
+        //                 name + " has low battery levels. Returning to charger.",
+        //                 robot,
+        //                 std::make_shared<Room>(*errorRoom),
+        //                 std::time(nullptr),
+        //                 Alert::LOW);
+        //     dbAdapter_->saveAlert(newAlert);
+        // }
+
+
+        // if (alertSystem_ && (water < 20.0)) {
+        //     alertSystem_->sendAlert(name + " has low water levels. Refill tank.", "Water");
+        // }
+        // if (dbAdapter_ && (water < 20.0)) {
+        //     Alert newAlert("Water",
+        //                 name + " has low water levels. Refill tank.",
+        //                 robot,
+        //                 std::make_shared<Room>(errorRoom),
+        //                 std::time(nullptr),
+        //                 Alert::LOW);
+        //     dbAdapter_->saveAlert(newAlert);
+        // }
+
     }
 }
 
