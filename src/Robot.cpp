@@ -181,15 +181,6 @@ void Robot::setMovementPath(const std::vector<int>& roomIds, const Map& map) {
     } else {
         nextRoom_ = nullptr;
     }
-
-    // Start movement to first room in queue if queue is not empty
-    if (!movementQueue_.empty()) {
-        Room* nextRoomInQueue = movementQueue_.front();
-        movementQueue_.pop();
-        if (nextRoomInQueue) {
-            moveToRoom(nextRoomInQueue);
-        }
-    }
 }
 
 void Robot::moveToRoom(Room* room) {
