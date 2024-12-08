@@ -47,6 +47,9 @@ public:
     // Thread management
     void stop();  // Stop all background threads
     void stopRobotStatusThread();  // Stop robot status monitoring thread
+    
+    void saveRobotAnalytics(std::shared_ptr<Robot> robot);
+    std::vector<std::tuple<std::string,int,double>> retrieveRobotAnalytics(); 
 
 private:
     std::string dbName_;

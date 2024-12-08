@@ -1,17 +1,26 @@
-#ifndef ANALYTICS_H
-#define ANALYTICS_H
+#ifndef ROBOT_ANALYTICS_PANEL_HPP
+#define ROBOT_ANALYTICS_PANEL_HPP
 
-#include <map>
-#include "Robot/Robot.h"
-#include "RobotMetrics/robot_metrics.h"
+#include <wx/wx.h>
+#include <wx/grid.h>
+#include <memory>
 
-class Analytics {
-private:
-    std::map<Robot, RobotMetrics> robotData;
+class MongoDBAdapter;
 
+class RobotAnalyticsPanel : public wxPanel {
 public:
-    void generateReport();
-    float getRobotEfficiency(const Robot& robot);
+    RobotAnalyticsPanel(wxWindow* parent, std::shared_ptr<MongoDBAdapter> dbAdapter);
+
+    void RefreshAnalytics();
+
+private:
+    void OnRefreshClicked(wxCommandEvent& event);
+
+    std::shared_ptr<MongoDBAdapter> dbAdapter_;
+    wxGrid* analyticsGrid_;
+    wxButton* refreshBtn_;
+
+    wxDECLARE_EVENT_TABLE();
 };
 
-#endif // ANALYTICS_H
+#endif // ROBOT_ANALYTICS_PANEL_HPP

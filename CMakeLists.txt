@@ -39,6 +39,7 @@ set(SOURCES
     src/config/ResourceConfig.cpp
     src/scheduler_panel.cpp
     src/cleaningTask.cpp
+    src/analytics.cpp
 )
 
 # Define header files
@@ -61,6 +62,7 @@ set(HEADERS
     include/config/ResourceConfig.hpp
     include/scheduler_panel/scheduler_panel.hpp
     include/CleaningTask/cleaningTask.h
+    include/analytics/analytics.h
 )
 
 # Add library target

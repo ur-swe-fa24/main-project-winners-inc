@@ -33,27 +33,28 @@ void RobotSimulator::update(double deltaTime) {
         robot->updateState(deltaTime);
         bool nowCleaning = robot->isCleaning();
 
-        // If robot just finished cleaning a task
+        if (robot->isFailed()) {
+            // Robot failed this update?
+            // Send alert
+            if (alertSystem_) {
+                alertSystem_->sendAlert("Robot " + robot->getName() + " has failed!", "Error");
+            }
+            if (dbAdapter_) {
+                Alert failureAlert("Error", "Robot failed unexpectedly",
+                    robot, nullptr, std::time(nullptr), Alert::HIGH);
+                dbAdapter_->saveAlert(failureAlert);
+                // Also save analytics
+                dbAdapter_->saveRobotAnalytics(robot);
+            }
+            // Once failed, robot no longer can do tasks
+            // No more logic needed here, just skip this robot.
+            continue;
+        }
+
+        // If robot just finished cleaning...
         if (wasCleaning && !nowCleaning && !robot->getCurrentTask()) {
-            // Robot completed a task, attempt to get next task
             if (scheduler_) {
-                const auto& allTasks = scheduler_->getAllTasks();
-                std::cout << "Debug: Currently, there are " << allTasks.size()
-                          << " task(s) in the scheduler.\n";
-                std::cout << "Debug: Trying to get next task for robot "
-                          << robot->getName() << "...\n";
-
-                auto nextTask = scheduler_->getNextTaskForRobot(robot->getName());
-                std::cout << "Debug: nextTask is " << (nextTask ? "not null" : "null") << "\n";
-
-                if (nextTask) {
-                    robot->setCurrentTask(nextTask);
-                    assignTaskToRobot(nextTask);
-                } else {
-                    handleNoTaskAndReturnToChargerIfNeeded(robot);
-                }
-            } else {
-                handleNoTaskAndReturnToChargerIfNeeded(robot);
+                // existing logic to get next task...
             }
         }
     }

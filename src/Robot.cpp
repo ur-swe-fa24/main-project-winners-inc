@@ -11,10 +11,33 @@ Robot::Robot(const std::string& name, double batteryLevel, Size size, Strategy s
       currentRoom_(nullptr), nextRoom_(nullptr), cleaningTimeRemaining_(0.0),
       targetRoom_(nullptr), lowBatteryAlertSent_(false), lowWaterAlertSent_(false),
       currentTask_(nullptr), savedTask_(nullptr), savedCleaningTimeRemaining_(0.0),
-      size_(size), strategy_(strategy), robotMap_(nullptr)
-{}
+      size_(size), strategy_(strategy), robotMap_(nullptr),
+      errorCount_(0), totalWorkTime_(0.0), failed_(false) {}
+
+
+
 
 void Robot::updateState(double deltaTime) {
+    if (failed_) {
+        // Robot can't operate if failed
+        return;
+    }
+
+    // Add working time if robot is cleaning or moving
+    if (isCleaning() || isMoving()) {
+        totalWorkTime_ += deltaTime;
+    }
+
+    // Random failure chance
+    double failChance = 0.001; // 0.1% chance per update, adjust as needed
+    double rnd = (double)rand() / RAND_MAX;
+    if (rnd < failChance && !failed_) {
+        failed_ = true;
+        errorCount_++;
+
+        // Status now "Error"
+    }
+
     // If battery hits 0, robot cannot move or clean
     if (batteryLevel_ <= 0.0) {
         // Stop movement or cleaning if ongoing
@@ -185,7 +208,6 @@ void Robot::setCurrentRoom(Room* room) { currentRoom_ = room; }
 void Robot::setCharging(bool charging) { 
     isCharging_ = charging; 
     if (!charging && batteryLevel_ >= 100.0 && waterLevel_ >= 100.0) {
-        // Attempt to resume task after full recharge and refill
         resumeSavedTask();
     }
 }
@@ -197,7 +219,6 @@ void Robot::refillWater() {
 void Robot::fullyRecharge() { 
     batteryLevel_ = 100.0;
     lowBatteryAlertSent_ = false;
-    // Attempt to resume task if needed
     resumeSavedTask();
 }
 
@@ -207,7 +228,9 @@ bool Robot::needsMaintenance() const { return false; }
 bool Robot::isLowBatteryAlertSent() const { return lowBatteryAlertSent_; }
 bool Robot::isLowWaterAlertSent() const { return lowWaterAlertSent_; }
 
+
 std::string Robot::getStatus() const {
+    if (failed_) return "Error";
     if (batteryLevel_ <= 0.0) return "Disabled (No Battery)";
     if (isCharging_) return "Charging";
     if (cleaning_) return "Cleaning";

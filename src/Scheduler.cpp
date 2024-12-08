@@ -52,6 +52,9 @@ void Scheduler::assignCleaningTask(const std::string& robotName, int targetRoomI
 
     auto robot = findRobotByName(robotName);
     if (!robot) throw std::runtime_error("Robot not found.");
+    if (robot->isFailed()) {
+        throw std::runtime_error("Cannot assign task to a failed robot.");
+    }
 
     CleaningTask::CleanType ctype = CleaningTask::stringToCleanType(strategy);
     auto task = std::make_shared<CleaningTask>(++taskIdCounter_, CleaningTask::MEDIUM, ctype, selectedRoom);

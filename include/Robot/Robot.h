@@ -58,6 +58,14 @@ public:
     Size getSize() const { return size_; }
     Strategy getStrategy() const { return strategy_; }
 
+    int errorCount_;
+    double totalWorkTime_; // total cleaning/working time in seconds
+    bool failed_;          // indicates if the robot has failed
+    int getErrorCount() const { return errorCount_; }
+    double getTotalWorkTime() const { return totalWorkTime_; }
+    bool isFailed() const { return failed_; }
+
+
 private:
     std::string name_;
     double batteryLevel_;

@@ -135,6 +135,11 @@ void MapPanel::OnPaint(wxPaintEvent& event) {
         }
 
         dc.SetBrush(*wxBLUE_BRUSH);
+
+        if (robot->isFailed()) {
+            dc.SetBrush(*wxRED_BRUSH);
+            }
+
         dc.SetPen(*wxBLACK_PEN);
         dc.DrawCircle(pos, roomRadius / 2);
 
