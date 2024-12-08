@@ -68,6 +68,8 @@ RobotManagementFrame::RobotManagementFrame(const wxString& title)
         // Create scheduler after we have robots in simulator
         scheduler_ = std::make_shared<Scheduler>(map.get(), &simulator_->getRobots());
 
+        // IMPORTANT: Set the simulator in the scheduler
+        scheduler_->setSimulator(simulator_);
         InitializeUsers();
         if (!ShowLogin()) {
             Close(true);

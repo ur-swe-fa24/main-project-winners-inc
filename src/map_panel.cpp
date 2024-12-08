@@ -125,7 +125,7 @@ void MapPanel::OnPaint(wxPaintEvent& event) {
             wxPoint to = roomPositions[nextRoom->getRoomId()];
 
             // movementProgress should be between 0 and 100, we normalize to [0,1]
-            double progress = 1.0 - (movementProgress / 100.0);
+            double progress = movementProgress / 100.0;
             // If your old logic used /5.0, ensure movementProgress scale is consistent.
             // Adjust as per your logic. For now, assume movementProgress in %:
             pos.x = from.x + static_cast<int>((to.x - from.x) * progress);

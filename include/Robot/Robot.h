@@ -1,10 +1,11 @@
+// Robot.hpp (no changes needed, assuming getCurrentTask() is already added)
 #ifndef ROBOT_H
 #define ROBOT_H
 
 #include <string>
 #include <memory>
 #include <queue>
-#include "CleaningTask/cleaningTask.h" 
+#include "CleaningTask/cleaningTask.h"
 #include "Room/Room.h"
 
 class Map;
@@ -44,6 +45,7 @@ public:
     void setLowBatteryAlertSent(bool val);
     void setLowWaterAlertSent(bool val);
     void setCurrentTask(std::shared_ptr<CleaningTask> task);
+    std::shared_ptr<CleaningTask> getCurrentTask() const; // Ensure this getter exists
     void setTargetRoom(Room* room);
 
 private:

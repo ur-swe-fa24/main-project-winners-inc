@@ -1,3 +1,4 @@
+// In Robot.cpp
 #include "Robot/Robot.h"
 #include "CleaningTask/cleaningTask.h"
 #include "Room/Room.h"
@@ -28,19 +29,17 @@ void Robot::updateState(double deltaTime) {
         }
     }
 
-    // Handle movement
     if (isMoving()) {
         movementProgress_ += deltaTime * 10.0;
         if (movementProgress_ >= 100.0) {
             currentRoom_ = nextRoom_;
             nextRoom_ = nullptr;
             movementProgress_ = 0.0;
-            // If there are more steps in movementQueue_, move on
+
             if (!movementQueue_.empty()) {
                 nextRoom_ = movementQueue_.front();
                 movementQueue_.pop();
             } else {
-                // Movement finished, check if we're at targetRoom_ and have a task
                 if (currentTask_ && targetRoom_ == currentRoom_ && !cleaning_) {
                     startCleaning(currentTask_->getCleanType());
                 }
@@ -48,7 +47,6 @@ void Robot::updateState(double deltaTime) {
         }
     }
 
-    // Handle cleaning time
     if (cleaning_ && currentTask_) {
         cleaningTimeRemaining_ -= deltaTime;
         if (cleaningTimeRemaining_ <= 0) {
@@ -74,7 +72,7 @@ void Robot::startCleaning(CleaningTask::CleanType cleaningType) {
     if (isCleaning() || !currentRoom_ || !currentTask_) return;
     cleaning_ = true;
 
-    double baseTime = 15.0; // default medium
+    double baseTime = 15.0; 
     std::string size = currentRoom_->getSize();
     std::transform(size.begin(), size.end(), size.begin(), ::tolower);
 
@@ -101,12 +99,10 @@ void Robot::setMovementPath(const std::vector<int>& roomIds, const Map& map) {
     for (int roomId : roomIds) {
         Room* r = map.getRoomById(roomId);
         if (r) {
-            // Don't skip current room
             movementQueue_.push(r);
         }
     }
 
-    // Pop the first room if it equals currentRoom_ to avoid redundant step
     if (!movementQueue_.empty() && movementQueue_.front() == currentRoom_) {
         movementQueue_.pop();
     }
@@ -133,7 +129,6 @@ Room* Robot::getNextRoom() const {
 void Robot::setTargetRoom(Room* room) {
     targetRoom_ = room;
 }
-
 
 double Robot::getBatteryLevel() const { return batteryLevel_; }
 double Robot::getWaterLevel() const { return waterLevel_; }
@@ -163,6 +158,11 @@ std::string Robot::getStatus() const {
 
 void Robot::setLowBatteryAlertSent(bool val) { lowBatteryAlertSent_ = val; }
 void Robot::setLowWaterAlertSent(bool val) { lowWaterAlertSent_ = val; }
+
 void Robot::setCurrentTask(std::shared_ptr<CleaningTask> task) {
     currentTask_ = task;
+}
+
+std::shared_ptr<CleaningTask> Robot::getCurrentTask() const {
+    return currentTask_;
 }

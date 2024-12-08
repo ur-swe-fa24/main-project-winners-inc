@@ -1,3 +1,4 @@
+// RobotSimulator.cpp
 #include "RobotSimulator/RobotSimulator.hpp"
 #include "Robot/Robot.h"
 #include "Scheduler/Scheduler.hpp"
@@ -21,7 +22,21 @@ std::shared_ptr<Robot> RobotSimulator::getRobotByName(const std::string& name) {
 
 void RobotSimulator::update(double deltaTime) {
     for (auto& robot : robots_) {
+        bool wasCleaning = robot->isCleaning();
         robot->updateState(deltaTime);
+        bool nowCleaning = robot->isCleaning();
+
+        if (wasCleaning && !nowCleaning && !robot->getCurrentTask()) {
+            // Robot just finished a task
+            if (scheduler_) {
+                auto nextTask = scheduler_->getNextTaskForRobot(robot->getName());
+                if (nextTask) {
+                    robot->setCurrentTask(nextTask);
+                    assignTaskToRobot(nextTask);
+                }
+                // If no nextTask returned, scheduler handles returning to charger if needed
+            }
+        }
     }
     checkRobotStatesAndSendAlerts();
 }
@@ -33,7 +48,7 @@ void RobotSimulator::moveRobotToRoom(const std::string& robotName, int roomId) {
     Room* targetRoom = map_->getRoomById(roomId);
     if (!currentRoom || !targetRoom) return;
 
-    std::vector<int> route = map_->getRoute(*currentRoom, *targetRoom);
+    auto route = map_->getRoute(*currentRoom, *targetRoom);
     if (route.empty()) {
         if (alertSystem_) {
             alertSystem_->sendAlert("No path found for robot " + robotName, "Movement");
@@ -71,7 +86,7 @@ void RobotSimulator::requestReturnToCharger(const std::string& robotName) {
     Room* charger = map_->getRoomById(0);
     if (!charger) return;
 
-    std::vector<int> route = map_->getRoute(*robot->getCurrentRoom(), *charger);
+    auto route = map_->getRoute(*robot->getCurrentRoom(), *charger);
     if (!route.empty()) {
         robot->setMovementPath(route, *map_);
     } else {
@@ -139,8 +154,8 @@ void RobotSimulator::assignTaskToRobot(std::shared_ptr<CleaningTask> task) {
     Room* targetRoom = task->getRoom();
     if (!currentRoom || !targetRoom) return;
 
-    robot->setTargetRoom(targetRoom); // use setter instead of direct access
-    std::vector<int> route = map_->getRoute(*currentRoom, *targetRoom);
+    robot->setTargetRoom(targetRoom);
+    auto route = map_->getRoute(*currentRoom, *targetRoom);
     if (!route.empty()) {
         robot->setMovementPath(route, *map_);
     }
