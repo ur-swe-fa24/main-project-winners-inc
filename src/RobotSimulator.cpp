@@ -1,4 +1,3 @@
-// RobotSimulator.cpp
 #include "RobotSimulator/RobotSimulator.hpp"
 #include "Robot/Robot.h"
 #include "Scheduler/Scheduler.hpp"
@@ -21,24 +20,50 @@ std::shared_ptr<Robot> RobotSimulator::getRobotByName(const std::string& name) {
 }
 
 void RobotSimulator::update(double deltaTime) {
+    // Update each robot
     for (auto& robot : robots_) {
         bool wasCleaning = robot->isCleaning();
         robot->updateState(deltaTime);
         bool nowCleaning = robot->isCleaning();
 
+        // Check if robot just finished cleaning a task
         if (wasCleaning && !nowCleaning && !robot->getCurrentTask()) {
-            // Robot just finished a task
+            // Robot completed a task, attempt to get next task
             if (scheduler_) {
                 auto nextTask = scheduler_->getNextTaskForRobot(robot->getName());
                 if (nextTask) {
+                    // Got a new task, assign and set path
                     robot->setCurrentTask(nextTask);
                     assignTaskToRobot(nextTask);
+                } else {
+                    // No new tasks returned for this robot, handle return to charger if needed
+                    handleNoTaskAndReturnToChargerIfNeeded(robot);
                 }
-                // If no nextTask returned, scheduler handles returning to charger if needed
+            } else {
+                // No scheduler: just handle return to charger logic
+                handleNoTaskAndReturnToChargerIfNeeded(robot);
             }
         }
     }
+
     checkRobotStatesAndSendAlerts();
+}
+
+void RobotSimulator::handleNoTaskAndReturnToChargerIfNeeded(std::shared_ptr<Robot> robot) {
+    // If no tasks left or robot resources are low, return to charger
+    double battery = robot->getBatteryLevel();
+    double water = robot->getWaterLevel();
+
+    // Conditions: If no tasks are available for this robot, we consider returning to charger.
+    // Even if battery/water is okay, you might decide to return it anyway. 
+    // Let's return to charger only if low resources to be consistent with previous logic:
+    bool needsReturn = (battery < 20.0 || water < 0);
+
+    // If you always want to return to charger when no tasks are left, do: bool needsReturn = true;
+    // Adjust as needed. For now, let's stick to resource logic:
+    if (needsReturn) {
+        requestReturnToCharger(robot->getName());
+    }
 }
 
 void RobotSimulator::moveRobotToRoom(const std::string& robotName, int roomId) {
@@ -90,6 +115,7 @@ void RobotSimulator::requestReturnToCharger(const std::string& robotName) {
     if (!route.empty()) {
         robot->setMovementPath(route, *map_);
     } else {
+        // If no route, move robot directly to charger and start charging
         robot->setCurrentRoom(charger);
         robot->setCharging(true);
     }

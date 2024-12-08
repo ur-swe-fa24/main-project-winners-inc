@@ -40,8 +40,10 @@ public:
     const Map& getMap() const;  
     std::shared_ptr<AlertSystem> getAlertSystem() const;
 
-    // Declare the method here:
+    // Assign a given task to a robot and set its path
     void assignTaskToRobot(std::shared_ptr<CleaningTask> task);
+
+    // Access a robot by name
     std::shared_ptr<Robot> getRobotByName(const std::string& name);
 
 private:
@@ -51,6 +53,7 @@ private:
     std::shared_ptr<AlertSystem> alertSystem_;
 
     void checkRobotStatesAndSendAlerts();
+    void handleNoTaskAndReturnToChargerIfNeeded(std::shared_ptr<Robot> robot);
 };
 
 #endif // ROBOT_SIMULATOR_HPP
