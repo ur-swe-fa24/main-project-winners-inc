@@ -69,7 +69,7 @@ void Scheduler::assignCleaningTask(const std::string& robotName, int targetRoomI
         alertSystem_->sendAlert("Task assigned to robot " + robotName + " for room " + selectedRoom->getRoomName(), "Task");
     }
     if (dbAdapter_) {
-        Alert newAlert("Task", 
+        Alert newAlert("Task",
                        "Task assigned to robot " + robotName + " for room " + selectedRoom->getRoomName(),
                        robot,
                        std::make_shared<Room>(*selectedRoom),

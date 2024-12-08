@@ -66,8 +66,12 @@ RobotManagementFrame::RobotManagementFrame(const wxString& title)
         simulator_->addRobot("RobotC");
         SetStatusText("Simulator initialized");
 
-        // Create scheduler after we have robots in simulator
+            // Create scheduler after we have robots in simulator
         scheduler_ = std::make_shared<Scheduler>(map.get(), &simulator_->getRobots());
+        // After creating the scheduler
+        scheduler_->setSimulator(simulator_);
+        scheduler_->setAlertSystem(alertSystem);
+        scheduler_->setDbAdapter(dbAdapter);
 
         // IMPORTANT: Set the simulator in the scheduler
         scheduler_->setSimulator(simulator_);

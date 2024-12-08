@@ -6,8 +6,7 @@
 #include <queue>
 #include "CleaningTask/cleaningTask.h"
 #include "Room/Room.h"
-
-class Map;
+#include "map/map.h"  // Include the map header so Map is fully known
 
 class Robot {
 public:
@@ -46,10 +45,9 @@ public:
     std::shared_ptr<CleaningTask> getCurrentTask() const;
     void setTargetRoom(Room* room);
 
-    // New methods to handle partial task saving and resuming
     void saveCurrentTask();
     bool resumeSavedTask();
-    void setMap(std::shared_ptr<Map> map) { robotMap_ = map; }
+    void setMap(Map* m) { robotMap_ = m; } // Use raw pointer
 
 private:
     std::string name_;
@@ -66,15 +64,12 @@ private:
     bool lowBatteryAlertSent_;
     bool lowWaterAlertSent_;
 
-    std::shared_ptr<Map> robotMap_;
+    Map* robotMap_; // Raw pointer to Map
 
     std::queue<Room*> movementQueue_;
     std::shared_ptr<CleaningTask> currentTask_;
-
-    // Variables for partial task saving
     std::shared_ptr<CleaningTask> savedTask_;
     double savedCleaningTimeRemaining_;
-
 };
 
 #endif // ROBOT_H

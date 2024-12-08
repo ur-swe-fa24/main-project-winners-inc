@@ -253,7 +253,7 @@ bool Robot::resumeSavedTask() {
             }
             // Set movement path
             setMovementPath(route, *robotMap_);
-            // Restore task state but don't start cleaning until we arrive
+            // Restore task state but don't start cleaning until arrival
             currentTask_ = savedTask_;
             cleaning_ = false;
             cleaningTimeRemaining_ = savedCleaningTimeRemaining_;

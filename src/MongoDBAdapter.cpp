@@ -76,9 +76,8 @@ void MongoDBAdapter::saveAlert(const Alert& alert) {
         kvp("robot_name", alert.getRobot() ? alert.getRobot()->getName() : "None"),
         kvp("room_name", alert.getRoom() ? alert.getRoom()->getRoomName() : "None"),
         kvp("timestamp", static_cast<int64_t>(alert.getTimestamp())),
-        kvp("severity", alert.getSeverity())
+        kvp("severity", static_cast<int32_t>(alert.getSeverity()))
     );
-
     try {
         alertCollection.insert_one(alert_doc.view());
         std::cout << "Alert saved to MongoDB: " << alert.getTitle() << std::endl;
@@ -88,9 +87,13 @@ void MongoDBAdapter::saveAlert(const Alert& alert) {
 }
 
 void MongoDBAdapter::saveAlertAsync(const Alert& alert) {
-    if (!running_) return;
+    if (!running_) {
+        std::cout << "saveAlertAsync called after adapter stopped" << std::endl;
+        return;
+    }
     std::lock_guard<std::mutex> lock(mutex_);
-    auto clonedAlert = std::make_shared<Alert>(alert); // Clone the alert for thread safety
+    auto clonedAlert = std::make_shared<Alert>(alert);
+    std::cout << "saveAlertAsync: Pushing alert into queue" << std::endl;
     alertQueue_.push(clonedAlert);
     cv_.notify_one();
 }
@@ -398,21 +401,23 @@ void MongoDBAdapter::processRoomQueue() {
 }
 
 void MongoDBAdapter::processAlertQueue() {
-    std::queue<std::shared_ptr<Alert>> localQueue;
-    
+    std::queue<std::shared_ptr<Alert>> localQueue; // Only define once outside the loop
+
     while (running_) {
         std::unique_lock<std::mutex> lock(mutex_);
         cv_.wait(lock, [this]() { return !alertQueue_.empty() || !running_; });
-        
+
         if (!running_) break;
-        
+
+        // Do not redefine localQueue here
         std::swap(localQueue, alertQueue_);
         lock.unlock();
-        
+
         while (!localQueue.empty()) {
             auto alert = localQueue.front();
             localQueue.pop();
             if (alert) {
+                std::cout << "processAlertQueue: Saving alert..." << std::endl;
                 saveAlert(*alert);
             }
         }

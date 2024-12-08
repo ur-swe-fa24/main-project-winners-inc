@@ -26,7 +26,7 @@ public:
         alertSystem_ = alertSystem;
     }
 
-    void setDBAdapter(std::shared_ptr<MongoDBAdapter> dbAdapter) {
+    void setDbAdapter(std::shared_ptr<MongoDBAdapter> dbAdapter) {
         dbAdapter_ = dbAdapter;
     }
 
@@ -49,6 +49,7 @@ private:
     // Add these private members
     std::shared_ptr<AlertSystem> alertSystem_;
     std::shared_ptr<MongoDBAdapter> dbAdapter_;
+
 };
 
 #endif // SCHEDULER_HPP

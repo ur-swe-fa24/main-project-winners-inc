@@ -196,6 +196,7 @@ void RobotSimulator::addRobot(const std::string& robotName) {
     Room* charger = map_->getRoomById(0);
     auto newRobot = std::make_shared<Robot>(robotName, 100.0, 100.0);
     if (charger) newRobot->setCurrentRoom(charger);
+    newRobot->setMap(map_.get()); // Set map reference here
     robots_.push_back(newRobot);
 }
 
