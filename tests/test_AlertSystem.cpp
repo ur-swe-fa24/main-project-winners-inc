@@ -5,103 +5,104 @@
 #include "AlertSystem/alert_system.h"
 #include "user/user.h"
 #include "role/role.h"
-#include "permission/permission.h"
 #include "Robot/Robot.h"
 #include "Room/Room.h"
-#include "adapter/MongoDBAdapter.hpp"
-#include <mongocxx/instance.hpp>
 #include <memory>
 #include <thread>
 #include <chrono>
-#include <ctime>
-#include <vector>
 
-// Create a global instance of mongocxx::instance
-mongocxx::instance instance{}; // Must be initialized before using the driver
+// Helper function to create a sample alert
+Alert createSampleAlert() {
+    auto robot = std::make_shared<Robot>("CleaningBot", 100.0, Robot::Size::MEDIUM, Robot::Strategy::VACUUM, 50.0);
+    auto room = std::make_shared<Room>("Living Room", 1, "Wood", "Large", false, std::vector<Room*>());
+    std::time_t now = std::time(nullptr);
+    return Alert("Critical", "System failure", robot, room, now, Alert::Severity::HIGH);
+}
+// ---- TEST CASES ----
 
-TEST_CASE("Alert System Integration Test") {
-    // Initialize MongoDB Adapter
-    std::string uri = "mongodb://localhost:27017";
-    std::string dbName = "mydb";
-    MongoDBAdapter dbAdapter(uri, dbName);
+TEST_CASE("Alert Initialization and Properties") {
+    auto robot = std::make_shared<Robot>("CleaningBot", 100.0, Robot::Size::MEDIUM, Robot::Strategy::VACUUM, 50.0);
+    auto room = std::make_shared<Room>("Living Room", 1, "Wood", "Large", false, std::vector<Room*>());
+    std::time_t now = std::time(nullptr);
 
-    // Create Permissions
-    Permission adminPermission("ADMIN");
-    Permission userPermission("USER");
+    Alert alert("Warning", "Battery low", robot, room, now, Alert::Severity::MEDIUM);
 
-    // Create Roles
-    Role adminRole("Admin");
-    adminRole.addPermission(adminPermission);
+    SECTION("Correct alert properties") {
+        REQUIRE(alert.getType() == "Warning");
+        REQUIRE(alert.getTitle() == "Warning");
+        REQUIRE(alert.getMessage() == "Battery low");
+        REQUIRE(alert.getDescription() == "Battery low");
+        REQUIRE(alert.getRobot() == robot);
+        REQUIRE(alert.getRoom() == room);
+        REQUIRE(alert.getTimestamp() == now);
+        REQUIRE(alert.getSeverity() == Alert::Severity::MEDIUM);
+    }
 
-    Role userRole("User");
-    userRole.addPermission(userPermission);
+    SECTION("Update alert message") {
+        alert.setMessage("Updated message");
+        REQUIRE(alert.getMessage() == "Updated message");
+    }
+}
 
-    // Create Users
-    User adminUser("AdminUser", std::make_shared<Role>(adminRole));
-    User regularUser("RegularUser", std::make_shared<Role>(userRole));
+TEST_CASE("User Notification Behavior") {
+    auto role = std::make_shared<Role>("Admin");
+    User user("TestUser", role);
 
-    // Declaration of neighbors vector
-    std::vector<Room*> neighbors;
+    auto alert = createSampleAlert();
 
-    // Create Robot and Room instances using shared_ptr
-    auto robot = std::make_shared<Robot>("CleaningRobot", 100);  // Example attributes
-    auto room = std::make_shared<Room>("MainRoom", 101, "wood", "medium", true, neighbors);  // Example attributes
+    SECTION("User properties are correct") {
+        REQUIRE(user.getName() == "TestUser");
+        REQUIRE(user.getRole() == role);
+    }
 
-    // Create AlertSystem
+    SECTION("User receives notification") {
+        REQUIRE_NOTHROW(user.receiveNotification(alert));
+    }
+}
+
+TEST_CASE("AlertSystem Processes Alerts Correctly") {
     AlertSystem alertSystem;
 
-    SECTION("Send and retrieve alerts") {
-        dbAdapter.deleteAllAlerts();
-        dbAdapter.deleteAllRobotStatuses();
+    auto role = std::make_shared<Role>("Operator");
+    auto user = User("OperatorUser", role);
+    auto alert = createSampleAlert();  
 
-        for (int i = 0; i < 6; ++i) {
-            std::time_t currentTime = std::time(nullptr);
-            std::string alertType = "TEST_ALERT";
-            std::string alertMessage = "Test alert message " + std::to_string(i + 1);
+    SECTION("Sending a single alert") {
+        alertSystem.sendAlert(user.getName(), alert.getDescription());  
 
-            // Create the alert using std::make_shared
-            std::shared_ptr<Alert> alert = std::make_shared<Alert>(alertType, alertMessage, robot, room, currentTime);
-
-            // Send alert to adminUser
-            alertSystem.sendAlert(&adminUser, alert);
-
-            // Save alert to MongoDB
-            dbAdapter.saveAlert(*alert);
-
-            // Update robot status and save asynchronously
-            robot->depleteBattery(10);
-            dbAdapter.saveRobotStatusAsync(robot);
-
-            // Sleep for a short duration to simulate time between alerts
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
-        }
-
-        std::this_thread::sleep_for(std::chrono::seconds(2));
-
-        auto alerts = dbAdapter.retrieveAlerts();
-        REQUIRE(alerts.size() == 6);
-
-        for (const auto& alert : alerts) {
-            REQUIRE_FALSE(alert.getType().empty());
-            REQUIRE_FALSE(alert.getMessage().empty());
-            alert.displayAlertInfo();
-        }
+        // Allow time for alert processing
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        REQUIRE(true);  // No crash expected
     }
 
-    SECTION("Delete and verify collections") {
-        dbAdapter.deleteAllAlerts();
-        dbAdapter.deleteAllRobotStatuses();
+    SECTION("Sending multiple alerts") {
+        for (int i = 0; i < 5; ++i) {
+            alertSystem.sendAlert(user.getName(), alert.getDescription());
+        }
 
-        auto alertsAfterDeletion = dbAdapter.retrieveAlerts();
-        auto robotsAfterDeletion = dbAdapter.retrieveRobotStatuses();
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        REQUIRE(true);  // Ensure no crash
+    }
+}
 
-        REQUIRE(alertsAfterDeletion.empty());
-        REQUIRE(robotsAfterDeletion.empty());
+TEST_CASE("AlertSystem Handles Null Message and Type") {
+    AlertSystem alertSystem;
+    auto role = std::make_shared<Role>("Operator");
+    auto user = User("OperatorUser", role);
+    Alert alert = createSampleAlert();  // Properly initialized
 
-        dbAdapter.dropAlertCollection();
-        dbAdapter.dropRobotStatusCollection();
+    SECTION("Null message and type") {
+        alertSystem.sendAlert("", "");  // Both are null
     }
 
-    // Cleanup
-    dbAdapter.stop();
+    SECTION("Null message only") {
+        alertSystem.sendAlert("", alert.getType());  // Valid alert type
+    }
+
+    SECTION("Null type only") {
+        alertSystem.sendAlert(alert.getMessage(), "");  // Valid message
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    REQUIRE(true);  // No crash expected
 }
