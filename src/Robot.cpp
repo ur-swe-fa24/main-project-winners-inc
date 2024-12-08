@@ -15,31 +15,32 @@ Robot::Robot(const std::string& name, double batteryLevel, Size size, Strategy s
       errorCount_(0), totalWorkTime_(0.0), failed_(false) {}
 
 void Robot::updateState(double deltaTime) {
+    std::cout << "[DEBUG] Robot " << name_ << " updateState: Battery=" << batteryLevel_
+              << "%, Water=" << waterLevel_ << "%, CurrentTask=" 
+              << (currentTask_ ? std::to_string(currentTask_->getID()) : "None")
+              << ", Status=" << getStatus() << "\n";
+
     if (failed_) {
-        // Robot can't operate if failed
+        std::cout << "[DEBUG] Robot " << name_ << " is failed, no operation.\n";
         return;
     }
 
-    // Only fail if currently cleaning:
     if (cleaning_) {
-        double failChance = 0.001; // 0.1% chance per update
+        double failChance = 0.001;
         double rnd = (double)rand() / RAND_MAX;
         if (rnd < failChance && !failed_) {
             failed_ = true;
             errorCount_++;
-            // Status now "Error"
-            return; // Robot is now failed, can't proceed
+            std::cout << "[DEBUG] Robot " << name_ << " failed during cleaning!\n";
+            return;
         }
     }
 
-    // Add working time if robot is cleaning or moving
     if (isCleaning() || isMoving()) {
         totalWorkTime_ += deltaTime;
     }
 
-    // If battery hits 0, robot cannot move or clean
     if (batteryLevel_ <= 0.0) {
-        // Stop movement or cleaning if ongoing
         if (cleaning_) stopCleaning();
         nextRoom_ = nullptr;
         return; 
@@ -48,27 +49,23 @@ void Robot::updateState(double deltaTime) {
     if (isCharging_) {
         batteryLevel_ = std::min(100.0, batteryLevel_ + deltaTime * 20.0);
         if (batteryLevel_ >= 100.0) {
-            // Fully charged
             isCharging_ = false;
-            // Refill water if not full
             if (waterLevel_ < 100.0) {
                 refillWater();
             }
-            fullyRecharge(); // resets alerts, attempts resume of saved task
+            fullyRecharge();
         }
     } else {
-        // Not charging, handle cleaning resource depletion
         if (cleaning_ && currentTask_) {
             double batteryDepletion = 5.0 * deltaTime;
             batteryLevel_ = std::max(0.0, batteryLevel_ - batteryDepletion);
-            // Deplete water ONLY if SHAMPOO
             if (currentTask_->getCleanType() == CleaningTask::SHAMPOO) {
                 double waterDepletion = 5.0 * deltaTime;
                 waterLevel_ = std::max(0.0, waterLevel_ - waterDepletion);
             }
 
-            // If resources too low during cleaning, save task and stop
             if ((needsCharging() || needsWaterRefill()) && cleaning_) {
+                std::cout << "[DEBUG] Robot " << name_ << " resources low mid-cleaning, saving task.\n";
                 saveCurrentTask();
                 stopCleaning();
             }
@@ -96,12 +93,14 @@ void Robot::updateState(double deltaTime) {
     if (cleaning_ && currentTask_) {
         cleaningTimeRemaining_ -= deltaTime;
         if (cleaningTimeRemaining_ <= 0) {
+            std::cout << "[DEBUG] Robot " << name_ << " finished cleaning task " << currentTask_->getID() << ".\n";
             cleaning_ = false;
             currentTask_->markCompleted();
             currentTask_.reset();
             cleaningProgress_ = 0.0;
             if (currentRoom_) {
                 currentRoom_->markClean();
+                std::cout << "[DEBUG] Room " << currentRoom_->getRoomName() << " is now clean.\n";
             }
         }
     }
@@ -113,41 +112,45 @@ void Robot::updateState(double deltaTime) {
         lowWaterAlertSent_ = true;
     }
 
-    // Automatically start charging if at charger and not full or currently charging
     if (currentRoom_ && currentRoom_->getRoomId() == 0 && batteryLevel_ < 100.0 && !isCharging_) {
-        std::cout << "Robot " << name_ << " is at the charging station and will start charging automatically.\n";
+        std::cout << "[DEBUG] Robot " << name_ << " at charger, starting charge.\n";
         setCharging(true);
     }
 }
 
 void Robot::startCleaning(CleaningTask::CleanType cleaningType) {
-    if (isCleaning() || !currentRoom_ || !currentTask_) return;
+    std::cout << "[DEBUG] Robot " << name_ << " attempting to start cleaning.\n";
+    if (isCleaning() || !currentRoom_ || !currentTask_) {
+        std::cout << "[DEBUG] Robot " << name_ << " cannot start cleaning now.\n";
+        return;
+    }
     if (batteryLevel_ < 20.0 || waterLevel_ <= 0.0) {
-        // Not enough resources to start cleaning - save task for later
+        std::cout << "[DEBUG] Robot " << name_ << " not enough resources to start cleaning.\n";
         saveCurrentTask();
         return;
     }
     cleaning_ = true;
+    if (currentTask_) {
+        currentTask_->setStatus("In Progress");
+    }
 
-    double baseTime = 15.0; 
+    double baseTime = 15.0;
     std::string size = currentRoom_->getSize();
     std::transform(size.begin(), size.end(), size.begin(), ::tolower);
 
-    if (size == "small") {
-        baseTime = 5.0;
-    } else if (size == "medium") {
-        baseTime = 10.0;
-    } else if (size == "large") {
-        baseTime = 15.0;
-    }
+    if (size == "small") baseTime = 5.0;
+    else if (size == "medium") baseTime = 10.0;
+    else if (size == "large") baseTime = 15.0;
 
     cleaningTimeRemaining_ = baseTime;
-    // If resuming a saved task
     if (savedTask_ && savedTask_ == currentTask_) {
         cleaningTimeRemaining_ = savedCleaningTimeRemaining_;
         savedTask_.reset();
         savedCleaningTimeRemaining_ = 0.0;
     }
+
+    std::cout << "[DEBUG] Robot " << name_ << " started cleaning task " 
+              << currentTask_->getID() << " now In Progress.\n";
 }
 
 void Robot::stopCleaning() {

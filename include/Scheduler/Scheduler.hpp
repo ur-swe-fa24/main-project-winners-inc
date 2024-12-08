@@ -21,7 +21,6 @@ public:
         simulator_ = simulator;
     }
 
-    // Add these two setter methods for alertSystem_ and dbAdapter_
     void setAlertSystem(std::shared_ptr<AlertSystem> alertSystem) {
         alertSystem_ = alertSystem;
     }
@@ -35,6 +34,10 @@ public:
     void requeueTask(std::shared_ptr<CleaningTask> task);
     void assignCleaningTask(const std::string& robotName, int targetRoomId, const std::string& strategy);
     const std::vector<std::shared_ptr<CleaningTask>>& getAllTasks() const;
+    void removeTask(int taskId);
+
+    // Add a method to print tasks
+    void printTasks() const;
 
 private:
     std::shared_ptr<Robot> findRobotByName(const std::string& name);
@@ -45,11 +48,8 @@ private:
     std::vector<std::shared_ptr<CleaningTask>> tasks_;
     int taskIdCounter_;
     std::shared_ptr<RobotSimulator> simulator_;
-
-    // Add these private members
     std::shared_ptr<AlertSystem> alertSystem_;
     std::shared_ptr<MongoDBAdapter> dbAdapter_;
-
 };
 
 #endif // SCHEDULER_HPP

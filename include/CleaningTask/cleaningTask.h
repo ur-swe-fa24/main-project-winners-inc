@@ -44,6 +44,9 @@ public:
         return VACUUM; // Default
     }
 
+    void setStatus(const std::string& newStatus);
+
+
 private:
     int id;
     Priority priority;              // Priority level

@@ -28,30 +28,24 @@ std::vector<std::shared_ptr<Robot>>& RobotSimulator::getRobots() {
 }
 
 void RobotSimulator::update(double deltaTime) {
+    std::cout << "[DEBUG] RobotSimulator::update start\n";
     for (auto& robot : robots_) {
         bool wasCleaning = robot->isCleaning();
         robot->updateState(deltaTime);
         bool nowCleaning = robot->isCleaning();
 
-        // If robot failed is handled in updateState now.
-
-        // At ANYTIME if battery<20 or water<=0, return to charger
         if ((robot->getBatteryLevel() < 20.0 || robot->getWaterLevel() <= 0.0) && !robot->isCharging()) {
             requestReturnToCharger(robot->getName());
-            // Once returning to charger, no more tasks are processed this update
             continue;
         }
 
-        // If robot just finished cleaning a task and has no current task
         if (wasCleaning && !nowCleaning && !robot->getCurrentTask()) {
             if (scheduler_) {
-                // Attempt to get the next task for this robot in FIFO order
                 auto nextTask = scheduler_->getNextTaskForRobot(robot->getName());
                 if (nextTask) {
                     robot->setCurrentTask(nextTask);
                     assignTaskToRobot(nextTask);
                 } else {
-                    // If no next task, handle no tasks scenario
                     handleNoTaskAndReturnToChargerIfNeeded(robot);
                 }
             } else {
@@ -60,7 +54,15 @@ void RobotSimulator::update(double deltaTime) {
         }
     }
 
+    std::cout << "[DEBUG] After RobotSimulator::update cycle:\n";
+    for (auto& robot : robots_) {
+        std::cout << "  Robot " << robot->getName() 
+                  << " currentTask=" << (robot->getCurrentTask() ? std::to_string(robot->getCurrentTask()->getID()) : "None")
+                  << " Status=" << robot->getStatus() << "\n";
+    }
+
     checkRobotStatesAndSendAlerts();
+    std::cout << "[DEBUG] RobotSimulator::update end\n";
 }
 
 void RobotSimulator::handleNoTaskAndReturnToChargerIfNeeded(std::shared_ptr<Robot> robot) {

@@ -1,35 +1,33 @@
 #include "CleaningTask/cleaningTask.h"
-#include "Schedule/schedule.h"
 #include "Robot/Robot.h"
 #include "Room/Room.h"
-#include <string>
 #include <iostream>
-#include <vector>
-#include <memory>
 
-// Constructor
 CleaningTask::CleaningTask(int id, Priority priority, CleanType cleaningType, Room* room)
     : id(id), priority(priority), status("Pending"), cleaningType(cleaningType), room(room), robot(nullptr) {}
 
-// Assign a robot with a task
 void CleaningTask::assignRobot(const std::shared_ptr<Robot>& robot) {
     this->robot = robot;
-    status = "In Progress";
-    std::cout << "Robot " << robot->getName() << " assigned to task " << id << "." << std::endl;
+    // Keep it Pending until robot actually starts cleaning:
+    status = "Pending"; 
+    std::cout << "[DEBUG] Task " << id << " assigned to " << robot->getName() << " and is now Pending.\n";
 }
 
-// Methods to mark clean as either completed or failed
 void CleaningTask::markCompleted() {
     status = "Completed";
-    std::cout << "Task " << id << " marked as completed." << std::endl;
+    std::cout << "[DEBUG] Task " << id << " marked as completed.\n";
 }
+
 void CleaningTask::markFailed() {
     status = "Failed";
-    std::cout << "Task " << id << " marked as failed." << std::endl;
+    std::cout << "[DEBUG] Task " << id << " marked as failed.\n";
 }
 
+void CleaningTask::setStatus(const std::string& newStatus) {
+    std::cout << "[DEBUG] Task " << id << " status changing from " << status << " to " << newStatus << "\n";
+    status = newStatus;
+}
 
-// Getter declarations
 int CleaningTask::getID() const {
     return id;
 }
@@ -38,7 +36,7 @@ CleaningTask::Priority CleaningTask::getPriority() const {
     return priority;
 }
 
-std::string CleaningTask::getStatus() const{
+std::string CleaningTask::getStatus() const {
     return status;
 }
 
