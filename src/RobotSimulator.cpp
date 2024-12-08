@@ -30,7 +30,17 @@ void RobotSimulator::update(double deltaTime) {
         if (wasCleaning && !nowCleaning && !robot->getCurrentTask()) {
             // Robot completed a task, attempt to get next task
             if (scheduler_) {
+                // Debug: Check how many tasks are currently in the scheduler
+                const auto& allTasks = scheduler_->getAllTasks();
+                std::cout << "Debug: Currently, there are " << allTasks.size()
+                          << " task(s) in the scheduler.\n";
+                std::cout << "Debug: Trying to get next task for robot "
+                          << robot->getName() << "...\n";
+
                 auto nextTask = scheduler_->getNextTaskForRobot(robot->getName());
+
+                std::cout << "Debug: nextTask is " << (nextTask ? "not null" : "null") << "\n";
+
                 if (nextTask) {
                     // Got a new task, assign and set path
                     robot->setCurrentTask(nextTask);
@@ -50,19 +60,27 @@ void RobotSimulator::update(double deltaTime) {
 }
 
 void RobotSimulator::handleNoTaskAndReturnToChargerIfNeeded(std::shared_ptr<Robot> robot) {
-    // If no tasks left or robot resources are low, return to charger
     double battery = robot->getBatteryLevel();
     double water = robot->getWaterLevel();
 
-    // Conditions: If no tasks are available for this robot, we consider returning to charger.
-    // Even if battery/water is okay, you might decide to return it anyway. 
-    // Let's return to charger only if low resources to be consistent with previous logic:
-    bool needsReturn = (battery < 20.0 || water < 0);
+    // Check conditions:
+    // 1) No tasks left for this robot (since getNextTaskForRobot returned null)
+    // 2) Battery < 20% or Water ≤ 0%
+    // Robot should return to charger if EITHER condition is true.
 
-    // If you always want to return to charger when no tasks are left, do: bool needsReturn = true;
-    // Adjust as needed. For now, let's stick to resource logic:
+    // Since we know getNextTaskForRobot returned no task, we can assume no tasks left.
+    bool noTasksLeft = true; 
+    bool lowResources = (battery < 20.0 || water <= 0);
+
+    bool needsReturn = (noTasksLeft || lowResources);
+
     if (needsReturn) {
+        std::cout << "Debug: Robot " << robot->getName()
+                  << " has no tasks and/or low resources, returning to charger.\n";
         requestReturnToCharger(robot->getName());
+    } else {
+        std::cout << "Debug: Robot " << robot->getName()
+                  << " has no tasks but does not need charger right now.\n";
     }
 }
 
