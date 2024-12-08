@@ -40,6 +40,7 @@ set(SOURCES
     src/scheduler_panel.cpp
     src/cleaningTask.cpp
     src/analytics.cpp
+    src/TaskScheduler.cpp
 )
 
 # Define header files
@@ -63,6 +64,7 @@ set(HEADERS
     include/scheduler_panel/scheduler_panel.hpp
     include/CleaningTask/cleaningTask.h
     include/analytics/analytics.h
+    include/TaskScheduler/TaskScheduler.h
 )
 
 # Add library target
@@ -97,6 +99,28 @@ function(copy_resources TARGET_NAME)
         COMMENT "Copying resources for ${TARGET_NAME}"
     )
 endfunction()
+
+# Add test executable
+add_executable(test_task_scheduler 
+    tests/test_task_scheduler.cpp
+    src/Robot.cpp
+    src/Room.cpp
+    src/cleaningTask.cpp
+    src/TaskScheduler.cpp
+    src/map.cpp
+    src/virtual_wall.cpp
+    src/config/ResourceConfig.cpp
+)
+target_include_directories(test_task_scheduler PRIVATE ${CMAKE_SOURCE_DIR}/include)
+target_link_libraries(test_task_scheduler PRIVATE 
+    Catch2::Catch2WithMain 
+    spdlog::spdlog
+    ${wxWidgets_LIBRARIES}
+    nlohmann_json::nlohmann_json
+)
+
+# Add test to CTest
+add_test(NAME TaskSchedulerTest COMMAND test_task_scheduler)
 
 # Add subdirectories
 add_subdirectory(app)
