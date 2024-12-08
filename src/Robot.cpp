@@ -26,7 +26,7 @@ void Robot::updateState(double deltaTime) {
     }
 
     if (cleaning_) {
-        double failChance = 0.001;
+        double failChance = 0.01;
         double rnd = (double)rand() / RAND_MAX;
         if (rnd < failChance && !failed_) {
             failed_ = true;

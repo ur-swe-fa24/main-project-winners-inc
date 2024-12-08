@@ -34,11 +34,13 @@ void RobotSimulator::update(double deltaTime) {
         robot->updateState(deltaTime);
         bool nowCleaning = robot->isCleaning();
 
+        // Handle resource checks
         if ((robot->getBatteryLevel() < 20.0 || robot->getWaterLevel() <= 0.0) && !robot->isCharging()) {
             requestReturnToCharger(robot->getName());
             continue;
         }
 
+        // Check if the robot just finished cleaning a task
         if (wasCleaning && !nowCleaning && !robot->getCurrentTask()) {
             if (scheduler_) {
                 auto nextTask = scheduler_->getNextTaskForRobot(robot->getName());
@@ -51,6 +53,11 @@ void RobotSimulator::update(double deltaTime) {
             } else {
                 handleNoTaskAndReturnToChargerIfNeeded(robot);
             }
+        }
+
+        // Update analytics in real-time
+        if (dbAdapter_) {
+            dbAdapter_->saveRobotAnalytics(robot);
         }
     }
 

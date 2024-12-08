@@ -167,6 +167,13 @@ void SchedulerPanel::UpdateRoomSelection() {
 }
 
 void SchedulerPanel::UpdateRobotListForRoom(Room* room) {
+    // Store the currently selected robot if any
+    wxString currentlySelected;
+    int currentSelection = robotChoice_->GetSelection();
+    if (currentSelection != wxNOT_FOUND) {
+        currentlySelected = robotChoice_->GetString(currentSelection);
+    }
+
     robotChoice_->Clear();
     if (!room || !simulator_) {
         robotChoice_->Enable(false);
@@ -174,15 +181,37 @@ void SchedulerPanel::UpdateRobotListForRoom(Room* room) {
     }
 
     auto suitableRobots = findSuitableRobotsForRoom(room);
+
+    if (suitableRobots.empty()) {
+        std::cout << "[DEBUG] No suitable robots found for " << room->getRoomName() << ".\n";
+        robotChoice_->Enable(false);
+        return;
+    }
+
+    // Populate the robot list
     for (auto& robot : suitableRobots) {
         robotChoice_->Append(wxString::FromUTF8(robot->getName()), robot.get());
     }
 
-    robotChoice_->Enable(robotChoice_->GetCount() > 0);
-    if (robotChoice_->GetCount() > 0) {
+    robotChoice_->Enable(true);
+
+    // Try to restore the previous selection if possible
+    if (!currentlySelected.IsEmpty()) {
+        int indexToSelect = robotChoice_->FindString(currentlySelected);
+        if (indexToSelect != wxNOT_FOUND) {
+            // Restore previously selected robot
+            robotChoice_->SetSelection(indexToSelect);
+        } else {
+            // If previously selected robot not found, select the first one
+            robotChoice_->SetSelection(0);
+        }
+    } else {
+        // No previously selected robot, just select the first one
         robotChoice_->SetSelection(0);
     }
+
     robotChoice_->Refresh();
+    robotChoice_->Layout();
 }
 
 std::shared_ptr<Robot> SchedulerPanel::findSuitableRobotForRoom(Room* room) {
