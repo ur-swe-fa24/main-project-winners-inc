@@ -6,10 +6,20 @@ Welcome to Cleanly! Your CleanBot is equipped with intelligent navigation, a var
 
 # Setting Up Your Robot
 ## Setting Up Your Account
-Upon the delivery of your robot, one of our Cleanly field engineers will help you set up your account through the Cleanly app. Once they have helped you with the set-up process, you will be able to easily log into your account using your unique username and password.
+Upon the delivery of your robot, one of our Cleanly field engineers will help you set up your account through the Cleanly app. Once they have helped you with the set-up process, you will be able to easily log into your account using your unique username and password. Depending on your role as a **Field Engineer**, **Building Manager**, or **Senior Manager**, your account will be assigned with the appropriate permissions. *See Account Types and User Permissions below for more information.* 
 
 ## Creating a Map
-In addition to helping you set up your Cleanly account, our Cleanly field engineers will also help you with uploading a map of your building into your CleanBot's memory. This map will reflect all rooms to be accessible by your CleanBot, along with the flooring type of each room. Additionally, you may set up "virtual walls" to wall off any rooms that you want to make inaccessible to your CleanBot. Once the process of creating your map is complete, you will be able to see a visual representation of the map under the **Map** tab in the navigation bar. You will also be able to see the location of each of your CleanBots as well as which rooms have been marked as clean. 
+In addition to helping you set up your Cleanly account, our Cleanly field engineers will also help you with uploading a map of your building into your CleanBot's memory. This map will reflect all rooms to be accessible by your CleanBot, along with the flooring type of each room. Additionally, you may set up "virtual walls" to wall off any rooms that you want to make inaccessible to your CleanBot. Once the process of creating your map is complete, you will be able to see a visual representation of the map under the **Map** tab in the navigation bar. You will also be able to see the location of each of your CleanBots as well as which rooms have been marked as clean.
+
+# Account Types and User Permissions
+## Building Manager
+A Building Manager will be provided the permission to assign tasks to one or multiple robots at a time. Building Managers will also be able to view current robot statuses, including battery and water levels.
+
+## Field Engineer
+As a Field Engineer, you are permitted the same permissions as the Building Managers-- assigning tasks to robots and viewing the current statuses of robots. Additionally, you are provided with more details about errors and statuses, you are able to use "fix" actions, and you may add or remove robots from the system as needed.
+
+## Senior Manager
+Senior Management will have access to analytics regarding robot performance, including error rates, battery life, cost efficiency, and time efficiency. A Senior Management account will only have access to these metrics, but will not be able to assign tasks.
 
 # Operating your Robot
 ## Scheduling Cleanings
