@@ -107,6 +107,8 @@ void RobotSimulator::moveRobotToRoom(const std::string& robotName, int roomId) {
             if (dbAdapter_) {
                 // Convert currentRoom to shared_ptr<Room>
                 std::shared_ptr<Room> curRoomPtr = currentRoom ? std::make_shared<Room>(*currentRoom) : nullptr;
+                
+                // Alert with "Task" title so it appears in the same category
                 Alert alert("Movement", "No path found for robot " + robotName, 
                             getRobotByName(robotName), curRoomPtr, std::time(nullptr), Alert::LOW);
                 dbAdapter_->saveAlert(alert);
@@ -120,13 +122,19 @@ void RobotSimulator::moveRobotToRoom(const std::string& robotName, int roomId) {
 
 void RobotSimulator::startRobotCleaning(const std::string& robotName) {
     auto robot = getRobotByName(robotName);
-    if (!robot) return;
+    if (!robot) {
+        throw std::runtime_error("Robot not found: " + robotName);
+    }
+    std::cout << "[DEBUG] Robot " << robotName << " attempting to start cleaning." << std::endl;
     robot->startCleaning(CleaningTask::VACUUM); 
 }
 
 void RobotSimulator::stopRobotCleaning(const std::string& robotName) {
     auto robot = getRobotByName(robotName);
-    if (!robot) return;
+    if (!robot) {
+        throw std::runtime_error("Robot not found: " + robotName);
+    }
+    std::cout << "[DEBUG] Robot " << robotName << " attempting to stop cleaning." << std::endl;
     robot->stopCleaning();
 }
 
@@ -141,9 +149,14 @@ void RobotSimulator::manuallyPickUpRobot(const std::string& robotName) {
 
 void RobotSimulator::requestReturnToCharger(const std::string& robotName) {
     auto robot = getRobotByName(robotName);
-    if (!robot) return;
+    if (!robot) {
+        throw std::runtime_error("Robot not found: " + robotName);
+    }
+
     Room* charger = map_->getRoomById(0);
-    if (!charger) return;
+    if (!charger) {
+        throw std::runtime_error("Charging station not found");
+    }
 
     auto route = map_->getRoute(*robot->getCurrentRoom(), *charger);
     if (!route.empty()) {
@@ -249,4 +262,3 @@ void RobotSimulator::assignTaskToRobot(std::shared_ptr<CleaningTask> task) {
 
 // In Scheduler, make sure when assigning tasks, we save tasks alerts as before
 // using the code snippet provided by the user.
-
