@@ -68,6 +68,9 @@ public:
     int getErrorCount() const { return errorCount_; }
     double getTotalWorkTime() const { return totalWorkTime_; }
 
+    // New methods for task management
+    bool requestNextTask();
+    bool canAcceptTask() const;
 
 private:
     std::string name_;

@@ -2,6 +2,7 @@
 #include "CleaningTask/cleaningTask.h"
 #include "Room/Room.h"
 #include "map/map.h"
+#include "TaskScheduler/TaskScheduler.h"
 #include <algorithm>
 #include <iostream>
 
@@ -115,6 +116,11 @@ void Robot::updateState(double deltaTime) {
     if (currentRoom_ && currentRoom_->getRoomId() == 0 && batteryLevel_ < 100.0 && !isCharging_) {
         std::cout << "[DEBUG] Robot " << name_ << " at charger, starting charge.\n";
         setCharging(true);
+    }
+
+    // Check if we can request a new task
+    if (!currentTask_ && canAcceptTask()) {
+        requestNextTask();
     }
 }
 
@@ -231,6 +237,33 @@ bool Robot::needsMaintenance() const { return false; }
 bool Robot::isLowBatteryAlertSent() const { return lowBatteryAlertSent_; }
 bool Robot::isLowWaterAlertSent() const { return lowWaterAlertSent_; }
 
+bool Robot::canAcceptTask() const {
+    return !failed_ && !isCharging_ && !isCleaning() && !isMoving() && 
+           batteryLevel_ > 20.0 && waterLevel_ > 20.0;
+}
+
+bool Robot::requestNextTask() {
+    if (!canAcceptTask()) {
+        return false;
+    }
+
+    auto& scheduler = TaskScheduler::getInstance();
+    if (!scheduler.hasTasks()) {
+        return false;
+    }
+
+    auto task = scheduler.dequeueTask();
+    if (!task) {
+        return false;
+    }
+
+    setCurrentTask(task);
+    if (task->getRoom() != getCurrentRoom()) {
+        moveToRoom(task->getRoom());
+    }
+    startCleaning(task->getCleanType());
+    return true;
+}
 
 std::string Robot::getStatus() const {
     if (failed_) return "Error";
