@@ -7,12 +7,12 @@
 #include <chrono>
 #include <thread>
 
-TEST_CASE("Robot Metrics Test") {
-    // Initialize test objects
-    auto robot = std::make_shared<Robot>("TestBot", 100);
+// First Test Case: Initialization and Basic Updates
+TEST_CASE("Robot Metrics Initialization and Basic Updates") {
+    auto robot = std::make_shared<Robot>("CleaningBot", 100.0, Robot::Size::MEDIUM, Robot::Strategy::VACUUM, 50.0);
     RobotMetrics metrics(0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 0.0f);
 
-    SECTION("Metrics Initialization") {
+    SECTION("Default Initialization") {
         REQUIRE(metrics.utilization == 0.0f);
         REQUIRE(metrics.errorRate == 0.0f);
         REQUIRE(metrics.costEfficiency == 1.0f);
@@ -21,67 +21,87 @@ TEST_CASE("Robot Metrics Test") {
         REQUIRE(metrics.waterUsage == 0.0f);
     }
 
-    SECTION("Metrics Update") {
-        // Update metrics with new values
-        metrics.utilization = 0.75f;
-        metrics.errorRate = 0.05f;
-        metrics.costEfficiency = 0.95f;
-        metrics.timeEfficiency = 0.9f;
-        metrics.batteryUsage = 0.5f;
-        metrics.waterUsage = 0.3f;
+    SECTION("Metrics Update Verification") {
+        metrics.utilization = 0.85f;
+        metrics.errorRate = 0.03f;
+        metrics.costEfficiency = 0.92f;
+        metrics.timeEfficiency = 0.88f;
+        metrics.batteryUsage = 0.45f;
+        metrics.waterUsage = 0.2f;
 
-        // Verify updated values
-        REQUIRE(metrics.utilization == 0.75f);
-        REQUIRE(metrics.errorRate == 0.05f);
-        REQUIRE(metrics.costEfficiency == 0.95f);
-        REQUIRE(metrics.timeEfficiency == 0.9f);
-        REQUIRE(metrics.batteryUsage == 0.5f);
-        REQUIRE(metrics.waterUsage == 0.3f);
+        REQUIRE(metrics.utilization == 0.85f);
+        REQUIRE(metrics.errorRate == 0.03f);
+        REQUIRE(metrics.costEfficiency == 0.92f);
+        REQUIRE(metrics.timeEfficiency == 0.88f);
+        REQUIRE(metrics.batteryUsage == 0.45f);
+        REQUIRE(metrics.waterUsage == 0.2f);
     }
 
-    SECTION("Battery Metrics") {
-        // Test initial battery level
+    SECTION("Edge Case: Maximum and Minimum Values") {
+        metrics.utilization = 1.0f;
+        metrics.errorRate = 0.0f;
+        metrics.batteryUsage = 1.0f;
+        metrics.waterUsage = 1.0f;
+
+        REQUIRE(metrics.utilization == 1.0f);
+        REQUIRE(metrics.errorRate == 0.0f);
+        REQUIRE(metrics.batteryUsage == 1.0f);
+        REQUIRE(metrics.waterUsage == 1.0f);
+    }
+}
+
+// Second Test Case: Advanced Metrics and Resource Usage
+TEST_CASE("Robot Metrics Advanced Operations") {
+    auto robot = std::make_shared<Robot>("CleaningBot", 100.0, Robot::Size::MEDIUM, Robot::Strategy::VACUUM, 50.0);
+    RobotMetrics metrics(0.2f, 0.05f, 0.9f, 0.85f, 0.3f, 0.25f);
+
+    SECTION("Battery Management") {
         REQUIRE(robot->getBatteryLevel() == 100);
 
-        // Simulate battery usage
-        metrics.batteryUsage = 0.5f;
-        REQUIRE(metrics.batteryUsage == 0.5f);
+        metrics.batteryUsage = 0.6f;
+        REQUIRE(metrics.batteryUsage == 0.6f);
 
-        // Test low battery threshold
-        metrics.batteryUsage = 0.9f;
-        REQUIRE(metrics.batteryUsage > 0.8f);
+        metrics.batteryUsage = 0.95f;
+        REQUIRE(metrics.batteryUsage > 0.9f); // Critical level check
     }
 
-    SECTION("Efficiency Metrics") {
-        // Test initial efficiencies
-        REQUIRE(metrics.costEfficiency == 1.0f);
-        REQUIRE(metrics.timeEfficiency == 1.0f);
+    SECTION("Efficiency Adjustments") {
+        metrics.costEfficiency = 0.75f;
+        metrics.timeEfficiency = 0.8f;
 
-        // Test efficiency updates
-        metrics.costEfficiency = 0.85f;
-        metrics.timeEfficiency = 0.9f;
-
-        REQUIRE(metrics.costEfficiency == 0.85f);
-        REQUIRE(metrics.timeEfficiency == 0.9f);
+        REQUIRE(metrics.costEfficiency == 0.75f);
+        REQUIRE(metrics.timeEfficiency == 0.8f);
     }
 
-    SECTION("Resource Usage") {
-        // Test water usage
-        metrics.waterUsage = 0.3f;
-        REQUIRE(metrics.waterUsage == 0.3f);
+    SECTION("Resource Usage Tracking") {
+        metrics.waterUsage = 0.4f;
+        REQUIRE(metrics.waterUsage == 0.4f);
 
-        // Test utilization
-        metrics.utilization = 0.75f;
-        REQUIRE(metrics.utilization == 0.75f);
+        metrics.utilization = 0.9f;
+        REQUIRE(metrics.utilization == 0.9f);
     }
 
-    SECTION("Error Metrics") {
-        // Test error rate
-        metrics.errorRate = 0.02f;
-        REQUIRE(metrics.errorRate == 0.02f);
+    SECTION("Error Rate Monitoring") {
+        metrics.errorRate = 0.07f;
+        REQUIRE(metrics.errorRate == 0.07f);
 
-        // Test high error threshold
-        metrics.errorRate = 0.15f;
-        REQUIRE(metrics.errorRate > 0.1f);
+        metrics.errorRate = 0.2f;
+        REQUIRE(metrics.errorRate > 0.15f); // High error threshold alert
+    }
+
+    SECTION("Simulation of Full Metrics Update") {
+        metrics.utilization = 0.95f;
+        metrics.errorRate = 0.01f;
+        metrics.costEfficiency = 0.98f;
+        metrics.timeEfficiency = 0.97f;
+        metrics.batteryUsage = 0.75f;
+        metrics.waterUsage = 0.5f;
+
+        REQUIRE(metrics.utilization == 0.95f);
+        REQUIRE(metrics.errorRate == 0.01f);
+        REQUIRE(metrics.costEfficiency == 0.98f);
+        REQUIRE(metrics.timeEfficiency == 0.97f);
+        REQUIRE(metrics.batteryUsage == 0.75f);
+        REQUIRE(metrics.waterUsage == 0.5f);
     }
 }
