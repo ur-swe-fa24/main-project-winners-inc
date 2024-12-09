@@ -57,10 +57,10 @@ void Robot::updateState(double deltaTime) {
         }
     } else {
         if (cleaning_ && currentTask_) {
-            double batteryDepletion = 5.0 * deltaTime;
+            double batteryDepletion = 10.0 * deltaTime;
             batteryLevel_ = std::max(0.0, batteryLevel_ - batteryDepletion);
             if (currentTask_->getCleanType() == CleaningTask::SHAMPOO) {
-                double waterDepletion = 5.0 * deltaTime;
+                double waterDepletion = 10.0 * deltaTime;
                 waterLevel_ = std::max(0.0, waterLevel_ - waterDepletion);
             }
 
@@ -105,12 +105,12 @@ void Robot::updateState(double deltaTime) {
         }
     }
 
-    if (needsCharging() && !lowBatteryAlertSent_) {
-        lowBatteryAlertSent_ = true;
-    }
-    if (needsWaterRefill() && !lowWaterAlertSent_) {
-        lowWaterAlertSent_ = true;
-    }
+    // if (needsCharging() && !lowBatteryAlertSent_) {
+    //     lowBatteryAlertSent_ = true;
+    // }
+    // if (needsWaterRefill() && !lowWaterAlertSent_) {
+    //     lowWaterAlertSent_ = true;
+    // }
 
     if (currentRoom_ && currentRoom_->getRoomId() == 0 && batteryLevel_ < 100.0 && !isCharging_) {
         std::cout << "[DEBUG] Robot " << name_ << " at charger, starting charge.\n";

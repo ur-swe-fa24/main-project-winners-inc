@@ -181,34 +181,47 @@ std::shared_ptr<AlertSystem> RobotSimulator::getAlertSystem() const {
 
 void RobotSimulator::checkRobotStatesAndSendAlerts() {
     for (auto& robot : robots_) {
-        // Battery alert
+        // Check low battery
         if (robot->needsCharging() && !robot->isLowBatteryAlertSent()) {
+            std::string message = "Robot " + robot->getName() + " has low battery.";
+
+            // Use "Task" to match the title of other alerts that appear in the panel
             if (alertSystem_) {
-                alertSystem_->sendAlert("Robot " + robot->getName() + " has low battery.", "Battery");
+                alertSystem_->sendAlert(message, "Task");
             }
             if (dbAdapter_) {
-                std::shared_ptr<Room> curRoomPtr = robot->getCurrentRoom() ? std::make_shared<Room>(*robot->getCurrentRoom()) : nullptr;
-                Alert alert("Battery", "Robot " + robot->getName() + " has low battery.", robot, curRoomPtr, std::time(nullptr), Alert::HIGH);
-                dbAdapter_->saveAlert(alert);
+                std::shared_ptr<Room> curRoomPtr = robot->getCurrentRoom() ? 
+                    std::make_shared<Room>(*robot->getCurrentRoom()) : nullptr;
+                
+                // Alert with "Task" title so it appears in the same category
+                Alert batteryAlert("Task", message, robot, curRoomPtr, std::time(nullptr), Alert::HIGH);
+                dbAdapter_->saveAlert(batteryAlert);
             }
+
             robot->setLowBatteryAlertSent(true);
         }
 
-        // Water alert
+        // Check low water
         if (robot->needsWaterRefill() && !robot->isLowWaterAlertSent()) {
+            std::string message = "Robot " + robot->getName() + " has low water.";
+
+            // Also use "Task" title here
             if (alertSystem_) {
-                alertSystem_->sendAlert("Robot " + robot->getName() + " has low water.", "Water");
+                alertSystem_->sendAlert(message, "Task");
             }
             if (dbAdapter_) {
-                std::shared_ptr<Room> curRoomPtr = robot->getCurrentRoom() ? std::make_shared<Room>(*robot->getCurrentRoom()) : nullptr;
-                Alert alert("Water", "Robot " + robot->getName() + " has low water.", robot, curRoomPtr, std::time(nullptr), Alert::HIGH);
-                dbAdapter_->saveAlert(alert);
+                std::shared_ptr<Room> curRoomPtr = robot->getCurrentRoom() ? 
+                    std::make_shared<Room>(*robot->getCurrentRoom()) : nullptr;
+
+                // Again, use "Task" as the title
+                Alert waterAlert("Task", message, robot, curRoomPtr, std::time(nullptr), Alert::HIGH);
+                dbAdapter_->saveAlert(waterAlert);
             }
+
             robot->setLowWaterAlertSent(true);
         }
     }
 }
-
 
 void RobotSimulator::addRobot(const std::string& robotName) {
     Room* charger = map_->getRoomById(0);

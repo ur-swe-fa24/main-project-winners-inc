@@ -108,8 +108,12 @@ const std::vector<std::shared_ptr<CleaningTask>>& Scheduler::getAllTasks() const
 }
 
 void Scheduler::checkAndReturnToChargerIfNeeded(std::shared_ptr<Robot> robot) {
+    if (!robot) return;
+
     double battery = robot->getBatteryLevel();
     double water = robot->getWaterLevel();
+
+    // Determine if the robot still has pending tasks
     bool noTasksLeft = true;
     for (auto& t : tasks_) {
         if (t->getRobot() == robot && t->getStatus() == "Pending") {
@@ -123,36 +127,40 @@ void Scheduler::checkAndReturnToChargerIfNeeded(std::shared_ptr<Robot> robot) {
     Room* errorRoom = robot->getCurrentRoom();
 
     if (needsReturn && simulator_) {
-        std::cout << "[DEBUG] " << robot->getName() << " returning to charger.\n";
-        simulator_->requestReturnToCharger(robot->getName());
+        std::cout << "[DEBUG] " << name << " returning to charger.\n";
+        simulator_->requestReturnToCharger(name);
 
-        if (alertSystem_ && (battery < 20.0)){
+        // Use consistent alert types here:
+        // Low battery -> "Battery"
+        // Low water -> "Water"
+
+        if (alertSystem_ && (battery < 20.0)) {
             std::string message = name + " has low battery levels. Returning to charger.";
-            alertSystem_->sendAlert(message, "Task");
+            alertSystem_->sendAlert(message, "Battery");
         }
 
         if (alertSystem_ && (water < 20.0)) {
             std::string message = name + " has low water levels. Refill tank.";
-            alertSystem_->sendAlert(message, "Task");
+            alertSystem_->sendAlert(message, "Water");
         }
 
         if (dbAdapter_ && (battery < 20.0)) {
-            Alert newAlert("Task",
-                           name + " has low battery levels. Returning to charger.",
-                           robot,
-                           std::make_shared<Room>(*errorRoom),
-                           std::time(nullptr),
-                           Alert::LOW);
+            Alert newAlert("Battery",
+                               name + " has low battery levels. Returning to charger.",
+                               robot,
+                               errorRoom ? std::make_shared<Room>(*errorRoom) : nullptr,
+                               std::time(nullptr),
+                               Alert::LOW);
             dbAdapter_->saveAlert(newAlert);
         }
 
         if (dbAdapter_ && (water < 20.0)) {
-            Alert newAlert("Task",
-                           name + " has low water levels. Refill tank.",
-                           robot,
-                           std::make_shared<Room>(*errorRoom),
-                           std::time(nullptr),
-                           Alert::LOW);
+            Alert newAlert("Water",
+                             name + " has low water levels. Refill tank.",
+                             robot,
+                             errorRoom ? std::make_shared<Room>(*errorRoom) : nullptr,
+                             std::time(nullptr),
+                             Alert::LOW);
             dbAdapter_->saveAlert(newAlert);
         }
     }
