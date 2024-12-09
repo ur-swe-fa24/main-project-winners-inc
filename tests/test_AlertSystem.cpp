@@ -18,7 +18,6 @@ Alert createSampleAlert() {
     std::time_t now = std::time(nullptr);
     return Alert("Critical", "System failure", robot, room, now, Alert::Severity::HIGH);
 }
-// ---- TEST CASES ----
 
 TEST_CASE("Alert Initialization and Properties") {
     auto robot = std::make_shared<Robot>("CleaningBot", 100.0, Robot::Size::MEDIUM, Robot::Strategy::VACUUM, 50.0);

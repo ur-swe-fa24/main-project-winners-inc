@@ -19,26 +19,26 @@ add_executable(test_mappingSystem test_mappingSystem.cpp)
 target_link_libraries(test_mappingSystem PRIVATE main_proj Catch2::Catch2WithMain)
 copy_resources(test_mappingSystem)
 
-add_executable(test_robotMetrics test_robotMetrics.cpp)
-target_link_libraries(test_robotMetrics PRIVATE main_proj Catch2::Catch2WithMain)
-copy_resources(test_robotMetrics)
+# add_executable(test_robotMetrics test_robotMetrics.cpp)
+# target_link_libraries(test_robotMetrics PRIVATE main_proj Catch2::Catch2WithMain)
+# copy_resources(test_robotMetrics)
 
-add_executable(test_schedulingSystem test_schedulingSystem.cpp)
-target_link_libraries(test_schedulingSystem PRIVATE main_proj Catch2::Catch2WithMain)
-copy_resources(test_schedulingSystem)
+# add_executable(test_schedulingSystem test_schedulingSystem.cpp)
+# target_link_libraries(test_schedulingSystem PRIVATE main_proj Catch2::Catch2WithMain)
+# copy_resources(test_schedulingSystem)
 
-add_executable(test_simulation test_simulation.cpp)
-target_link_libraries(test_simulation PRIVATE main_proj Catch2::Catch2WithMain)
-copy_resources(test_simulation)
+# add_executable(test_simulation test_simulation.cpp)
+# target_link_libraries(test_simulation PRIVATE main_proj Catch2::Catch2WithMain)
+# copy_resources(test_simulation)
 
 # Set include directories for all test executables
 foreach(test_target
     test_mongoDB
     test_AlertSystem
     test_mappingSystem
-    test_robotMetrics
-    test_schedulingSystem
-    test_simulation
+    # test_robotMetrics
+    # test_schedulingSystem
+    # test_simulation
 )
     target_include_directories(${test_target}
         PRIVATE

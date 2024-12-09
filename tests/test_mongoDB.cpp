@@ -1,4 +1,3 @@
-#define CATCH_CONFIG_MAIN  // This tells Catch to provide a main() - only do this in one cpp file
 #include "AlertSystem/alert_system.h"
 #include "Robot/Robot.h"
 #include "Room/Room.h"
@@ -45,7 +44,7 @@ TEST_CASE("MongoDB Integration Test") {
     std::vector<Room*> neighbors;
 
     // Create Robot and Room instances using shared_ptr
-    auto robot = std::make_shared<Robot>("CleaningRobot", 100);  // Example attributes
+    auto robot = std::make_shared<Robot>("CleaningBot", 100.0, Robot::Size::MEDIUM, Robot::Strategy::VACUUM, 50.0);  // Example attributes
     auto room = std::make_shared<Room>("MainRoom", 101, "wood", "medium", true, neighbors);  // Example attributes
 
     // Create AlertSystem
@@ -93,7 +92,7 @@ TEST_CASE("MongoDB Integration Test") {
         // Test async alert saving
         std::time_t currentTime = std::time(nullptr);
         auto alert = std::make_shared<Alert>("Async Alert", "Test Async", robot, room, currentTime);
-        dbAdapter.saveAlert(*alert);
+        dbAdapter.saveAlertAsync(*alert);
 
         // Test async robot status saving
         dbAdapter.saveRobotStatusAsync(robot);
@@ -109,7 +108,6 @@ TEST_CASE("MongoDB Integration Test") {
     }
 
     // Stop all threads before exiting
-    alertSystem.stop();
     dbAdapter.stop();
     dbAdapter.stopRobotStatusThread();
 }
