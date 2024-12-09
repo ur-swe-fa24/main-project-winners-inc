@@ -20,9 +20,9 @@ TEST_CASE("Test Scheduling System", "[scheduling]") {
 
     std::vector<std::shared_ptr<Robot>> robots;
     
-    // Create test robots
-    auto robot1 = std::make_shared<Robot>("Robot1", 100);
-    auto robot2 = std::make_shared<Robot>("Robot2", 100);
+    // Create test robots with size and strategy
+    auto robot1 = std::make_shared<Robot>("Robot1", 100, Robot::Size::MEDIUM, Robot::Strategy::VACUUM);
+    auto robot2 = std::make_shared<Robot>("Robot2", 100, Robot::Size::MEDIUM, Robot::Strategy::VACUUM);
 
     // Set initial rooms for robots
     Room* room3 = map.getRoomById(3);

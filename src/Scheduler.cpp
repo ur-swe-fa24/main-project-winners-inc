@@ -69,8 +69,14 @@ void Scheduler::assignCleaningTask(const std::string& robotName, int targetRoomI
 
     // Check if the robot already has a current task
     if (robot->getCurrentTask()) {
-        std::cout << "[DEBUG] Robot " << robotName << " already has a current task. Not assigning a new one." << std::endl;
-        return; // or throw an exception, or handle differently
+        std::cout << "[DEBUG] Robot " << robotName << " already has a current task." << std::endl;
+        throw std::runtime_error("Robot already has a task assigned.");
+    }
+
+    // Check if there's a virtual wall between robot's current room and target room
+    Room* currentRoom = robot->getCurrentRoom();
+    if (currentRoom && map_->isVirtualWallBetween(currentRoom, selectedRoom)) {
+        throw std::runtime_error("Cannot assign task: Virtual wall between current room and target room.");
     }
 
     CleaningTask::CleanType ctype = CleaningTask::stringToCleanType(strategy);
