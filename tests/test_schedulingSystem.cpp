@@ -1,5 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
-#include "Schedular/Schedular.hpp"
+#include "Scheduler/Scheduler.hpp"
 #include "config/ResourceConfig.hpp"
 #include "Robot/Robot.h"
 #include "map/map.h"
