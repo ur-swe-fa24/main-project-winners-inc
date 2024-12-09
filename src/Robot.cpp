@@ -106,12 +106,12 @@ void Robot::updateState(double deltaTime) {
         }
     }
 
-    if (needsCharging() && !lowBatteryAlertSent_) {
-        lowBatteryAlertSent_ = true;
-    }
-    if (needsWaterRefill() && !lowWaterAlertSent_) {
-        lowWaterAlertSent_ = true;
-    }
+    // if (needsCharging() && !lowBatteryAlertSent_) {
+    //     lowBatteryAlertSent_ = true;
+    // }
+    // if (needsWaterRefill() && !lowWaterAlertSent_) {
+    //     lowWaterAlertSent_ = true;
+    // }
 
     if (currentRoom_ && currentRoom_->getRoomId() == 0 && batteryLevel_ < 100.0 && !isCharging_) {
         std::cout << "[DEBUG] Robot " << name_ << " at charger, starting charge.\n";
