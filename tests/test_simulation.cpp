@@ -3,6 +3,9 @@
 #include "adapter/MongoDBAdapter.hpp"
 #include "config/ResourceConfig.hpp"
 #include "Robot/Robot.h"
+#include "Scheduler/Scheduler.hpp"
+#include "AlertSystem/alert_system.h"
+#include "map/map.h"
 #include <memory>
 #include <mongocxx/instance.hpp>
 #include <mongocxx/client.hpp>
@@ -13,8 +16,6 @@
 mongocxx::instance instance{}; // Must be initialized before using the driver
 
 TEST_CASE("Test Robot Simulator", "[simulation]") {
-    std::shared_ptr<MongoDBAdapter> dbAdapter = std::make_shared<MongoDBAdapter>("mongodb://localhost:27017", "test_db");
-    
     // Initialize resource config with the correct path
     std::filesystem::path currentPath = std::filesystem::current_path();
     std::filesystem::path resourcePath = currentPath / "resources";
@@ -23,35 +24,41 @@ TEST_CASE("Test Robot Simulator", "[simulation]") {
     }
     config::ResourceConfig::initialize(resourcePath.string());
     
-    RobotSimulator simulator(dbAdapter, config::ResourceConfig::getMapPath());
+    // Create required components for RobotSimulator
+    auto map = std::make_shared<Map>();
+    REQUIRE_NOTHROW(map->loadFromFile(config::ResourceConfig::getMapPath()));
+    
+    // Create a vector to store robots
+    std::vector<std::shared_ptr<Robot>> robots;
+    
+    // Create scheduler with map and robots
+    auto scheduler = std::make_shared<Scheduler>(map.get(), &robots);
+    auto alertSystem = std::make_shared<AlertSystem>();
+    auto dbAdapter = std::make_shared<MongoDBAdapter>("mongodb://localhost:27017", "test_db");
+    
+    RobotSimulator simulator(map, scheduler, alertSystem, dbAdapter);
 
     SECTION("Robot Management") {
         // Test adding robots
         std::cout << "Testing robot management..." << std::endl;
         REQUIRE_NOTHROW(simulator.addRobot("Robot1"));
-        std::cout << "Added Robot1" << std::endl;
-        REQUIRE_NOTHROW(simulator.addRobot("Robot2"));
-        std::cout << "Added Robot2" << std::endl;
-
-        // Verify robots were added
+        
+        // Test robot operations
         auto& robots = simulator.getRobots();
-        std::cout << "Number of robots: " << robots.size() << std::endl;
-        REQUIRE(robots.size() == 2);
-
-        // Test getting robot by name
-        auto robot1 = simulator.getRobotByName("Robot1");
-        REQUIRE(robot1 != nullptr);
-        std::cout << "Found Robot1: " << robot1->getName() << std::endl;
-        REQUIRE(robot1->getName() == "Robot1");
-
-        // Test deleting robot
-        REQUIRE_NOTHROW(simulator.deleteRobot("Robot1"));
-        std::cout << "Deleted Robot1" << std::endl;
-        REQUIRE(simulator.getRobots().size() == 1);
-
-        // Test deleting non-existent robot
-        REQUIRE_THROWS(simulator.deleteRobot("NonexistentRobot"));
-        std::cout << "Successfully caught attempt to delete non-existent robot" << std::endl;
+        REQUIRE(!robots.empty());
+        auto robot1 = std::find_if(robots.begin(), robots.end(),
+            [](const auto& robot) { return robot->getName() == "Robot1"; });
+        REQUIRE(robot1 != robots.end());
+        
+        // Test robot control operations
+        REQUIRE_NOTHROW(simulator.startRobotCleaning("Robot1"));
+        REQUIRE_NOTHROW(simulator.stopRobotCleaning("Robot1"));
+        REQUIRE_NOTHROW(simulator.requestReturnToCharger("Robot1"));
+        
+        // Test operations with non-existent robot
+        REQUIRE_THROWS(simulator.startRobotCleaning("NonexistentRobot"));
+        REQUIRE_THROWS(simulator.stopRobotCleaning("NonexistentRobot"));
+        REQUIRE_THROWS(simulator.requestReturnToCharger("NonexistentRobot"));
     }
 
     SECTION("Robot Status") {
@@ -64,14 +71,14 @@ TEST_CASE("Test Robot Simulator", "[simulation]") {
         REQUIRE(statuses[0].batteryLevel > 0);
 
         // Test cleaning commands
-        REQUIRE_NOTHROW(simulator.startCleaning("TestRobot"));
-        REQUIRE_NOTHROW(simulator.stopCleaning("TestRobot"));
-        REQUIRE_NOTHROW(simulator.returnToCharger("TestRobot"));
+        REQUIRE_NOTHROW(simulator.startRobotCleaning("TestRobot"));
+        REQUIRE_NOTHROW(simulator.stopRobotCleaning("TestRobot"));
+        REQUIRE_NOTHROW(simulator.requestReturnToCharger("TestRobot"));
 
         // Test invalid robot commands
-        REQUIRE_THROWS(simulator.startCleaning("NonexistentRobot"));
-        REQUIRE_THROWS(simulator.stopCleaning("NonexistentRobot"));
-        REQUIRE_THROWS(simulator.returnToCharger("NonexistentRobot"));
+        REQUIRE_THROWS(simulator.startRobotCleaning("NonexistentRobot"));
+        REQUIRE_THROWS(simulator.stopRobotCleaning("NonexistentRobot"));
+        REQUIRE_THROWS(simulator.requestReturnToCharger("NonexistentRobot"));
     }
 
     SECTION("Map Access") {

@@ -107,3 +107,18 @@ Run individual test executables from the `build/tests` directory for more detail
 + Updated design documents, mainly making changes to our *class_diagram* files
 + Creating README.md and USER_GUIDE.md files
 + Implementation for SchedulingSystem
+
+## Updates Since Sprint 4
++ LOTS of decoupling and refactoring
++ Adding limitations based on account type to allow different types of users to have different permissions
++ New analytics panel representing error rates, time taken to complete task, etc. for senior managers
++ Implementing water level as a robot status and sending alerts when water level is low
++ Adding room and robot sizes to simulation to limit only small robots to small rooms, medium robots to medium rooms, etc.
++ Imposing robot types-- only scrub robots can scrub, only vacuum robots may vacuum, etc.
++ Checking robot statuses to ensure that they're functional before assigning tasks
++ Sending location of robot when it experiences an error
++ Alert when robot fails task or when water level is low
++ Updated unit testing
++ Updated README.md and USER_GUIDE.md files
++ Updated documentation where necessary
+

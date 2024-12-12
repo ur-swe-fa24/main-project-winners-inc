@@ -1,4 +1,3 @@
-#define CATCH_CONFIG_MAIN  // This tells Catch to provide a main() - only do this in one cpp file
 #include "AlertSystem/alert_system.h"
 #include "Robot/Robot.h"
 #include "Room/Room.h"
@@ -38,15 +37,15 @@ TEST_CASE("MongoDB Integration Test") {
     userRole.addPermission(userPermission);
 
     // Create Users
-    User adminUser(1, "AdminUser", adminRole);
-    User regularUser(2, "RegularUser", userRole);
+    User adminUser("AdminUser", std::make_shared<Role>(adminRole));
+    User regularUser("RegularUser", std::make_shared<Role>(userRole));
 
     // Declaration of neighbors vector
     std::vector<Room*> neighbors;
 
     // Create Robot and Room instances using shared_ptr
-    auto robot = std::make_shared<Robot>("CleaningRobot", 100);  // Example attributes
-    auto room = std::make_shared<Room>("MainRoom", 101, "wood", true, neighbors);  // Example attributes
+    auto robot = std::make_shared<Robot>("CleaningBot", 100.0, Robot::Size::MEDIUM, Robot::Strategy::VACUUM, 50.0);  // Example attributes
+    auto room = std::make_shared<Room>("MainRoom", 101, "wood", "medium", true, neighbors);  // Example attributes
 
     // Create AlertSystem
     AlertSystem alertSystem;
@@ -109,7 +108,6 @@ TEST_CASE("MongoDB Integration Test") {
     }
 
     // Stop all threads before exiting
-    alertSystem.stop();
     dbAdapter.stop();
     dbAdapter.stopRobotStatusThread();
 }

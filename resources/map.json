@@ -3,110 +3,132 @@
       {
         "name": "Charging Station",
         "id": 0,
-        "flooringType": "Hardwood",
-        "isRoomClean": false
+        "flooringType": "tile",
+        "isRoomClean": false,
+        "size": "small",
+        "isRestricted": false
       },
       {
         "name": "Living Room",
         "id": 1,
-        "flooringType": "Hardwood",
-        "isRoomClean": false
+        "flooringType": "wood",
+        "isRoomClean": false,
+        "size": "large",
+        "isRestricted": false
       },
       {
         "name": "Kitchen",
         "id": 2,
-        "flooringType": "Tile",
-        "isRoomClean": false
+        "flooringType": "tile",
+        "isRoomClean": false,
+        "size": "medium",
+        "isRestricted": false
       },
       {
         "name": "Master Bedroom",
         "id": 3,
-        "flooringType": "Carpet",
-        "isRoomClean": false
+        "flooringType": "carpet",
+        "isRoomClean": false,
+        "size": "large",
+        "isRestricted": true
       },
       {
         "name": "Kids Room",
         "id": 4,
-        "flooringType": "Carpet",
-        "isRoomClean": false
+        "flooringType": "carpet",
+        "isRoomClean": false,
+        "size": "medium",
+        "isRestricted": false
       },
       {
         "name": "Bathroom",
         "id": 5,
-        "flooringType": "Tile",
-        "isRoomClean": false
+        "flooringType": "tile",
+        "isRoomClean": false,
+        "size": "small",
+        "isRestricted": true
       },
       {
         "name": "Hallway",
         "id": 6,
-        "flooringType": "Hardwood",
-        "isRoomClean": false
+        "flooringType": "wood",
+        "isRoomClean": false,
+        "size": "medium",
+        "isRestricted": false
       },
       {
         "name": "Dining Room",
         "id": 7,
-        "flooringType": "Hardwood",
-        "isRoomClean": false
+        "flooringType": "wood",
+        "isRoomClean": false,
+        "size": "medium",
+        "isRestricted": false
       },
       {
         "name": "Office",
         "id": 8,
-        "flooringType": "Carpet",
-        "isRoomClean": false
+        "flooringType": "carpet",
+        "isRoomClean": false,
+        "size": "small",
+        "isRestricted": false
       },
       {
         "name": "Laundry Room",
         "id": 9,
-        "flooringType": "Tile",
-        "isRoomClean": false
+        "flooringType": "tile",
+        "isRoomClean": false,
+        "size": "small",
+        "isRestricted": false
       },
       {
         "name": "Garage",
         "id": 10,
-        "flooringType": "Concrete",
-        "isRoomClean": false
+        "flooringType": "tile",
+        "isRoomClean": false,
+        "size": "large",
+        "isRestricted": false
       }
     ],
     "connections": [
       {
-        "room1": 0,
-        "room2": 1
+        "from": 0,
+        "to": 1
       },
       {
-        "room1": 1,
-        "room2": 2
+        "from": 1,
+        "to": 2
       },
       {
-        "room1": 1,
-        "room2": 6
+        "from": 1,
+        "to": 6
       },
       {
-        "room1": 2,
-        "room2": 7
+        "from": 2,
+        "to": 5
       },
       {
-        "room1": 6,
-        "room2": 3
+        "from": 2,
+        "to": 7
       },
       {
-        "room1": 6,
-        "room2": 4
+        "from": 3,
+        "to": 6
       },
       {
-        "room1": 6,
-        "room2": 5
+        "from": 4,
+        "to": 6
       },
       {
-        "room1": 7,
-        "room2": 8
+        "from": 6,
+        "to": 8
       },
       {
-        "room1": 7,
-        "room2": 9
+        "from": 7,
+        "to": 9
       },
       {
-        "room1": 9,
-        "room2": 10
+        "from": 9,
+        "to": 10
       }
     ],
     "virtualWalls": [
@@ -124,4 +146,3 @@
       }
     ]
   }
-  

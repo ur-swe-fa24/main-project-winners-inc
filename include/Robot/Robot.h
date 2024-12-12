@@ -2,77 +2,100 @@
 #define ROBOT_H
 
 #include <string>
-#include <vector>    // For std::vector
-#include <queue>     // For std::queue
+#include <memory>
+#include <queue>
+#include "CleaningTask/cleaningTask.h"
 #include "Room/Room.h"
-#include "map/map.h" // For Map class
+#include "map/map.h"
 
 class Robot {
 public:
-    // Constructor
-    Robot(const std::string& name, int batteryLevel);
+    // Enums for size and cleaning strategy
+    enum class Size { SMALL, MEDIUM, LARGE };
+    enum class Strategy { VACUUM, SCRUB, SHAMPOO };
 
-    // Status update method
-    void sendStatusUpdate() const;
+    // Modified constructor to accept size and strategy
+    Robot(const std::string& name, double batteryLevel, Size size, Strategy strategy, double waterLevel = 100.0);
 
-    // Methods to manage battery
-    void recharge(const Map& map);           // Updated declaration
-    void depleteBattery(int amount);
-
-    // Methods to perform actions
-    void startCleaning();
+    void updateState(double deltaTime);
+    void startCleaning(CleaningTask::CleanType cleaningType);
     void stopCleaning();
+    void setMovementPath(const std::vector<int>& roomIds, const Map& map);
+    void moveToRoom(Room* room);
+
+    double getBatteryLevel() const;
+    double getWaterLevel() const;
+    bool needsCharging() const;
+    bool needsWaterRefill() const;
     bool isCleaning() const;
-
-    // Maintenance and alerts
-    bool needsMaintenance() const;
-    void setLowBatteryAlertSent(bool sent);
-    bool isLowBatteryAlertSent() const;
-
-    // Getters
-    std::string getName() const;
-    int getBatteryLevel() const;
-    std::string getStatus() const;
-    int getMovementProgress() const;
-    Room* getNextRoom() const;
-
-
-
-    void setCurrentRoom(Room* room);
+    bool isMoving() const;
     Room* getCurrentRoom() const;
-    bool moveToRoom(Room* room);  // Move to an adjacent room
+    Room* getNextRoom() const;
+    std::string getName() const;
+    void setCurrentRoom(Room* room);
+    void setCharging(bool charging);
+    void refillWater();
+    void fullyRecharge();
 
-    void setMovementPath(const std::vector<int>& roomIds, const Map& map); // Changed Map& to const Map&
-    // void update();  // Update robot status (move along path, deplete battery)
-    void startCharging();
-    void stopCharging();
     bool isCharging() const;
+    double getMovementProgress() const;
+    bool needsMaintenance() const;
+    bool isLowBatteryAlertSent() const;
+    bool isLowWaterAlertSent() const;
+    std::string getStatus() const;
 
+    void setLowBatteryAlertSent(bool val);
+    void setLowWaterAlertSent(bool val);
+    void setCurrentTask(std::shared_ptr<CleaningTask> task);
+    std::shared_ptr<CleaningTask> getCurrentTask() const;
     void setTargetRoom(Room* room);
-    void update(const Map& map);  // Modify this line
 
+    void saveCurrentTask();
+    bool resumeSavedTask();
+    void setMap(Map* m) { robotMap_ = m; }
 
+    // Getters for size and strategy if needed
+    Size getSize() const { return size_; }
+    Strategy getStrategy() const { return strategy_; }
+
+    int errorCount_;
+    double totalWorkTime_; // total cleaning/working time in seconds
+    bool failed_;          // indicates if the robot has failed
+
+    void repair();
+    bool isFailed() const { return failed_; }
+
+    int getErrorCount() const { return errorCount_; }
+    double getTotalWorkTime() const { return totalWorkTime_; }
+
+    // New methods for task management
+    bool requestNextTask();
+    bool canAcceptTask() const;
 
 private:
-    // Attributes
-    std::string name;
-    int batteryLevel;
+    std::string name_;
+    double batteryLevel_;
+    double waterLevel_;
     bool cleaning_;
-    bool lowBatteryAlertSent_;
-    Room* currentRoom_;
-    std::queue<Room*> movementQueue_;
-    Room* nextRoom_; // The room the robot is moving towards
-
     bool isCharging_;
-    int chargingTimeRemaining_; // in seconds
-    double movementProgress_; // Time remaining to move to next room
+    double cleaningProgress_;
+    double movementProgress_;
+    Room* currentRoom_;
+    Room* nextRoom_;
+    double cleaningTimeRemaining_;
+    Room* targetRoom_;
+    bool lowBatteryAlertSent_;
+    bool lowWaterAlertSent_;
 
-    double cleaningTimeRemaining_; // Time remaining to clean the room
+    Map* robotMap_;
 
+    std::queue<Room*> movementQueue_;
+    std::shared_ptr<CleaningTask> currentTask_;
+    std::shared_ptr<CleaningTask> savedTask_;
+    double savedCleaningTimeRemaining_;
 
-    Room* targetRoom_; // The room the robot is assigned to clean
-
-
+    Size size_;
+    Strategy strategy_;
 };
 
 #endif // ROBOT_H

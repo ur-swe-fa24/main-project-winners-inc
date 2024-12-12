@@ -6,7 +6,7 @@
 namespace config {
     class ResourceConfig {
     public:
-        static void initialize(const std::string& resourceDir = "");
+        static bool initialize(const std::string& resourceDir = "");
         static std::string getResourcePath(const std::string& resourceName);
         static std::string getMapPath();
         

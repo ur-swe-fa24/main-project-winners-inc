@@ -1,5 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
-#include "Schedular/Schedular.hpp"
+#include "Scheduler/Scheduler.hpp"
 #include "config/ResourceConfig.hpp"
 #include "Robot/Robot.h"
 #include "map/map.h"
@@ -20,9 +20,9 @@ TEST_CASE("Test Scheduling System", "[scheduling]") {
 
     std::vector<std::shared_ptr<Robot>> robots;
     
-    // Create test robots
-    auto robot1 = std::make_shared<Robot>("Robot1", 100);
-    auto robot2 = std::make_shared<Robot>("Robot2", 100);
+    // Create test robots with size and strategy
+    auto robot1 = std::make_shared<Robot>("Robot1", 100, Robot::Size::MEDIUM, Robot::Strategy::VACUUM);
+    auto robot2 = std::make_shared<Robot>("Robot2", 100, Robot::Size::MEDIUM, Robot::Strategy::VACUUM);
 
     // Set initial rooms for robots
     Room* room3 = map.getRoomById(3);
@@ -37,7 +37,7 @@ TEST_CASE("Test Scheduling System", "[scheduling]") {
     robots.push_back(robot2);
 
     // Create scheduler with map and robots
-    Scheduler scheduler(map, robots);
+    Scheduler scheduler(&map, &robots);
 
     SECTION("Robot Task Assignment") {
         // Test assigning tasks to existing rooms from test_map.json
@@ -46,13 +46,13 @@ TEST_CASE("Test Scheduling System", "[scheduling]") {
                          std::runtime_error);
 
         // Test assigning task to robot's current room (should work)
-        REQUIRE_NOTHROW(scheduler.assignCleaningTask("Robot1", 3, "Standard")); // Robot1 to its current room
-        REQUIRE_NOTHROW(scheduler.assignCleaningTask("Robot2", 5, "Deep")); // Robot2 to its current room
+        REQUIRE_NOTHROW(scheduler.assignCleaningTask("Robot1", 3, "Vacuum")); // Robot1 to its current room
+        REQUIRE_NOTHROW(scheduler.assignCleaningTask("Robot2", 5, "Scrub")); // Robot2 to its current room
 
         // Test assigning task to non-existent robot
-        REQUIRE_THROWS(scheduler.assignCleaningTask("NonexistentRobot", 3, "Standard"));
+        REQUIRE_THROWS(scheduler.assignCleaningTask("NonexistentRobot", 3, "Vacuum"));
 
         // Test assigning task to non-existent room
-        REQUIRE_THROWS(scheduler.assignCleaningTask("Robot1", 999, "Standard"));
+        REQUIRE_THROWS(scheduler.assignCleaningTask("Robot1", 999, "Vacuum"));
     }
 }

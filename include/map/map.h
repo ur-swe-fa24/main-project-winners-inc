@@ -17,7 +17,7 @@ private:
     ~Map();
 
     // Setting up or making changes to the map
-    void addRoom(const std::string& roomName, int id, const std::string& flooringType, bool isRoomClean);
+    void addRoom(const std::string& roomName, int id, const std::string& flooringType, const std::string& size, bool isRoomClean);
     void connectRooms(Room* room1, Room* room2);
     void addVirtualWall(Room* room1, Room* room2);
     void loadFromFile(const std::string& filename);
